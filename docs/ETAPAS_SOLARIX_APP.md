@@ -50,12 +50,16 @@
 - [x] La app arranca en Android y Web mostrando una pantalla inicial
 
 ## Etapa 2 — Autenticación de usuarios
-- [ ] Pantallas: registro, inicio de sesión, recuperar contraseña
-- [ ] Integrar Supabase Auth (correo/contraseña; Google opcional más adelante)
-- [ ] Persistir la sesión para que no pida login cada vez que se abre la app
-- [ ] Rutas protegidas con go_router (sin sesión → login)
-- [ ] Pantalla de perfil (nombre, ciudad/zona por defecto)
-- [ ] Cerrar sesión
+- [x] Pantallas: registro, inicio de sesión, recuperar contraseña
+- [x] Integrar Supabase Auth (correo/contraseña; Google opcional más adelante)
+- [x] Confirmación de correo y recuperación de contraseña con **código de 6 dígitos** (OTP) en la app, sin enlaces
+- [x] Persistir la sesión para que no pida login cada vez que se abre la app
+- [x] Rutas protegidas con go_router (sin sesión → login)
+- [x] Pantalla de perfil (nombre, ciudad/zona por defecto)
+- [x] Cerrar sesión
+- [x] Pruebas: validadores, mensajes de error, reglas de navegación y flujos completos con repositorio falso
+- [ ] Plantillas de correo de Supabase ("Confirm signup" y "Reset password") con el código `{{ .Token }}`
+- [ ] Prueba manual con Supabase real en Chrome y Android (registro → código → inicio → perfil → cerrar sesión → recuperar)
 
 ## Etapa 3 — Módulo de calculadora solar (consumo, dimensionamiento y costos)
 *Evolución del proyecto de Proyecto Integrador I, ahora para cualquier zona, no solo rural. Corrige los supuestos fijos del HTML original (ver `BITACORA.md`, revisión del HTML).*

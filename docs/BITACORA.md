@@ -107,3 +107,20 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 
 - `HECHO` La app se instala y abre en un celular Android real (configuración "Solarix (Android)" de VS Code) y muestra "Supabase conectado" (verificado por el autor). También verificada en Chrome.
 - `HECHO` Todas las tareas de la Etapa 1 completas. Queda pendiente la revisión del autor y el commit + push (`Etapa 1: configuración del proyecto Flutter y Supabase`).
+- `HECHO` Subida a GitHub en 5 commits separados por tema (Flutter base, esquema de Supabase, CI, VS Code, documentación), hechos por Claude a pedido del autor.
+
+## 2026-10-01 — Etapa 2: autenticación
+
+- `DECISIÓN` Recuperación de contraseña y confirmación de correo con **código de 6 dígitos** escrito en la app (OTP), en lugar de enlaces: funciona igual en Android y web, sin deep links.
+- `HECHO` Capa de datos: `AuthRepository` (interfaz) con `SupabaseAuthRepository` y `SinBackendAuthRepository` (para CI/pruebas sin `env.json`); `PerfilRepository` sobre la tabla `perfiles`. Los errores de Supabase se traducen a mensajes en español (`ErrorApp`, `mensajeErrorAuth`).
+- `HECHO` Pantallas: iniciar sesión, crear cuenta, confirmar correo con código (con reenvío), recuperar contraseña en dos pasos, perfil (nombre, ciudad, irradiancia por defecto) con cerrar sesión. Acceso al perfil desde el inicio.
+- `HECHO` Navegación protegida (`redirigir` en `lib/core/router/rutas.dart`): sin sesión → login; con sesión no se ven login, registro ni verificación; la pantalla de recuperar se permite en ambos casos porque validar el código abre la sesión antes de cambiar la contraseña. El router se reevalúa con cada cambio de sesión.
+- `HECHO` La sesión la persiste `supabase_flutter` (SharedPreferences en Android, localStorage en web).
+- `HECHO` Registro con un correo ya existente: Supabase responde éxito sin identidades (para no revelar cuentas); se detecta y se muestra "Ya existe una cuenta con ese correo".
+- `ELIMINADO` `InicioScreen.ruta`, reemplazado por las constantes de `Rutas`; `lib/features/auth/.gitkeep`.
+- `CORREGIDO` Filas "¿No tienes cuenta? / ¿Ya tienes cuenta?" cambiadas de `Row` a `Wrap`, y lista de irradiancia con `isExpanded`: se desbordaban en pantallas angostas o con letra grande (detectado por las pruebas).
+- `HECHO` 25 pruebas pasan (validadores, mensajes de error, reglas de navegación, flujos de login, registro, recuperación, perfil y cierre de sesión con repositorio falso); `flutter analyze` sin advertencias.
+- `PENDIENTE` Agregar `{{ .Token }}` a las plantillas "Confirm signup" y "Reset password" de Supabase.
+- `PENDIENTE` Prueba manual con Supabase real en Chrome y Android.
+- `CORREGIDO` `android/build/` (salida de compilación de Android generada al ejecutar en el celular) agregado al `.gitignore`.
+- `HECHO` Subida a GitHub en commits separados por tema (capa de datos, pantallas y navegación, pruebas, `.gitignore`, documentación), a pedido del autor.
