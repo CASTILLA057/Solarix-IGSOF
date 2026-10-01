@@ -60,7 +60,19 @@
 - [x] Pruebas: validadores, mensajes de error, reglas de navegación y flujos completos con repositorio falso
 - [x] Correo propio (SMTP de Brevo, remitente `solarixapp@gmail.com`) configurado en Supabase
 - [x] Plantillas de correo de Supabase ("Confirm signup" y "Reset password") con el código `{{ .Token }}` (versionadas en `supabase/config.toml` y `supabase/templates/`)
-- [ ] Prueba manual con Supabase real en Chrome y Android (registro → código → inicio → perfil → cerrar sesión → recuperar)
+- [x] Prueba manual con Supabase real en Chrome y Android (registro → código → inicio → perfil → cerrar sesión → recuperar)
+
+**Mejoras de experiencia pedidas tras la prueba manual**
+- [x] **Pantalla de bienvenida** (web y Android): al abrir la app sin sesión, mostrar una presentación de Solarix (logo, nombre y una frase corta) con dos botones: **Iniciar sesión** y **Crear cuenta**. Con sesión guardada se sigue entrando directo al inicio.
+- [x] **Transiciones suaves entre pantallas** en toda la app (web y Android): al pasar a "Crear cuenta", "¿Olvidaste tu contraseña?" o cualquier otra vista, un fundido con un desplazamiento leve (≈ 250–300 ms), en lugar del cambio de golpe. Sobrio, sin efectos llamativos.
+- [x] **Recuperar contraseña en tres pasos**, mostrando solo los campos de cada paso:
+  1. Escribir el correo → enviar el código.
+  2. Escribir el código → **verificarlo**. Si es incorrecto o venció, mostrar el error y permitir pedir otro.
+  3. Solo con el código correcto, mostrar **Contraseña nueva** y **Repite la contraseña nueva** → guardar.
+  - Al verificar el código Supabase abre una sesión temporal: si el usuario sale en el paso 3 sin cambiar la contraseña, cerrar esa sesión.
+  - Transición suave al pasar de un paso a otro.
+- [x] Pruebas de la bienvenida, de la navegación con transiciones y del nuevo flujo de recuperación (código incorrecto, código correcto, salir sin cambiar la contraseña)
+- [x] Prueba manual de las mejoras en Chrome y Android
 
 ## Etapa 3 — Módulo de calculadora solar (consumo, dimensionamiento y costos)
 *Evolución del proyecto de Proyecto Integrador I, ahora para cualquier zona, no solo rural. Corrige los supuestos fijos del HTML original (ver `BITACORA.md`, revisión del HTML).*

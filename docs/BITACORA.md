@@ -140,4 +140,25 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` `supabase config push`: aplicadas 4 propiedades (asunto y contenido de las plantillas "confirmation" y "recovery"); las otras 19 propiedades del proyecto, incluido el SMTP, quedaron sin cambios. Verificado después con `config diff`: 0 diferencias en lo declarado.
 - `HECHO` Prueba real: el correo de Solarix con el código llega correctamente a través de Brevo (verificado por el autor).
 - `HECHO` Subida a GitHub en commits separados (plantillas de correo, documentación).
-- `PENDIENTE` Completar la prueba manual del resto del flujo: perfil, cerrar sesión y recuperar contraseña.
+- ~~`PENDIENTE` Completar la prueba manual del resto del flujo: perfil, cerrar sesión y recuperar contraseña.~~ → Hecho, ver la entrada siguiente.
+
+## 2026-10-01 — Etapa 2: prueba manual y nuevas tareas
+
+- `HECHO` Prueba manual completa con Supabase real, verificada por el autor: registro, código de confirmación, inicio, perfil, cerrar sesión, iniciar sesión y recuperar contraseña funcionan.
+- `DECISIÓN` Se agregan tres mejoras de experiencia a la Etapa 2, pedidas por el autor tras la prueba:
+  - Pantalla de **bienvenida** al abrir sin sesión, con botones para iniciar sesión o crear cuenta (web y Android).
+  - **Transiciones suaves** (fundido con desplazamiento leve) al cambiar de pantalla, en lugar del cambio de golpe.
+  - **Recuperar contraseña en tres pasos**: correo → verificar el código → solo si es correcto, contraseña nueva y repetirla. Hoy el código y la contraseña nueva se piden juntos.
+- ~~`PENDIENTE` Implementar las tres mejoras y sus pruebas.~~ → Hecho, ver la entrada siguiente.
+
+## 2026-10-01 — Etapa 2: bienvenida, transiciones y recuperación en tres pasos
+
+- `HECHO` **Bienvenida** (`bienvenida_screen.dart`): logo, "Bienvenido a Solarix", una frase, tres características y los botones **Iniciar sesión** y **Crear cuenta**; el contenido aparece con un fundido y un leve ascenso (600 ms). Sin sesión la app abre aquí; con sesión guardada sigue entrando directo al inicio.
+- `HECHO` Rutas de acceso como **hijas de la bienvenida** (`/bienvenida/login`, `/bienvenida/registro`, `/bienvenida/verificar`, `/bienvenida/recuperar`): el botón atrás de web y Android vuelve a la bienvenida. Sin sesión, cualquier ruta privada redirige a `/bienvenida` (antes a `/login`).
+- `HECHO` **Transiciones suaves** (`TransicionSuave` en `lib/core/theme/transicion_suave.dart`): fundido con desplazamiento horizontal del 4 % y curva `easeOutCubic`, aplicado en el tema para todas las plataformas, así cubre también las pantallas futuras.
+- `HECHO` **Recuperar contraseña en tres pasos**: (1) correo → enviar código; (2) verificar el código, con "Reenviar código" y "Usar otro correo"; (3) solo con el código correcto aparecen "Contraseña nueva" y "Repite la contraseña nueva". Cambio animado entre pasos (fundido + tamaño, 300 ms). Si el usuario sale en el paso 3 sin cambiar la contraseña, se cierra la sesión temporal que abre la verificación.
+- `CORREGIDO` `AuthRepository.restablecerContrasena` se dividió en `verificarCodigoRecuperacion` y `cambiarContrasena`, para poder verificar el código antes de pedir la contraseña nueva.
+- `CORREGIDO` Detectado por las pruebas: al abrir recuperar con `push` desde el login, la ubicación base seguía siendo el login; al verificar el código (sesión temporal) el router redirigía al inicio antes del paso 3. Ahora se navega con `go` a la ruta de recuperación.
+- `HECHO` 30 pruebas pasan: 5 nuevas (el botón atrás vuelve a la bienvenida, código incorrecto, salir sin cambiar la contraseña, rutas de acceso hijas de la bienvenida, transición suave en el tema) y las existentes adaptadas a la bienvenida y a los tres pasos; `flutter analyze` sin advertencias.
+- `HECHO` Prueba manual de las mejoras en Chrome y Android, verificada por el autor: bienvenida, transiciones y recuperación en tres pasos funcionan.
+- `HECHO` **Etapa 2 completa.** Subida a GitHub en commits separados por tema (transiciones, recuperación en tres pasos, bienvenida y rutas, pruebas, documentación).
