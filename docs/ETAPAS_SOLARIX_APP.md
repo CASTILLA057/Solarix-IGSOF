@@ -58,7 +58,8 @@
 - [x] Pantalla de perfil (nombre, ciudad/zona por defecto)
 - [x] Cerrar sesión
 - [x] Pruebas: validadores, mensajes de error, reglas de navegación y flujos completos con repositorio falso
-- [ ] Plantillas de correo de Supabase ("Confirm signup" y "Reset password") con el código `{{ .Token }}`
+- [x] Correo propio (SMTP de Brevo, remitente `solarixapp@gmail.com`) configurado en Supabase
+- [x] Plantillas de correo de Supabase ("Confirm signup" y "Reset password") con el código `{{ .Token }}` (versionadas en `supabase/config.toml` y `supabase/templates/`)
 - [ ] Prueba manual con Supabase real en Chrome y Android (registro → código → inicio → perfil → cerrar sesión → recuperar)
 
 ## Etapa 3 — Módulo de calculadora solar (consumo, dimensionamiento y costos)

@@ -124,3 +124,20 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `PENDIENTE` Prueba manual con Supabase real en Chrome y Android.
 - `CORREGIDO` `android/build/` (salida de compilación de Android generada al ejecutar en el celular) agregado al `.gitignore`.
 - `HECHO` Subida a GitHub en commits separados por tema (capa de datos, pantallas y navegación, pruebas, `.gitignore`, documentación), a pedido del autor.
+
+## 2026-10-01 — Etapa 2: plantillas de correo con código
+
+- `HECHO` Plantillas versionadas en git: `supabase/config.toml` (solo declara las plantillas "confirmation" y "recovery") y `supabase/templates/confirmacion.html` y `recuperacion.html` con `{{ .Token }}`. `supabase config push` solo sube lo declarado; `supabase config diff` confirmó que únicamente cambiarían las dos plantillas.
+- `HECHO` Encontrado en el `config diff`: el proyecto usa códigos de **8 dígitos** (`otp_length = 8`) y la confirmación de correo está activa. La app acepta códigos de 6 a 10 dígitos, así que no requiere cambios.
+- `CORREGIDO` El `config push` fue **rechazado por Supabase**: en el plan gratis con el correo incluido no se pueden modificar las plantillas; hace falta un proveedor de correo propio (SMTP). Verificado con `config diff` que el proyecto quedó sin cambios.
+- ~~`PENDIENTE` Configurar un SMTP propio y volver a ejecutar `supabase config push`.~~ → Hecho, ver la entrada siguiente.
+
+## 2026-10-01 — Etapa 2: SMTP propio y plantillas aplicadas
+
+- `DECISIÓN` Proveedor de correo: **Brevo** (gratis, 300 correos/día, sin dominio propio), con un correo dedicado al proyecto como remitente (`solarixapp@gmail.com`) en lugar del correo personal. Adelantado desde la Etapa 10.
+- `HECHO` (por el autor) Cuenta de Brevo, remitente verificado y SMTP configurado en Supabase (las credenciales las maneja solo el autor).
+- `HECHO` Verificado con `config diff` (solo lectura): SMTP activo con `smtp-relay.brevo.com:587`, remitente "Solarix" y límite de 30 correos/hora.
+- `HECHO` `supabase config push`: aplicadas 4 propiedades (asunto y contenido de las plantillas "confirmation" y "recovery"); las otras 19 propiedades del proyecto, incluido el SMTP, quedaron sin cambios. Verificado después con `config diff`: 0 diferencias en lo declarado.
+- `HECHO` Prueba real: el correo de Solarix con el código llega correctamente a través de Brevo (verificado por el autor).
+- `HECHO` Subida a GitHub en commits separados (plantillas de correo, documentación).
+- `PENDIENTE` Completar la prueba manual del resto del flujo: perfil, cerrar sesión y recuperar contraseña.
