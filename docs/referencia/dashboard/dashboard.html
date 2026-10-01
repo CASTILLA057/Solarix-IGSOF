@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solarix Resultados</title>
+<!-- Etapa 15: NetLogo escribe datos.js al terminar la simulacion y abre esta pagina (extension shell).
+     Sin librerias externas: las graficas se dibujan en SVG para que funcione sin internet. -->
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --ref: #898781; --good: #006300; --bad: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --ref: #898781; --good: #0ca30c; --bad: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --ref: #898781; --good: #0ca30c; --bad: #e66767;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 32px 0 8px; }
+h3 { font-size: 14px; margin: 0 0 2px; }
+.sub { color: var(--ink-2); margin: 0 0 16px; }
+.nota { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0; }
+.kpi, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.kpi .v { font-size: 24px; font-weight: 600; margin: 2px 0; }
+.kpi .l { color: var(--ink-2); font-size: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; }
+.card { position: relative; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 4px 0 6px; min-height: 4px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--c); }
+.legend span.linea::before { height: 2px; vertical-align: 3px; }
+.legend span.guion::before { height: 0; border-top: 2px dashed var(--c); background: none; vertical-align: 3px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--muted); font-size: 11px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.12); display: none; white-space: nowrap; z-index: 2; }
+.tip b { font-weight: 600; }
+.tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; }
+.tabla { overflow-x: auto; }
+.error { background: var(--surface); border: 1px solid var(--bad); border-radius: 10px; padding: 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Solarix — Resultados de la simulación</h1>
+  <p class="sub" id="params"></p>
+  <div id="contenido"></div>
+</main>
+<script src="datos.js"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  if (typeof DATOS === "undefined") {
+    $("#contenido").innerHTML = '<div class="error"><b>No hay datos.</b> Corre la simulación en NetLogo (setup y go) hasta el final, o pulsa el botón <b>Abrir dashboard</b>: el modelo escribe <code>dashboard/datos.js</code> y abre esta página.</div>';
+    return;
+  }
+  const P = DATOS.parametros, Rz = DATOS.resumen;
+  const col = Object.fromEntries(DATOS.columnas.map((c, i) => [c, i]));
+  const F = DATOS.filas.map((f) => Object.fromEntries(DATOS.columnas.map((c) => [c, f[col[c]]])));
+  const nf = (v, d = 0) => v.toLocaleString("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const anios = Rz.horas / 8760;
+  const css = (v) => `var(${v})`;   // los colores siguen el tema claro/oscuro en vivo
+
+  // ---- agregados por mes (12 por anio, 30,42 dias) y por anio ----
+  F.forEach((f) => { const a = Math.floor(f.dia / 365), d = f.dia % 365; f.anio = a; f.mes = a * 12 + Math.min(11, Math.floor(d / 30.42)); f.x = (f.dia + 1) / 365; });
+  function agrupar(clave) {
+    const mapa = new Map();
+    F.forEach((f) => { if (!mapa.has(f[clave])) mapa.set(f[clave], []); mapa.get(f[clave]).push(f); });
+    return [...mapa.entries()].map(([k, fs]) => {
+      const suma = (c) => fs.reduce((s, f) => s + f[c], 0), media = (c) => suma(c) / fs.length;
+      const cuenta = (c) => fs.filter((f) => f.clima === c).length;
+      return { k, x: (fs[0].dia + fs.length / 2) / 365, n: fs.length, generacion: suma("generacion"), consumo: suma("consumo"), comprada: suma("comprada"),
+        limpiezas: suma("limpieza"), soc: media("soc"), irradiancia: media("irradiancia"), temperatura: media("temperatura"),
+        sohFin: fs[fs.length - 1].soh, soleado: cuenta("soleado"), nublado: cuenta("nublado"), lluvia: cuenta("lluvia"), tormenta: cuenta("tormenta") };
+    });
+  }
+  const M = agrupar("mes"), A = agrupar("anio");
+  let acum = 0; F.forEach((f) => { acum += f.comprada; f.compAcum = acum; });
+
+  // ---- encabezado y tarjetas ----
+  $("#params").textContent = `Política ${P.politica} · escenario de irradiancia ${P.escenario} · zona ${P.zona} · batería ${nf(P.capacidad, 1)} kWh · panel ${nf(P.panel, 1)} kW · SOC ${P.cargaMin}–${P.cargaMax} % · limpieza al ${P.umbralLimpieza} % de pérdida · ${nf(Rz.horas)} horas simuladas (${nf(anios, 1)} años).`;
+  const perdida = (100 - Rz.sohFinal) / anios;
+  const enBanda = perdida >= 1.3 && perdida <= 1.7;
+  const kpis = [
+    ["SoH final", nf(Rz.sohFinal, 2) + " %", Rz.finDeVida ? "Llegó al fin de vida (80 %)" : "Salud de la batería al final"],
+    ["Pérdida media de SoH", nf(perdida, 2) + " %/año", (enBanda ? "Dentro" : "Fuera") + " de la banda del Word (1,3–1,7 %)"],
+    ["Energía comprada a la red", nf(Rz.comprada) + " kWh", nf(Rz.comprada / anios) + " kWh por año"],
+    ["Limpiezas de paneles", nf(Rz.limpiezas), nf(Rz.limpiezas / anios, 1) + " por año"],
+    ["Ciclos equivalentes", nf(Rz.ciclos), "Cargas y descargas completas"],
+  ];
+  let html = '<div class="kpis">' + kpis.map(([l, v, n]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="l">${n}</div></div>`).join("") + "</div>";
+
+  const secciones = [
+    ["1. Salud y carga de la batería", [
+      ["soh", "Estado de salud (SoH, %)", "Línea continua: el modelo. Líneas punteadas: banda de referencia del Word, pérdida de 1,3 y 1,7 % por año (Sidi Lekhel et al., 2026)."],
+      ["soc", "Nivel de carga promedio por mes (SOC, %)", "Promedio mensual del estado de carga de la batería."]]],
+    ["2. Energía y red", [
+      ["energia", "Energía por mes (kWh)", "Generación solar, consumo de la casa y energía comprada a la red en cada mes."],
+      ["acum", "Energía comprada acumulada (kWh)", "Total comprado a la red desde el inicio."]]],
+    ["3. Polvo y limpiezas", [
+      ["polvo", "Polvo sobre el panel al final de cada día (g)", "Diente de sierra: el polvo sube y cae a cero cuando el EMS limpia (puntos); la lluvia lo reduce poco a poco."],
+      ["limp", "Limpiezas por año", "Cuántas veces el EMS ordenó limpiar los paneles cada año."]]],
+    ["4. Clima y entorno", [
+      ["irr", "Irradiancia media por mes (W/m²)", "Promedio de las 24 horas del día, incluida la noche."],
+      ["temp", "Temperatura ambiente media por mes (°C)", ""],
+      ["dias", "Tipo de día por año (días)", "Días soleados, nublados, de lluvia y de tormenta de polvo en cada año."]]],
+  ];
+  secciones.forEach(([t, cs]) => {
+    html += `<h2>${t}</h2><div class="grid2">` + cs.map(([id, tt, nota]) => `<div class="card"><h3>${tt}</h3><div class="legend" id="lg-${id}"></div><div id="g-${id}"></div>${nota ? `<p class="nota">${nota}</p>` : ""}<div class="tip"></div></div>`).join("") + "</div>";
+  });
+  html += '<h2>Resumen por año</h2><div class="card tabla"><table id="tabla"></table></div>';
+  $("#contenido").innerHTML = html;
+
+  // ---- utilidades de graficas SVG ----
+  const W = 560, H = 260, m = { t: 12, r: 16, b: 34, l: 58 };
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, at, padre) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in at) { if ((k === "fill" || k === "stroke") && String(at[k]).startsWith("var(")) e.style[k] = at[k]; else e.setAttribute(k, at[k]); }
+    if (padre) padre.appendChild(e); return e;
+  }
+  function ticks(min, max, n = 5) {
+    const paso0 = (max - min) / n, mag = Math.pow(10, Math.floor(Math.log10(paso0 || 1)));
+    const paso = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((p) => p >= paso0) || mag * 10;
+    const out = []; for (let v = Math.ceil(min / paso) * paso; v <= max + 1e-9; v += paso) out.push(+v.toFixed(10)); return out;
+  }
+  function leyenda(id, items) {
+    $("#lg-" + id).innerHTML = items.map((s) => `<span class="${s.tipo || ""}" style="--c:${s.color}">${s.nombre}</span>`).join("");
+  }
+  function mostrarTip(card, tip, ev, contenido) {
+    tip.innerHTML = contenido; tip.style.display = "block";
+    const cr = card.getBoundingClientRect();
+    tip.style.left = Math.max(4, Math.min(ev.clientX - cr.left + 14, cr.width - tip.offsetWidth - 8)) + "px";
+    tip.style.top = ev.clientY - cr.top + 14 + "px";
+  }
+  function marco(id, ymin, ymax, xmax, fmtY) {
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+    $("#g-" + id).appendChild(svg);
+    const sx = (x) => m.l + (x / xmax) * (W - m.l - m.r), sy = (y) => H - m.b - ((y - ymin) / (ymax - ymin)) * (H - m.t - m.b);
+    ticks(ymin, ymax).forEach((v) => {
+      el("line", { x1: m.l, x2: W - m.r, y1: sy(v), y2: sy(v), stroke: css("--grid"), "stroke-width": 1 }, svg);
+      el("text", { x: m.l - 8, y: sy(v) + 4, "text-anchor": "end" }, svg).textContent = fmtY(v);
+    });
+    el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1 }, svg);
+    for (let a = 0; a <= xmax; a += xmax > 12 ? 2 : 1) el("text", { x: sx(a), y: H - m.b + 16, "text-anchor": "middle" }, svg).textContent = a;
+    el("text", { x: (m.l + W - m.r) / 2, y: H - 2, "text-anchor": "middle" }, svg).textContent = "Años simulados";
+    return { svg, sx, sy };
+  }
+  function rango(series, cero) {
+    let lo = Infinity, hi = -Infinity;
+    series.forEach((s) => s.y.forEach((v) => { if (v < lo) lo = v; if (v > hi) hi = v; }));
+    const pad = (hi - lo) * 0.06 || 1;
+    return [cero ? Math.min(0, lo) : lo - pad, hi + pad];
+  }
+  // crosshair + tooltip: busca el punto mas cercano en x
+  function hover(id, svg, sx, xs, texto, colores) {
+    const card = $("#g-" + id).parentElement, tip = card.querySelector(".tip");
+    const guia = el("line", { y1: m.t, y2: H - m.b, stroke: css("--axis"), "stroke-width": 1, visibility: "hidden" }, svg);
+    const puntos = colores.map((c) => el("circle", { r: 4, fill: c, stroke: css("--surface"), "stroke-width": 2, visibility: "hidden" }, svg));
+    const zona = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+    zona.addEventListener("mousemove", (ev) => {
+      const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+      let best = 0, bd = Infinity; xs.forEach((x, i) => { const d = Math.abs(sx(x) - px); if (d < bd) { bd = d; best = i; } });
+      const info = texto(best), X = sx(xs[best]);
+      guia.setAttribute("x1", X); guia.setAttribute("x2", X); guia.setAttribute("visibility", "visible");
+      puntos.forEach((p, k) => { p.setAttribute("cx", X); p.setAttribute("cy", info.ys[k]); p.setAttribute("visibility", "visible"); });
+      mostrarTip(card, tip, ev, info.html);
+    });
+    zona.addEventListener("mouseleave", () => { tip.style.display = "none"; guia.setAttribute("visibility", "hidden"); puntos.forEach((p) => p.setAttribute("visibility", "hidden")); });
+  }
+  const camino = (xs, ys, sx, sy) => xs.map((x, i) => (i ? "L" : "M") + sx(x).toFixed(1) + "," + sy(ys[i]).toFixed(1)).join("");
+  function lineas(id, xs, series, opt = {}) {
+    const xmax = Math.max(1, Math.ceil(anios - 1e-9)), [lo, hi] = opt.rango || rango(series, opt.cero);
+    const { svg, sx, sy } = marco(id, lo, hi, xmax, opt.fmtY || ((v) => nf(v)));
+    (opt.extra || []).forEach((s) => el("path", { d: camino(s.x, s.y, sx, sy), fill: "none", stroke: s.color, "stroke-width": 1.5, "stroke-dasharray": "5 4" }, svg));
+    series.forEach((s) => el("path", { d: camino(xs, s.y, sx, sy), fill: "none", stroke: s.color, "stroke-width": opt.fino ? 1.25 : 2, "stroke-linejoin": "round" }, svg));
+    (opt.puntos || []).forEach((p) => el("circle", { cx: sx(p.x), cy: sy(p.y), r: 4, fill: opt.colorPuntos, stroke: css("--surface"), "stroke-width": 2 }, svg));
+    if (opt.leyenda !== false) leyenda(id, series.length > 1 || opt.extra ? [...series.map((s) => ({ ...s, tipo: "linea" })), ...(opt.extra || []).map((s) => ({ ...s, tipo: "guion" }))] : []);
+    hover(id, svg, sx, xs, (i) => ({ html: opt.tip(i), ys: series.map((s) => sy(s.y[i])) }), series.map((s) => s.color));
+  }
+  function barrasApiladas(id, grupos, series, fmtTip) {
+    const n = grupos.length, tot = grupos.map((_, i) => series.reduce((s, se) => s + se.y[i], 0));
+    const hi = Math.max(1, ...tot) * 1.08;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }); $("#g-" + id).appendChild(svg);
+    const sy = (y) => H - m.b - (y / hi) * (H - m.t - m.b), bw = (W - m.l - m.r) / n;
+    ticks(0, hi).forEach((v) => { el("line", { x1: m.l, x2: W - m.r, y1: sy(v), y2: sy(v), stroke: css("--grid") }, svg); el("text", { x: m.l - 8, y: sy(v) + 4, "text-anchor": "end" }, svg).textContent = nf(v); });
+    const card = $("#g-" + id).parentElement, tip = card.querySelector(".tip");
+    grupos.forEach((g, i) => {
+      let base = 0; const w = Math.min(36, bw * 0.64), x = m.l + i * bw + (bw - w) / 2;
+      const segs = series.filter((s) => s.y[i] > 0);
+      segs.forEach((s, k) => {
+        const y0 = sy(base) - (k ? 1 : 0), y1 = sy(base + s.y[i]) + (k < segs.length - 1 ? 1 : 0), top = k === segs.length - 1, r = Math.min(4, (y0 - y1) / 2);
+        if (y0 - y1 <= 0) { base += s.y[i]; return; }
+        el("path", { d: top ? `M${x},${y0}V${y1 + r}q0,${-r} ${r},${-r}h${w - 2 * r}q${r},0 ${r},${r}V${y0}Z` : `M${x},${y0}V${y1}h${w}V${y0}Z`, fill: s.color }, svg);
+        base += s.y[i];
+      });
+      el("text", { x: x + w / 2, y: H - m.b + 16, "text-anchor": "middle" }, svg).textContent = g;
+      const hit = el("rect", { x: m.l + i * bw, y: m.t, width: bw, height: H - m.t - m.b, fill: "transparent" }, svg);
+      hit.addEventListener("mousemove", (ev) => mostrarTip(card, tip, ev, fmtTip(i)));
+      hit.addEventListener("mouseleave", () => (tip.style.display = "none"));
+    });
+    el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css("--axis") }, svg);
+    el("text", { x: (m.l + W - m.r) / 2, y: H - 2, "text-anchor": "middle" }, svg).textContent = "Año";
+    leyenda(id, series.length > 1 ? series : []);
+  }
+  const fecha = (f) => `Año ${f.anio + 1}, día ${(f.dia % 365) + 1}`;
+  const fila = (color, nombre, valor) => `<div><i style="background:${color}"></i>${nombre}: <b>${valor}</b></div>`;
+  const mesTxt = (g) => `Año ${Math.floor(g.k / 12) + 1}, mes ${(g.k % 12) + 1}`;
+  const c1 = css("--s1"), c2 = css("--s2"), c3 = css("--s3"), c4 = css("--s4"), cref = css("--ref");
+  const xs = F.map((f) => f.x), xM = M.map((g) => g.x), xmaxR = Math.max(1, Math.ceil(anios - 1e-9));
+
+  // 1. SoH con banda de referencia y SOC mensual
+  const sohMin = Math.min(...F.map((f) => f.soh));
+  lineas("soh", xs, [{ nombre: "SoH del modelo", color: c1, y: F.map((f) => f.soh) }], {
+    extra: [{ nombre: "Referencia 1,3 %/año", color: cref, x: [0, xmaxR], y: [100, 100 - 1.3 * xmaxR] }, { nombre: "Referencia 1,7 %/año", color: cref, x: [0, xmaxR], y: [100, 100 - 1.7 * xmaxR] }],
+    rango: [Math.floor(Math.min(100 - 1.7 * xmaxR, sohMin) - 1), 100.5],
+    tip: (i) => `<b>${fecha(F[i])}</b>` + fila(c1, "SoH", nf(F[i].soh, 2) + " %") + `<div>Banda del Word: ${nf(100 - 1.7 * F[i].x, 2)} a ${nf(100 - 1.3 * F[i].x, 2)} %</div>`,
+  });
+  lineas("soc", xM, [{ nombre: "SOC medio", color: c1, y: M.map((g) => g.soc) }], {
+    rango: [0, 100], tip: (i) => `<b>${mesTxt(M[i])}</b>` + fila(c1, "SOC medio", nf(M[i].soc, 1) + " %"),
+  });
+
+  // 2. Energia mensual y comprada acumulada
+  const eS = [{ nombre: "Generación solar", color: c1, y: M.map((g) => g.generacion) }, { nombre: "Consumo de la casa", color: c2, y: M.map((g) => g.consumo) }, { nombre: "Comprada a la red", color: c3, y: M.map((g) => g.comprada) }];
+  lineas("energia", xM, eS, { cero: true, tip: (i) => `<b>${mesTxt(M[i])}</b>` + eS.map((s) => fila(s.color, s.nombre, nf(s.y[i]) + " kWh")).join("") });
+  lineas("acum", xs, [{ nombre: "Comprada acumulada", color: c3, y: F.map((f) => f.compAcum) }], { cero: true, tip: (i) => `<b>${fecha(F[i])}</b>` + fila(c3, "Comprada acumulada", nf(F[i].compAcum) + " kWh") });
+
+  // 3. Polvo diario con marcas de limpieza y limpiezas por anio
+  // la limpieza ocurre a las 0:00: se marca sobre el polvo del dia anterior (el pico antes de limpiar)
+  const marcas = F.filter((f) => f.limpieza === 1 && f.dia > 0).map((f) => ({ x: F[f.dia - 1].x, y: F[f.dia - 1].polvo }));
+  lineas("polvo", xs, [{ nombre: "Polvo", color: c4, y: F.map((f) => f.polvo) }], {
+    cero: true, fino: true, puntos: marcas, colorPuntos: c2, leyenda: false,
+    tip: (i) => `<b>${fecha(F[i])}</b>` + fila(c4, "Polvo", nf(F[i].polvo, 2) + " g") + (F[i + 1] && F[i + 1].limpieza ? fila(c2, "Limpieza", "a las 0:00 del día siguiente") : "") + `<div>Clima: ${F[i].clima}</div>`,
+  });
+  leyenda("polvo", [{ nombre: "Polvo al final del día", color: c4, tipo: "linea" }, { nombre: "Día con limpieza", color: c2 }]);
+  barrasApiladas("limp", A.map((g) => g.k + 1), [{ nombre: "Limpiezas", color: c2, y: A.map((g) => g.limpiezas) }], (i) => `<b>Año ${A[i].k + 1}</b>` + fila(c2, "Limpiezas", nf(A[i].limpiezas)));
+
+  // 4. Clima
+  lineas("irr", xM, [{ nombre: "Irradiancia", color: c4, y: M.map((g) => g.irradiancia) }], { cero: true, tip: (i) => `<b>${mesTxt(M[i])}</b>` + fila(c4, "Irradiancia media", nf(M[i].irradiancia) + " W/m²") });
+  lineas("temp", xM, [{ nombre: "Temperatura", color: c2, y: M.map((g) => g.temperatura) }], { tip: (i) => `<b>${mesTxt(M[i])}</b>` + fila(c2, "Temperatura media", nf(M[i].temperatura, 1) + " °C") });
+  const dS = [{ nombre: "Soleado", color: c4, y: A.map((g) => g.soleado) }, { nombre: "Nublado", color: c1, y: A.map((g) => g.nublado) }, { nombre: "Lluvia", color: c3, y: A.map((g) => g.lluvia) }, { nombre: "Tormenta de polvo", color: c2, y: A.map((g) => g.tormenta) }];
+  barrasApiladas("dias", A.map((g) => g.k + 1), dS, (i) => `<b>Año ${A[i].k + 1}</b>` + dS.map((s) => fila(s.color, s.nombre, nf(s.y[i]) + " días")).join(""));
+
+  // Tabla anual: los mismos datos en texto (vista accesible)
+  $("#tabla").innerHTML = "<thead><tr><th>Año</th><th>SoH al final (%)</th><th>Pérdida (puntos)</th><th>Generación (kWh)</th><th>Consumo (kWh)</th><th>Comprada (kWh)</th><th>Limpiezas</th><th>Días soleados</th><th>Días nublados</th><th>Días de lluvia</th><th>Días de tormenta</th></tr></thead><tbody>" +
+    A.map((g, i) => `<tr><td>${g.k + 1}${g.n < 365 ? " (parcial)" : ""}</td><td>${nf(g.sohFin, 2)}</td><td>${nf((i ? A[i - 1].sohFin : 100) - g.sohFin, 2)}</td><td>${nf(g.generacion)}</td><td>${nf(g.consumo)}</td><td>${nf(g.comprada)}</td><td>${nf(g.limpiezas)}</td><td>${g.soleado}</td><td>${g.nublado}</td><td>${g.lluvia}</td><td>${g.tormenta}</td></tr>`).join("") + "</tbody>";
+})();
+</script>
+</body>
+</html>

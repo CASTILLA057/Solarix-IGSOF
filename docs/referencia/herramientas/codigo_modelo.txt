@@ -1,0 +1,503 @@
+;; Solarix: degradacion de baterias de iones de litio en sistemas fotovoltaicos residenciales
+;; Origen de coordenadas abajo a la izquierda (todo en coordenadas positivas).
+;; 1 tick = 1 hora real; 8 760 ticks = 1 anio; 87 600 ticks = 10 anios (dias reales).
+
+extensions [shell]   ;; etapa 15: abre el dashboard en el navegador (shell.jar va en la carpeta shell/ del proyecto)
+
+breed [paneles panel]              ;; ArregloFotovoltaico
+breed [baterias bateria]           ;; BancoBaterias
+breed [controladores controlador]  ;; SistemaGestionEnergia (EMS)
+breed [redes redelec]              ;; RedElectrica
+;; agentes solo visuales
+breed [casas casa]
+breed [astros astro]               ;; sol o luna
+breed [nubes nube]
+breed [gotas gota]                 ;; lluvia
+breed [motas mota]                 ;; polvo sobre el panel
+breed [rotulos rotulo]             ;; texto (reloj)
+
+paneles-own [p1 polvo t-cel condicion]
+baterias-own [soc soh t-bat x c-rms sigma-soc modo]
+controladores-own [p-ch p-dis v limpiezas]
+redes-own [p4 energia-comprada]
+nubes-own [idx]
+motas-own [idx]
+
+globals [
+  ;; EntornoCarga (agente exogeno)
+  irradiancia t-amb carga nubosidad
+  ;; clima por dia (etapa 12)
+  clima-dia dias-tormenta llueve-ahora offset-temp-dia factor-carga-dia
+  factor-lluvia-anio factor-polvo-anio   ;; anomalias del anio: mas o menos lluvia / polvo
+  ;; reloj
+  hora dia-anio mes anio horizonte
+  ;; constantes del modelo
+  soh-umbral eta k-polvo coef-temp
+  soc-max-consciente c-max-consciente   ;; limites de la politica consciente (etapa 14)
+  ;; acumuladores de estres de la bateria (Ec. 2 y 3)
+  n-muestras suma-p2 suma-soc suma-soc2
+  ;; visualizacion
+  aviso-limpieza
+  ;; historial diario para el dashboard (etapa 15)
+  historial gen-dia cons-dia comp-dia soc-dia irr-dia tamb-dia limpio-hoy dashboard-exportado?
+]
+
+;; Parametros de la interfaz: capacidad-bateria potencia-panel tasa-c-maxima carga-minima carga-maxima
+;; tasa-polvo umbral-limpieza politica escenario-irradiancia zona escala-degradacion
+;; exponente-degradacion peso-corriente peso-variacion-carga velocidad
+
+to setup
+  clear-all
+  random-seed new-seed     ;; cada corrida usa un azar distinto
+  set clima-dia "soleado"  set dias-tormenta 0  set llueve-ahora false
+  set offset-temp-dia 0  set factor-carga-dia 1  set factor-lluvia-anio 1  set factor-polvo-anio 1
+  set soh-umbral 80        ;; % de SoH que marca el fin de vida
+  set horizonte 87600
+  set nubosidad 0.3
+  set eta 0.95             ;; eficiencia de carga y de descarga
+  set k-polvo 0.003        ;; perdida de potencia del panel por cada gramo de polvo
+  set coef-temp 0.004      ;; perdida de potencia del panel por cada grado sobre 25 C
+  ;; politica consciente calibrada en la etapa 14 contra Mitsunaga et al. (2026): evita el ultimo tramo de carga y limita la corriente
+  set soc-max-consciente 95   ;; SOC maximo con la politica consciente (%)
+  set c-max-consciente 0.16   ;; tasa C maxima con la politica consciente
+  set n-muestras 0  set suma-p2 0  set suma-soc 0  set suma-soc2 0
+  set aviso-limpieza 0
+  set historial []  set dashboard-exportado? false
+  reiniciar-dia
+  set hora 0  set dia-anio 1  set mes 0  set anio 0
+  crear-agentes
+  crear-escena
+  reset-ticks
+  actualizar-visual
+end
+
+to crear-agentes
+  create-paneles 1 [
+    setxy 7 15  set shape "square"  set size 8
+    set p1 0  set polvo 0  set t-cel 25  set condicion "limpio"
+  ]
+  create-baterias 1 [
+    setxy 27 8  set shape "box"  set color green  set size 4
+    set soc 50  set soh 100  set t-bat 25  set x 0  set c-rms 0  set sigma-soc 0  set modo "reposo"
+  ]
+  create-controladores 1 [
+    setxy 12 4  set shape "target"  set color blue  set size 3
+    set p-ch 0  set p-dis 0  set v 0  set limpiezas 0
+  ]
+  create-redes 1 [
+    setxy 37 15  set shape "triangle"  set color gray  set size 4
+    set p4 0  set energia-comprada 0
+  ]
+end
+
+;; Escena: casa, sol/luna, nubes, lluvia, motas de polvo, enlaces de energia y reloj
+to crear-escena
+  create-casas 1 [ setxy 17 15  set shape "house"  set color orange  set size 9 ]
+  create-astros 1 [ set shape "circle"  set size 4 ]
+  create-nubes 12 [
+    set shape "circle"  set color white  set size 5
+    setxy random-float 40 (27 + random-float 7)
+  ]
+  let k 0
+  ask nubes [ set idx k  set k k + 1 ]
+  create-gotas 40 [
+    set shape "line"  set color cyan  set size 1.5  set heading 180
+    setxy random-float 40 (2 + random-float 36)
+  ]
+  create-motas 30 [
+    set shape "dot"  set color brown - 1  set size 1.3
+    setxy (7 - 3 + random-float 6) (15 - 3 + random-float 6)
+  ]
+  set k 0
+  ask motas [ set idx k  set k k + 1 ]
+  create-rotulos 1 [ setxy 20 39  set size 0.1  set shape "dot"  set label-color black ]
+  ;; enlaces: panel-casa, casa-bateria, casa-red
+  ask one-of paneles [ create-link-with one-of casas ]
+  ask one-of baterias [ create-link-with one-of casas ]
+  ask one-of redes [ create-link-with one-of casas ]
+  ask links [ set thickness 0.4  hide-link ]
+end
+
+;; Orden de un paso (ODD 7.3): entorno -> EMS decide limpieza -> panel -> EMS despacha -> bateria
+to paso
+  actualizar-entorno
+  ask controladores [ decidir-limpieza ]
+  ask paneles [ actualizar-panel ]
+  ask controladores [ despachar-energia ]
+  ask baterias [ actualizar-bateria ]
+  registrar-hora
+  if aviso-limpieza > 0 [ set aviso-limpieza aviso-limpieza - 1 ]
+  tick
+end
+
+;; Cada pulsacion de go avanza tantas horas como indique el slider velocidad y redibuja una vez
+to go
+  if not any? baterias [                       ;; go antes de setup: el contador de ticks no existe
+    user-message "Primero presiona el boton setup."
+    stop
+  ]
+  if fin-simulacion? [                        ;; se revisa al inicio para que el ultimo paso quede registrado (BehaviorSpace)
+    ask rotulos [ set label (word "FIN: SoH " precision soh-actual 1 " % despues de " (precision (ticks / 8760) 1) " anios") ]
+    stop
+  ]
+  let n horas-por-cuadro
+  let i 0
+  while [i < n and not fin-simulacion?] [
+    paso
+    set i i + 1
+  ]
+  actualizar-visual
+  if fin-simulacion? [
+    ask rotulos [ set label (word "FIN: SoH " precision soh-actual 1 " % despues de " (precision (ticks / 8760) 1) " anios") ]
+    if not dashboard-exportado? and behaviorspace-run-number = 0 [ abrir-dashboard ]   ;; no se abre en corridas de BehaviorSpace
+  ]
+  if velocidad = 1 [ wait 0.2 ]
+end
+
+to-report fin-simulacion?
+  report ticks >= horizonte or soh-actual < soh-umbral
+end
+
+to-report horas-por-cuadro
+  report item (velocidad - 1) [1 1 3 6 24 72 168 720 8760]
+end
+
+to-report descripcion-velocidad
+  report item (velocidad - 1) ["1 hora por cuadro, lento" "1 hora por cuadro" "3 horas por cuadro" "6 horas por cuadro" "1 dia por cuadro" "3 dias por cuadro" "1 semana por cuadro" "30 dias por cuadro" "1 anio por cuadro"]
+end
+
+;; ---------- EntornoCarga ----------
+to actualizar-entorno
+  set hora ticks mod 24
+  set dia-anio ((floor (ticks / 24)) mod 365) + 1
+  set mes min list 11 (floor ((dia-anio - 1) / 30.42))
+  set anio floor (ticks / 8760)
+
+  let g-max 800  let t-med 27
+  if escenario-irradiancia = "baja"  [ set g-max 50   set t-med 22 ]
+  if escenario-irradiancia = "media" [ set g-max 560  set t-med 24 ]
+
+  if hora = 0 [ nuevo-dia ]
+  ;; nubosidad de la hora: sigue el tipo de dia (con inercia y ruido)
+  let n-medio ifelse-value (clima-dia = "soleado") [0.15] [ifelse-value (clima-dia = "nublado") [0.6] [0.9]]
+  set n-medio min list 0.95 (n-medio * f-nubes)                               ;; la zona ajusta la nubosidad
+  if dias-tormenta > 0 [ set n-medio max list n-medio 0.6 ]
+  set nubosidad max list 0 (min list 1 (0.6 * nubosidad + 0.4 * (n-medio + random-normal 0 0.1)))
+  set llueve-ahora (clima-dia = "lluvia" and dias-tormenta = 0 and random-float 1 < 0.6)
+  let f-solar max list 0 (sin (180 * (hora - 6) / 12))
+  let f-mes 1 + 0.05 * cos (360 * mes / 12)
+  set irradiancia g-max * f-solar * f-mes * (1 - 0.5 * nubosidad)
+
+  set t-amb t-med + offset-temp-dia + 5 * sin (360 * (hora - 9) / 24) + random-normal 0 0.5
+  if llueve-ahora [ set t-amb t-amb - 2 ]
+
+  let base 0.3 + 1.2 * exp (0 - (((hora - 7) / 1.5) ^ 2)) + 2.0 * exp (0 - (((hora - 20) / 2) ^ 2))
+  set carga max list 0.1 (base * (1 + 0.03 * max list 0 (t-amb - 24)) * factor-carga-dia * random-normal 1 0.15)
+end
+
+;; Cada dia: clima (cadena de Markov con rachas), tormentas de polvo y variacion diaria de temperatura y consumo
+to nuevo-dia
+  ;; cada anio es distinto: mas o menos lluvioso (0,6 a 1,6) y con mas o menos polvo
+  if dia-anio = 1 [
+    set factor-lluvia-anio 0.6 + random-float 1
+    set factor-polvo-anio exp (random-normal 0 0.4)
+  ]
+  ifelse dias-tormenta > 0 [
+    set dias-tormenta dias-tormenta - 1
+  ] [
+    if random-float 1 < 0.012 * (min list 3 f-polvo-total) [ set dias-tormenta 1 + random 3 ]   ;; ~4 tormentas de polvo al anio, de 1 a 3 dias
+  ]
+  ;; clima del dia: cadena de Markov [soleado nublado lluvia] con rachas; el anio escala la probabilidad de lluvia
+  let previo clima-dia
+  let probs ifelse-value (previo = "soleado") [[0.70 0.25 0.05]] [ifelse-value (previo = "nublado") [[0.30 0.45 0.25]] [[0.15 0.35 0.50]]]
+  let p-lluvia min list 0.9 ((item 2 probs) * f-lluvia-total)
+  let resto (1 - p-lluvia) / (1 - item 2 probs)
+  let p-sol (item 0 probs) * resto
+  let p-nub (item 1 probs) * resto
+  let r random-float 1
+  set clima-dia ifelse-value (r < p-sol) ["soleado"] [ifelse-value (r < p-sol + p-nub) ["nublado"] ["lluvia"]]
+  set offset-temp-dia random-normal 0 2
+  set factor-carga-dia max list 0.6 (random-normal 1 0.1)
+end
+
+;; ---------- Zonas climaticas (etapa 13) ----------
+;; [factor de lluvia, factor de nubosidad, factor de polvo] segun la zona elegida
+to-report parametros-zona
+  report ifelse-value (zona = "muy soleada") [[0.3 0.6 1.5]] [
+         ifelse-value (zona = "muy nublada") [[1.3 1.35 0.7]] [
+         ifelse-value (zona = "lluviosa") [[2.0 1.2 0.4]] [
+         ifelse-value (zona = "polvorienta") [[0.6 0.9 4]] [[1 1 1]]]]]
+end
+
+;; la zona y la anomalia del anio se multiplican
+to-report f-lluvia-total
+  report (item 0 parametros-zona) * factor-lluvia-anio
+end
+to-report f-nubes
+  report (item 1 parametros-zona)
+end
+to-report f-polvo-total
+  report (item 2 parametros-zona) * factor-polvo-anio
+end
+
+to-report lloviendo?
+  report llueve-ahora
+end
+
+to-report tormenta-polvo?
+  report dias-tormenta > 0
+end
+
+to-report es-de-dia?
+  report hora >= 6 and hora < 18
+end
+
+to-report clima-texto
+  report ifelse-value tormenta-polvo? ["tormenta de polvo"] [
+         ifelse-value lloviendo? ["lluvia"] [
+         ifelse-value (clima-dia = "lluvia") ["nublado"] [clima-dia]]]
+end
+
+;; ---------- Arreglo fotovoltaico ----------
+to actualizar-panel
+  if [v] of one-of controladores = 1 [ set polvo 0 ]                       ;; limpieza ordenada por el EMS
+  ;; polvo que llega segun el clima: tormenta x15, dia soleado x1,3, lluvia x0,2
+  let f-clima ifelse-value tormenta-polvo? [15] [ifelse-value lloviendo? [0.2] [ifelse-value (clima-dia = "soleado") [1.3] [1]]]
+  set polvo polvo + tasa-polvo * f-clima * f-polvo-total
+  if lloviendo? [ set polvo polvo * 0.985 ]                                ;; la lluvia lava parte del polvo
+  set t-cel t-amb + 0.025 * irradiancia
+  set p1 max list 0 (potencia-panel * (irradiancia / 1000) * (1 - coef-temp * (t-cel - 25)) * factor-polvo)
+  set condicion ifelse-value (polvo < 1) ["limpio"] ["ensuciandose"]
+end
+
+to-report factor-polvo
+  report max list 0.4 (1 - k-polvo * polvo)
+end
+
+;; ---------- Sistema de gestion de energia ----------
+;; Limpia cuando la perdida de potencia del panel por polvo supera el umbral (Mkansi et al., 2025)
+to decidir-limpieza
+  set v 0
+  if hora = 0 and (1 - [factor-polvo] of one-of paneles) * 100 > umbral-limpieza [
+    set v 1
+    set limpiezas limpiezas + 1
+    set aviso-limpieza 12
+  ]
+end
+
+;; Balance de potencia P2 + P4 = LOAD (Ec. 9) y despacho de la bateria
+to despachar-energia
+  let bat one-of baterias
+  let gen [p1] of one-of paneles
+  let cap-ef capacidad-bateria * [soh] of bat / 100
+  let soc-ini [soc] of bat
+  let consciente? politica = "consciente"
+  let carga-maxima-efectiva ifelse-value consciente? [min list carga-maxima soc-max-consciente] [carga-maxima]
+  let p-lim cap-ef * ifelse-value consciente? [min list tasa-c-maxima c-max-consciente] [tasa-c-maxima]
+  let p2 min list gen carga                ;; solar directo a la carga
+  let exc gen - p2                         ;; excedente (P3)
+  let dfc carga - p2                       ;; deficit
+  set p-ch 0
+  set p-dis 0
+  if exc > 0 [
+    set p-ch max list 0 (min (list exc p-lim ((carga-maxima-efectiva - soc-ini) / 100 * cap-ef / eta)))
+  ]
+  if dfc > 0 [
+    set p-dis max list 0 (min (list dfc p-lim ((soc-ini - carga-minima) / 100 * cap-ef * eta)))
+  ]
+  let comprado dfc - p-dis                 ;; P4: lo que cubre la red
+  ask one-of redes [
+    set p4 comprado
+    set energia-comprada energia-comprada + comprado
+  ]
+end
+
+;; ---------- Banco de baterias ----------
+to actualizar-bateria
+  let ems one-of controladores
+  let pch [p-ch] of ems
+  let pdis [p-dis] of ems
+  let cap-ef capacidad-bateria * soh / 100
+  set soc max list 0 (min list 100 (soc + (pch * eta - pdis / eta) / cap-ef * 100))
+  set modo ifelse-value pch > 0 ["carga"] [ifelse-value pdis > 0 ["descarga"] ["reposo"]]
+  let pw pch + pdis
+  set t-bat t-amb + 5 * pw / (tasa-c-maxima * cap-ef)
+
+  ;; factores de estres (Ec. 1 a 3)
+  set x x + pw / capacidad-bateria
+  set n-muestras n-muestras + 1
+  set suma-p2 suma-p2 + (pw / capacidad-bateria) ^ 2
+  set suma-soc suma-soc + soc / 100
+  set suma-soc2 suma-soc2 + (soc / 100) ^ 2
+  set c-rms sqrt (suma-p2 / n-muestras)
+  set sigma-soc sqrt max list 0 (suma-soc2 / n-muestras - (suma-soc / n-muestras) ^ 2)
+
+  ;; estado de salud (Ec. 4 y 5); nunca sube
+  let z escala-degradacion * (x ^ exponente-degradacion) * (1 + peso-corriente * c-rms) * (1 + peso-variacion-carga * sigma-soc)
+  set soh min list soh (100 * exp (0 - z))
+end
+
+;; ---------- Visualizacion ----------
+to actualizar-visual
+  ;; cielo y suelo
+  let color-cielo blue - 4
+  if es-de-dia? [
+    set color-cielo ifelse-value tormenta-polvo? [brown + 2] [ifelse-value lloviendo? [3] [ifelse-value (nubosidad > 0.55) [7] [sky]]]
+  ]
+  ask patches [ set pcolor ifelse-value (pycor >= 24) [color-cielo] [green - 2] ]
+
+  ;; sol o luna cruzando el cielo
+  ask astros [
+    let frac ifelse-value es-de-dia? [(hora - 6) / 12] [((hora + 6) mod 24) / 12]
+    setxy (3 + 34 * frac) (30 + 8 * sin (180 * frac))
+    ifelse lloviendo? [ hide-turtle ] [ show-turtle ]                       ;; el sol queda tapado si llueve
+    ifelse es-de-dia? [ set color ifelse-value tormenta-polvo? [orange + 1] [yellow]  set size 4 ] [ set color white  set size 3 ]
+  ]
+
+  ;; nubes (mas nubosidad = mas nubes) que derivan lentamente; lluvia
+  ask nubes [
+    ifelse idx < round (nubosidad * 12) [
+      show-turtle
+      set color ifelse-value tormenta-polvo? [brown + 3] [ifelse-value (lloviendo? or not es-de-dia?) [gray - 1] [white]]
+      setxy ((xcor + 0.15) mod 40) ycor
+    ] [ hide-turtle ]
+  ]
+  ask gotas [
+    ifelse lloviendo? [
+      show-turtle
+      set ycor ycor - 1.5
+      if ycor < 2 [ set ycor 32 ]
+    ] [ hide-turtle ]
+  ]
+
+  ;; paneles: color segun polvo, motas de polvo y etiqueta
+  ask paneles [
+    let f min list 1 (polvo / 45)
+    set color rgb (30 + 140 * f) (90 + 50 * f) (200 - 110 * f)
+    set label (word "Paneles " precision p1 1 " kW | polvo " round polvo " g")
+    set label-color white
+  ]
+  let polvo-g [polvo] of one-of paneles
+  ask motas [ ifelse idx < polvo-g / 1.5 [ show-turtle ] [ hide-turtle ] ]
+
+  ;; casa, EMS, bateria y red
+  ask casas [ set label (word "Casa " precision carga 1 " kW")  set label-color white ]
+  ask controladores [
+    set label ifelse-value aviso-limpieza > 0 ["EMS: limpiando paneles"] ["EMS"]
+    set label-color white
+  ]
+  ask baterias [
+    set label (word "Bateria: " modo " " round soc " %")
+    set label-color white
+    set color ifelse-value modo = "carga" [green] [ifelse-value modo = "descarga" [orange] [gray]]
+  ]
+  ask redes [
+    set label ifelse-value p4 > 0.05 [(word "Red: " precision p4 1 " kW")] ["Red: sin uso"]
+    set label-color white
+    set color ifelse-value p4 > 0.05 [red] [gray]
+  ]
+
+  ;; medidor de carga de la bateria (columna de patches)
+  let llenos round (soc-actual / 100 * 11)
+  ask patches with [pxcor >= 32 and pxcor <= 33 and pycor >= 3 and pycor <= 13] [
+    set pcolor ifelse-value (pycor - 3 < llenos) [lime] [gray - 2]
+  ]
+
+  ;; enlaces de energia: solo se ven cuando hay flujo
+  let ems one-of controladores
+  actualizar-enlace one-of paneles one-of casas (p-panel > 0.05) yellow
+  actualizar-enlace one-of baterias one-of casas ([p-ch] of ems > 0 or [p-dis] of ems > 0) (ifelse-value ([p-ch] of ems > 0) [green] [orange])
+  actualizar-enlace one-of redes one-of casas ([p4] of one-of redes > 0.05) red
+
+  ;; reloj
+  ask rotulos [
+    set label (word "Anio " (anio + 1) " | dia " dia-anio " | " hora ":00 | " clima-texto " | zona " zona)
+    set label-color ifelse-value es-de-dia? [black] [white]
+  ]
+end
+
+to actualizar-enlace [a b activo? c]
+  ask [link-with b] of a [
+    ifelse activo? [ show-link  set color c ] [ hide-link ]
+  ]
+end
+
+;; ---------- Reporteros para monitores ----------
+to-report soh-actual
+  report ifelse-value any? baterias [[soh] of one-of baterias] [100]
+end
+to-report soc-actual
+  report ifelse-value any? baterias [[soc] of one-of baterias] [50]
+end
+to-report polvo-actual
+  report ifelse-value any? paneles [[polvo] of one-of paneles] [0]
+end
+to-report p-panel
+  report ifelse-value any? paneles [[p1] of one-of paneles] [0]
+end
+to-report comprada-total
+  report ifelse-value any? redes [[energia-comprada] of one-of redes] [0]
+end
+to-report limpiezas-total
+  report ifelse-value any? controladores [[limpiezas] of one-of controladores] [0]
+end
+to-report ciclos-eq
+  report ifelse-value any? baterias [[x] of one-of baterias / 2] [0]
+end
+to-report estado-bateria
+  report ifelse-value any? baterias [[modo] of one-of baterias] ["-"]
+end
+
+;; ---------- Dashboard (etapa 15) ----------
+;; Acumula cada hora y guarda una fila por dia en historial
+to reiniciar-dia
+  set gen-dia 0  set cons-dia 0  set comp-dia 0  set soc-dia 0  set irr-dia 0  set tamb-dia 0  set limpio-hoy 0
+end
+
+to registrar-hora
+  set gen-dia gen-dia + p-panel
+  set cons-dia cons-dia + carga
+  set comp-dia comp-dia + [p4] of one-of redes
+  set soc-dia soc-dia + soc-actual
+  set irr-dia irr-dia + irradiancia
+  set tamb-dia tamb-dia + t-amb
+  if [v] of one-of controladores = 1 [ set limpio-hoy 1 ]
+  if hora = 23 [
+    ;; [dia SoH SOC-medio generacion consumo comprada polvo limpieza clima irradiancia-media T-media]
+    let clima-hoy ifelse-value tormenta-polvo? ["tormenta"] [clima-dia]
+    set historial lput (list (floor (ticks / 24)) soh-actual (soc-dia / 24) gen-dia cons-dia comp-dia polvo-actual limpio-hoy clima-hoy (irr-dia / 24) (tamb-dia / 24)) historial
+    reiniciar-dia
+  ]
+end
+
+;; Boton "dashboard": guarda los resultados hasta ahora y los abre en el navegador
+to abrir-dashboard
+  if not any? baterias [ user-message "Primero presiona el boton setup."  stop ]
+  if empty? historial [ user-message "Aun no hay datos: corre la simulacion al menos un dia."  stop ]
+  exportar-datos
+  set dashboard-exportado? true
+  carefully [
+    (shell:fork "cmd" "/c" "start" "" "dashboard\\dashboard.html")
+  ] [
+    user-message (word "No se pudo abrir el navegador. Abre a mano el archivo dashboard/dashboard.html de la carpeta del modelo. (" error-message ")")
+  ]
+end
+
+;; Escribe dashboard/datos.js: parametros de la corrida y el historial diario
+to exportar-datos
+  let f "dashboard/datos.js"
+  carefully [ if file-exists? f [ file-delete f ] ] []
+  file-open f
+  file-print "// Generado por NetLogo (Solarix) al terminar la simulacion. No editar."
+  file-print "const DATOS = {"
+  file-print (word "  parametros: {politica: \"" politica "\", escenario: \"" escenario-irradiancia "\", zona: \"" zona "\", capacidad: " capacidad-bateria ", panel: " potencia-panel ", cargaMin: " carga-minima ", cargaMax: " carga-maxima ", umbralLimpieza: " umbral-limpieza ", tasaPolvo: " tasa-polvo "},")
+  file-print (word "  resumen: {horas: " ticks ", sohFinal: " precision soh-actual 3 ", comprada: " precision comprada-total 1 ", limpiezas: " limpiezas-total ", ciclos: " precision ciclos-eq 1 ", finDeVida: " (soh-actual < soh-umbral) "},")
+  file-print "  columnas: [\"dia\", \"soh\", \"soc\", \"generacion\", \"consumo\", \"comprada\", \"polvo\", \"limpieza\", \"clima\", \"irradiancia\", \"temperatura\"],"
+  file-print "  filas: ["
+  foreach historial [ r ->
+    file-print (word "    [" item 0 r ", " precision item 1 r 3 ", " precision item 2 r 1 ", " precision item 3 r 2 ", " precision item 4 r 2 ", " precision item 5 r 2 ", " precision item 6 r 2 ", " item 7 r ", \"" item 8 r "\", " precision item 9 r 1 ", " precision item 10 r 1 "],")
+  ]
+  file-print "  ]"
+  file-print "};"
+  file-close
+end

@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energía Solar para Zonas No Interconectadas</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --green-900: #04200d;
+  --green-800: #0a3318;
+  --green-700: #0f4a25;
+  --green-600: #1a6634;
+  --green-500: #2d7a4f;
+  --green-400: #3d9966;
+  --green-300: #5ebd86;
+  --green-200: #a8e0c0;
+  --green-100: #d4f0e2;
+  --green-50:  #eaf7ee;
+  --amber: #FFD93D;
+  --amber-dim: #f5c842;
+  --text: #0e1f14;
+  --text-muted: #4a6358;
+  --text-light: #7a9e8c;
+  --bg: #f5faf6;
+  --bg-card: #ffffff;
+  --border: rgba(30,80,50,0.1);
+  --border-strong: rgba(30,80,50,0.2);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(10,40,20,0.08), 0 4px 16px rgba(10,40,20,0.05);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(245,250,246,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.nav-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--green-600);
+  text-decoration: none;
+}
+
+.nav-logo .sun-dot {
+  width: 20px; height: 20px;
+  background: var(--amber);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nav-links {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-links a {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-links a:hover {
+  background: var(--green-50);
+  color: var(--green-600);
+}
+
+/* ── HERO ── */
+#inicio {
+  background: var(--green-900);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 80px 20px 100px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  color: var(--green-200);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 28px;
+}
+
+.hero-sun-wrap {
+  margin-bottom: 32px;
+}
+
+.hero-sun {
+  width: 80px; height: 80px;
+  background: var(--amber);
+  border-radius: 50%;
+  display: inline-block;
+  animation: sun-pulse 4s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes sun-pulse {
+  0%,100% { box-shadow: 0 0 0 14px rgba(255,217,61,0.1), 0 0 0 28px rgba(255,217,61,0.05); }
+  50% { box-shadow: 0 0 0 22px rgba(255,217,61,0.15), 0 0 0 44px rgba(255,217,61,0.06); }
+}
+
+.hero-h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(32px, 5vw, 54px);
+  font-weight: 800;
+  color: #e0f2e8;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  max-width: 640px;
+}
+
+.hero-h1 .accent { color: var(--amber); }
+
+.hero-p {
+  font-size: 16px;
+  color: rgba(190,225,205,0.75);
+  max-width: 520px;
+  margin-bottom: 36px;
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+.problem-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 44px;
+}
+
+.prob-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.05);
+  border: 0.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: rgba(200,230,215,0.8);
+}
+
+.prob-chip i { font-size: 16px; color: #ff7b5e; }
+
+.hero-cta-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green-500);
+  color: #e8f8ef;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-primary:hover { background: var(--green-400); }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--green-200);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-sm);
+  padding: 13px 24px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.btn-ghost:hover { background: rgba(255,255,255,0.06); }
+
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: rgba(150,200,170,0.4);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(6px); }
+}
+
+/* ── SECTIONS ── */
+section {
+  padding: 80px 0;
+}
+
+section:nth-child(even) {
+  background: #fff;
+}
+
+.section-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green-500);
+  font-weight: 500;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.section-h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.section-lead {
+  font-size: 15px;
+  color: var(--text-muted);
+  max-width: 540px;
+  line-height: 1.7;
+  font-weight: 300;
+  margin-bottom: 40px;
+}
+
+/* ── BENEFITS ── */
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.benefit-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.benefit-card:hover {
+  border-color: var(--green-300);
+  box-shadow: var(--shadow);
+}
+
+.bene-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  margin-bottom: 14px;
+}
+
+.bene-icon.g { background: var(--green-50); color: var(--green-600); }
+.bene-icon.a { background: #faeeda; color: #854f0b; }
+.bene-icon.b { background: #e6f1fb; color: #185fa5; }
+.bene-icon.t { background: #e1f5ee; color: #0f6e56; }
+.bene-icon.r { background: #fcebeb; color: #a32d2d; }
+
+.bene-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.bene-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-weight: 300;
+}
+
+/* ── COST TABLE ── */
+.cost-section { }
+
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.tier-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.tier-card:hover {
+  border-color: var(--green-300);
+  box-shadow: var(--shadow);
+}
+
+.tier-card.featured {
+  border: 2px solid var(--green-500);
+}
+
+.tier-header {
+  padding: 16px 18px 12px;
+  background: var(--green-50);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.tier-card.featured .tier-header {
+  background: var(--green-500);
+}
+
+.tier-badge {
+  display: inline-block;
+  background: var(--green-100);
+  color: var(--green-700);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+.tier-card.featured .tier-badge {
+  background: rgba(255,255,255,0.2);
+  color: #e8f8ef;
+}
+
+.tier-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--green-800);
+  margin-bottom: 2px;
+}
+
+.tier-card.featured .tier-name { color: #e8f8ef; }
+
+.tier-consume {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.tier-card.featured .tier-consume { color: rgba(220,240,230,0.8); }
+
+.tier-body { padding: 16px 18px; }
+
+.tier-price {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--green-600);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.tier-price-sub {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 14px;
+  font-weight: 300;
+}
+
+.tier-specs {
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+.tier-specs li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  border-bottom: 0.5px solid var(--border);
+  font-weight: 300;
+}
+
+.tier-specs li:last-child { border: none; }
+
+.tier-specs li i {
+  font-size: 14px;
+  color: var(--green-400);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tier-uses {
+  background: var(--green-50);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--green-700);
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.cost-note {
+  background: #fffbeb;
+  border: 0.5px solid #f5d87a;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #7a5c00;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+.cost-note i { font-size: 17px; color: #d4a017; flex-shrink: 0; margin-top: 1px; }
+
+/* ── SIMULATOR ── */
+.sim-section { }
+
+.zone-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.zone-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  border: 0.5px solid var(--border-strong);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.zone-btn.active {
+  background: var(--green-500);
+  border-color: var(--green-500);
+  color: #fff;
+}
+
+.zone-btn i { font-size: 16px; }
+
+.appliance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.app-item {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.app-item.active {
+  border-color: var(--green-400);
+  background: var(--green-50);
+}
+
+.app-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.app-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  color: var(--text-light);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-item.active .app-icon {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+
+.app-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.app-watts {
+  font-size: 11px;
+  color: var(--text-light);
+  font-weight: 300;
+}
+
+.app-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-slider-row input[type=range] {
+  flex: 1;
+  height: 3px;
+  cursor: pointer;
+  accent-color: var(--green-500);
+}
+
+.app-hrs {
+  font-size: 11px;
+  color: var(--text-light);
+  min-width: 42px;
+  text-align: right;
+  font-weight: 300;
+}
+
+/* ── RESULTS ── */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 560px) {
+  .results-grid { grid-template-columns: 1fr 1fr; }
+  .results-grid .full-col { grid-column: 1/-1; }
+}
+
+.result-metric {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+
+.result-metric .rm-icon {
+  font-size: 22px;
+  color: var(--green-400);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.result-metric .rm-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.result-metric .rm-label {
+  font-size: 11px;
+  color: var(--text-light);
+  line-height: 1.4;
+  font-weight: 300;
+}
+
+.cost-estimate {
+  background: var(--green-800);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ce-left { }
+.ce-label {
+  font-size: 12px;
+  color: var(--green-200);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-weight: 300;
+}
+
+.ce-price {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.ce-range {
+  font-size: 13px;
+  color: var(--green-200);
+  margin-top: 4px;
+  font-weight: 300;
+}
+
+.ce-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ce-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--green-200);
+  font-weight: 300;
+}
+
+.ce-item i { font-size: 14px; color: var(--green-300); }
+
+.bar-section {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.bar-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  color: var(--text-muted);
+}
+
+.app-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.app-bar-name {
+  font-size: 12px;
+  color: var(--text-muted);
+  width: 110px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 300;
+}
+
+.app-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--green-50);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.app-bar-fill {
+  height: 100%;
+  background: var(--green-400);
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+
+.app-bar-wh {
+  font-size: 11px;
+  color: var(--text-light);
+  width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 300;
+}
+
+.tip-box {
+  background: var(--green-50);
+  border: 0.5px solid rgba(45,122,79,0.2);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--green-700);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.tip-box i { font-size: 17px; color: var(--green-500); flex-shrink: 0; margin-top: 1px; }
+
+/* ── ROI ── */
+.roi-section { }
+
+.roi-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 500px) { .roi-controls { grid-template-columns: 1fr; } }
+
+.ctrl-box {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.ctrl-box label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-light);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.ctrl-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.ctrl-val span {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-light);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.ctrl-box input[type=range] {
+  width: 100%;
+  accent-color: var(--green-500);
+  margin-bottom: 4px;
+}
+
+.ctrl-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-light);
+  font-weight: 300;
+}
+
+.roi-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 500px) { .roi-metrics { grid-template-columns: 1fr 1fr; } }
+
+.roi-metric {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.roi-metric .rv { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 4px; }
+.roi-metric .rv.green { color: var(--green-500); }
+.roi-metric .rl { font-size: 11px; color: var(--text-light); line-height: 1.3; font-weight: 300; }
+
+.chart-wrap {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  height: 280px;
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--green-900);
+  color: rgba(190,225,205,0.6);
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.8;
+}
+
+footer strong { color: var(--green-200); font-weight: 500; }
+
+/* ── DIVIDER ── */
+.divider {
+  height: 0.5px;
+  background: var(--border);
+  margin: 0;
+}
+
+/* ── STARS ── */
+.star-particle {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  animation: tw 3s infinite alternate;
+}
+@keyframes tw { from { opacity: 0.1; } to { opacity: 0.7; } }
+
+@media (max-width: 640px) {
+  .nav-links { display: none; }
+  .hero-h1 { font-size: 28px; }
+  .tier-grid { grid-template-columns: 1fr; }
+  .results-grid { grid-template-columns: 1fr 1fr; }
+  .ce-price { font-size: 24px; }
+  .benefits-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#inicio" class="nav-logo">
+      <div class="sun-dot"></div>
+      Solarix
+    </a>
+    <div class="nav-links">
+      <a href="#beneficios">Beneficios</a>
+      <a href="#costos">Costos</a>
+      <a href="#simulador">Simulador</a>
+      <a href="#roi">Inversión</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="inicio">
+  <div class="hero-bg-dots" id="heroBg"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <i class="ti ti-map-pin" style="font-size:13px"></i>
+      Zonas No Interconectadas · Colombia
+    </div>
+    <div class="hero-sun-wrap">
+      <div class="hero-sun"></div>
+    </div>
+    <h1 class="hero-h1">
+      La luz que no llega<br>
+      por el cable,<br>
+      <span class="accent">llega del sol.</span>
+    </h1>
+    <p class="hero-p">
+      Millones de familias rurales viven sin energía eléctrica. Sin luz para estudiar, sin frío para los alimentos, sin carga para el celular. La energía solar es la solución más viable — y este simulador te explica exactamente cuánto necesitas y cuánto cuesta.
+    </p>
+    <div class="problem-row">
+      <div class="prob-chip"><i class="ti ti-flame"></i> Combustible costoso</div>
+      <div class="prob-chip"><i class="ti ti-alert-triangle"></i> Conexiones peligrosas</div>
+      <div class="prob-chip"><i class="ti ti-moon"></i> Sin luz nocturna</div>
+      <div class="prob-chip"><i class="ti ti-temperature"></i> Sin cadena de frío</div>
+    </div>
+    <div class="hero-cta-row">
+      <a href="#simulador" class="btn-primary">
+        <i class="ti ti-solar-panel"></i>
+        Calcular mi sistema
+      </a>
+      <a href="#costos" class="btn-ghost">
+        <i class="ti ti-currency-dollar"></i>
+        Ver precios
+      </a>
+    </div>
+  </div>
+  <div class="hero-scroll-hint">
+    <i class="ti ti-chevron-down" style="font-size:18px"></i>
+    Desliza para saber más
+  </div>
+</section>
+
+<!-- BENEFICIOS -->
+<section id="beneficios">
+  <div class="container">
+    <span class="section-eyebrow">¿Por qué el sol?</span>
+    <h2 class="section-h2">Más que luz — es calidad de vida</h2>
+    <p class="section-lead">Un sistema solar no es solo un panel en el techo. Es independencia energética, seguridad, salud y oportunidades reales para tu familia.</p>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="bene-icon g"><i class="ti ti-cash"></i></div>
+        <div class="bene-name">Cero facturas de energía</div>
+        <div class="bene-desc">Una vez instalado, el sol no cobra. Eliminas para siempre el gasto mensual en combustible, velas o baterías recargables.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="bene-icon a"><i class="ti ti-shield-check"></i></div>
+        <div class="bene-name">Más seguridad en tu hogar</div>
+        <div class="bene-desc">Adiós a las plantas con gasolina, los incendios por velas y las conexiones informales que ponen en riesgo a tu familia.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="bene-icon b"><i class="ti ti-school"></i></div>
+        <div class="bene-name">Educación sin límites</div>
+        <div class="bene-desc">Luz en la noche para que los niños estudien. Acceso a dispositivos y conectividad para no quedarse atrás.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="bene-icon t"><i class="ti ti-fridge"></i></div>
+        <div class="bene-name">Salud y conservación</div>
+        <div class="bene-desc">Conserva medicamentos, vacunas y alimentos. Reduce pérdidas económicas y protege la salud de toda la familia.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="bene-icon g"><i class="ti ti-device-mobile"></i></div>
+        <div class="bene-name">Comunicación permanente</div>
+        <div class="bene-desc">Carga tu celular, accede a información en tiempo real y mantén contacto sin depender de largos desplazamientos.</div>
+      </div>
+      <div class="benefit-card">
+        <div class="bene-icon r"><i class="ti ti-leaf"></i></div>
+        <div class="bene-name">Sin contaminación</div>
+        <div class="bene-desc">Sin humo, sin ruido, sin residuos de combustible. Energía 100% limpia que cuida tu entorno y el de tus hijos.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- COSTOS -->
+<section id="costos">
+  <div class="container">
+    <span class="section-eyebrow">Precios estimados 2024</span>
+    <h2 class="section-h2">¿Cuánto cuesta un sistema solar?</h2>
+    <p class="section-lead">Los precios varían según la región, el proveedor y los equipos elegidos. Estos rangos son referenciales para Colombia, basados en equipos comerciales disponibles.</p>
+
+    <div class="tier-grid">
+
+      <div class="tier-card">
+        <div class="tier-header">
+          <div class="tier-badge">Básico</div>
+          <div class="tier-name">Kit Esencial</div>
+          <div class="tier-consume">Hasta 300 Wh/día</div>
+        </div>
+        <div class="tier-body">
+          <div class="tier-price">$800k – 1,5M</div>
+          <div class="tier-price-sub">COP · instalación no incluida</div>
+          <ul class="tier-specs">
+            <li><i class="ti ti-solar-panel"></i>1 panel solar 100–150 W</li>
+            <li><i class="ti ti-battery-charging"></i>1 batería 12V / 100 Ah</li>
+            <li><i class="ti ti-settings"></i>Controlador PWM 10–20 A</li>
+            <li><i class="ti ti-plug"></i>Inversor 300–500 W</li>
+            <li><i class="ti ti-tools"></i>Cableado y conectores básicos</li>
+          </ul>
+          <div class="tier-uses">Ideal para: 3–4 focos LED, carga de celulares, radio o TV pequeño máximo 4 horas.</div>
+        </div>
+      </div>
+
+      <div class="tier-card featured">
+        <div class="tier-header">
+          <div class="tier-badge">Más popular</div>
+          <div class="tier-name">Kit Familiar</div>
+          <div class="tier-consume">300 – 800 Wh/día</div>
+        </div>
+        <div class="tier-body">
+          <div class="tier-price">$1,8M – 4M</div>
+          <div class="tier-price-sub">COP · instalación no incluida</div>
+          <ul class="tier-specs">
+            <li><i class="ti ti-solar-panel"></i>2 paneles solares 250 W</li>
+            <li><i class="ti ti-battery-charging"></i>2 baterías 12V / 150 Ah</li>
+            <li><i class="ti ti-settings"></i>Controlador MPPT 30 A</li>
+            <li><i class="ti ti-plug"></i>Inversor 1000–1500 W</li>
+            <li><i class="ti ti-tools"></i>Estructura, cableado y protecciones</li>
+          </ul>
+          <div class="tier-uses">Ideal para: iluminación completa, TV, ventilador, cargadores y nevera pequeña.</div>
+        </div>
+      </div>
+
+      <div class="tier-card">
+        <div class="tier-header">
+          <div class="tier-badge">Avanzado</div>
+          <div class="tier-name">Kit Completo</div>
+          <div class="tier-consume">800 – 2000 Wh/día</div>
+        </div>
+        <div class="tier-body">
+          <div class="tier-price">$5M – 12M</div>
+          <div class="tier-price-sub">COP · instalación no incluida</div>
+          <ul class="tier-specs">
+            <li><i class="ti ti-solar-panel"></i>4–6 paneles solares 300 W</li>
+            <li><i class="ti ti-battery-charging"></i>4 baterías o banco litio</li>
+            <li><i class="ti ti-settings"></i>Controlador MPPT 60 A</li>
+            <li><i class="ti ti-plug"></i>Inversor/cargador 3000 W</li>
+            <li><i class="ti ti-tools"></i>Estructura y sistema completo</li>
+          </ul>
+          <div class="tier-uses">Ideal para: hogar completo con nevera, lavadora pequeña, computadores y más.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="cost-note">
+      <i class="ti ti-info-circle"></i>
+      <div>
+        <strong>Nota importante:</strong> estos precios son estimados para Colombia en 2024 con equipos comerciales. La instalación profesional puede sumar entre $200.000 y $800.000 COP adicionales según la complejidad. Programas como <strong>IPSE</strong> y <strong>FENOGE</strong> ofrecen subsidios y cofinanciación para comunidades en ZNI — consulta si tu vereda califica.
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SIMULADOR -->
+<section id="simulador">
+  <div class="container">
+    <span class="section-eyebrow">Herramienta de cálculo</span>
+    <h2 class="section-h2">Simula tu sistema solar ideal</h2>
+    <p class="section-lead">Selecciona los equipos de tu hogar y ajusta las horas de uso. El simulador calcula en tiempo real los componentes que necesitas y el costo estimado del sistema.</p>
+
+    <div class="zone-toggle" id="zoneToggle">
+      <button class="zone-btn active" data-hsp="5.5"><i class="ti ti-sun"></i> Alta irradiación (Costa / Llanos)</button>
+      <button class="zone-btn" data-hsp="4.5"><i class="ti ti-cloud-sun"></i> Media irradiación (Andina)</button>
+      <button class="zone-btn" data-hsp="3.5"><i class="ti ti-cloud"></i> Baja irradiación (Selva / Nublado)</button>
+    </div>
+
+    <div class="appliance-grid" id="appGrid"></div>
+
+    <div class="results-grid" id="resultsGrid">
+      <div class="result-metric">
+        <i class="ti ti-solar-panel rm-icon"></i>
+        <div class="rm-val" id="rPanels">–</div>
+        <div class="rm-label">Paneles solares<br>(250–300 W c/u)</div>
+      </div>
+      <div class="result-metric">
+        <i class="ti ti-battery-charging rm-icon"></i>
+        <div class="rm-val" id="rBattery">–</div>
+        <div class="rm-label">Batería<br>(12 V / Ah)</div>
+      </div>
+      <div class="result-metric">
+        <i class="ti ti-plug rm-icon"></i>
+        <div class="rm-val" id="rInverter">–</div>
+        <div class="rm-label">Inversor mínimo<br>(Watts)</div>
+      </div>
+    </div>
+
+    <div class="cost-estimate" id="costEstimate" style="display:none">
+      <div class="ce-left">
+        <div class="ce-label">Costo estimado del sistema</div>
+        <div class="ce-price" id="cePrice">$0</div>
+        <div class="ce-range" id="ceRange"></div>
+      </div>
+      <div class="ce-breakdown" id="ceBreakdown"></div>
+    </div>
+
+    <div class="bar-section" id="barSection">
+      <div class="bar-title">Consumo diario por equipo</div>
+      <div id="barRows"><p style="font-size:13px;color:var(--text-light);font-weight:300">Selecciona equipos para ver el desglose.</p></div>
+    </div>
+
+    <div class="tip-box" id="tipBox" style="display:none">
+      <i class="ti ti-bulb"></i>
+      <div id="tipContent"></div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ROI -->
+<section id="roi">
+  <div class="container">
+    <span class="section-eyebrow">Retorno de inversión</span>
+    <h2 class="section-h2">¿Cuándo recuperas lo invertido?</h2>
+    <p class="section-lead">Ajusta el costo de tu sistema y cuánto gastas hoy en energía (combustible, baterías, velas). La gráfica muestra el punto exacto en que el sol empieza a dejarte ganancia.</p>
+
+    <div class="roi-controls">
+      <div class="ctrl-box">
+        <label>Inversión en el sistema</label>
+        <div class="ctrl-val"><span id="invVal">3.500.000</span> <span>COP</span></div>
+        <input type="range" min="500000" max="15000000" step="100000" value="3500000" id="invSlider">
+        <div class="ctrl-range-labels"><span>$500k</span><span>$15M</span></div>
+      </div>
+      <div class="ctrl-box">
+        <label>Ahorro mensual actual en energía</label>
+        <div class="ctrl-val"><span id="savVal">120.000</span> <span>COP/mes</span></div>
+        <input type="range" min="20000" max="600000" step="5000" value="120000" id="savSlider">
+        <div class="ctrl-range-labels"><span>$20k</span><span>$600k</span></div>
+      </div>
+    </div>
+
+    <div class="roi-metrics">
+      <div class="roi-metric">
+        <div class="rv" id="roiYears">–</div>
+        <div class="rl">años para recuperar la inversión</div>
+      </div>
+      <div class="roi-metric">
+        <div class="rv green" id="roi10">–</div>
+        <div class="rl">ahorro neto a 10 años</div>
+      </div>
+      <div class="roi-metric">
+        <div class="rv green" id="roi20">–</div>
+        <div class="rl">ahorro neto a 20 años</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="roiChart" role="img" aria-label="Gráfica de recuperación de inversión solar en el tiempo">Gráfica de recuperación de inversión.</canvas>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>Solarix</strong> · Herramienta educativa para comunidades en Zonas No Interconectadas<br>
+  <span style="font-size:11px;opacity:0.5;margin-top:8px;display:block">Los paneles solares tienen vida útil de 25–30 años · Las baterías de plomo 3–7 años · Las de litio 10–15 años</span>
+</footer>
+
+<script>
+const APPLIANCES = [
+  { id:'bulb1', name:'Focos LED (x4)', watts:36, defHours:5, icon:'ti-bulb', on:true },
+  { id:'tv', name:'Televisor', watts:80, defHours:4, icon:'ti-device-tv', on:true },
+  { id:'phone', name:'Carga celulares', watts:15, defHours:3, icon:'ti-device-mobile', on:true },
+  { id:'fan', name:'Ventilador', watts:55, defHours:6, icon:'ti-wind', on:false },
+  { id:'fridge', name:'Nevera pequeña', watts:150, defHours:12, icon:'ti-fridge', on:false },
+  { id:'radio', name:'Radio / equipo', watts:25, defHours:4, icon:'ti-music', on:false },
+  { id:'laptop', name:'Computador', watts:65, defHours:3, icon:'ti-device-laptop', on:false },
+  { id:'pump', name:'Bomba de agua', watts:200, defHours:2, icon:'ti-droplet', on:false },
+];
+
+const state = { hsp: 5.5, apps: {} };
+APPLIANCES.forEach(a => { state.apps[a.id] = { on: a.on, hours: a.defHours }; });
+
+function buildAppGrid() {
+  const grid = document.getElementById('appGrid');
+  grid.innerHTML = '';
+  APPLIANCES.forEach(a => {
+    const s = state.apps[a.id];
+    const d = document.createElement('div');
+    d.className = 'app-item' + (s.on ? ' active' : '');
+    d.dataset.id = a.id;
+    d.innerHTML = `
+      <div class="app-top">
+        <div class="app-icon"><i class="ti ${a.icon}"></i></div>
+        <div>
+          <div class="app-name">${a.name}</div>
+          <div class="app-watts">${a.watts} W</div>
+        </div>
+      </div>
+      <div class="app-slider-row">
+        <input type="range" min="0.5" max="12" step="0.5" value="${s.hours}" data-id="${a.id}" class="hrs-sl" aria-label="Horas ${a.name}">
+        <span class="app-hrs" id="hl_${a.id}">${s.hours}h/día</span>
+      </div>
+    `;
+    grid.appendChild(d);
+  });
+
+  grid.querySelectorAll('.app-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.type === 'range') return;
+      const id = el.dataset.id;
+      state.apps[id].on = !state.apps[id].on;
+      el.classList.toggle('active', state.apps[id].on);
+      recalc();
+    });
+  });
+
+  grid.querySelectorAll('.hrs-sl').forEach(sl => {
+    sl.addEventListener('input', e => {
+      const id = e.target.dataset.id;
+      state.apps[id].hours = parseFloat(e.target.value);
+      const lbl = document.getElementById('hl_' + id);
+      if (lbl) lbl.textContent = state.apps[id].hours + 'h/día';
+      recalc();
+    });
+    sl.addEventListener('click', e => e.stopPropagation());
+  });
+}
+
+function estimateCost(panels, battAh, inverterW) {
+  const panelCost = panels * 280000;
+  const battCost = Math.ceil(battAh / 150) * 380000;
+  const inverterCost = inverterW <= 500 ? 180000 : inverterW <= 1500 ? 320000 : 580000;
+  const controllerCost = panels <= 1 ? 80000 : panels <= 3 ? 160000 : 260000;
+  const structureCost = panels * 60000 + 80000;
+  const total = panelCost + battCost + inverterCost + controllerCost + structureCost;
+  const low = Math.round(total * 0.85 / 50000) * 50000;
+  const high = Math.round(total * 1.25 / 50000) * 50000;
+  return {
+    total, low, high,
+    items: [
+      { icon: 'ti-solar-panel', label: `${panels} panel(es)`, val: panelCost },
+      { icon: 'ti-battery-charging', label: 'Banco de baterías', val: battCost },
+      { icon: 'ti-plug', label: 'Inversor', val: inverterCost },
+      { icon: 'ti-settings', label: 'Controlador MPPT', val: controllerCost },
+      { icon: 'ti-tools', label: 'Estructura y cables', val: structureCost },
+    ]
+  };
+}
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
+
+function recalc() {
+  let totalWh = 0;
+  let peakW = 0;
+  const active = [];
+
+  APPLIANCES.forEach(a => {
+    const s = state.apps[a.id];
+    if (s.on) {
+      const wh = a.watts * s.hours;
+      totalWh += wh;
+      peakW += a.watts;
+      active.push({ name: a.name, wh, watts: a.watts });
+    }
+  });
+
+  const totalWithLoss = totalWh * 1.25;
+  const panels = Math.max(1, Math.ceil((totalWithLoss / state.hsp) / 250));
+  const battAh = Math.max(40, Math.round((totalWh * 2) / 12 / 0.5));
+  const inverterW = Math.ceil((peakW * 1.3) / 50) * 50;
+
+  document.getElementById('rPanels').textContent = totalWh > 0 ? panels : '–';
+  document.getElementById('rBattery').textContent = totalWh > 0 ? battAh + ' Ah' : '–';
+  document.getElementById('rInverter').textContent = totalWh > 0 ? inverterW + ' W' : '–';
+
+  const costEl = document.getElementById('costEstimate');
+  if (totalWh > 0) {
+    const cost = estimateCost(panels, battAh, inverterW);
+    costEl.style.display = 'flex';
+    document.getElementById('cePrice').textContent = fmt(cost.total);
+    document.getElementById('ceRange').textContent = `Rango estimado: ${fmt(cost.low)} – ${fmt(cost.high)} COP`;
+    const bd = document.getElementById('ceBreakdown');
+    bd.innerHTML = cost.items.map(it =>
+      `<div class="ce-item"><i class="ti ${it.icon}"></i>${it.label}: ${fmt(it.val)}</div>`
+    ).join('');
+  } else {
+    costEl.style.display = 'none';
+  }
+
+  const barRows = document.getElementById('barRows');
+  if (active.length === 0) {
+    barRows.innerHTML = '<p style="font-size:13px;color:var(--text-light);font-weight:300">Selecciona equipos para ver el desglose.</p>';
+  } else {
+    const maxWh = Math.max(...active.map(a => a.wh));
+    barRows.innerHTML = active.sort((a,b) => b.wh - a.wh).map(a =>
+      `<div class="app-bar-row">
+        <div class="app-bar-name">${a.name}</div>
+        <div class="app-bar-track"><div class="app-bar-fill" style="width:${maxWh>0?(a.wh/maxWh*100).toFixed(1):0}%"></div></div>
+        <div class="app-bar-wh">${Math.round(a.wh)} Wh</div>
+      </div>`
+    ).join('');
+  }
+
+  const tipBox = document.getElementById('tipBox');
+  const tipContent = document.getElementById('tipContent');
+  if (totalWh === 0) {
+    tipBox.style.display = 'none';
+  } else {
+    tipBox.style.display = 'flex';
+    const tips = [];
+    if (state.apps['fridge']?.on) tips.push('Usa una nevera DC de 12V de bajo consumo para reducir hasta 40% el tamaño del sistema.');
+    if (panels >= 4) tips.push('Con 4+ paneles, un controlador MPPT mejora la eficiencia hasta un 30% vs uno PWM.');
+    if (totalWh < 400) tips.push('Tu consumo es bajo: un kit básico (~$1M COP) puede cubrir tus necesidades.');
+    if (totalWh > 1200) tips.push('Considera distribuir cargas pesadas en horario diurno para reducir el banco de baterías.');
+    tips.push(`Zona actual: <strong>${state.hsp} horas solar pico/día</strong>. Cambiar de zona afecta el número de paneles.`);
+    tipContent.innerHTML = tips.join(' &nbsp;·&nbsp; ');
+  }
+}
+
+document.getElementById('zoneToggle').querySelectorAll('.zone-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.hsp = parseFloat(btn.dataset.hsp);
+    recalc();
+  });
+});
+
+// ROI Chart
+let roiChart = null;
+
+function updateRoi() {
+  const inv = parseInt(document.getElementById('invSlider').value);
+  const sav = parseInt(document.getElementById('savSlider').value);
+  document.getElementById('invVal').textContent = Math.round(inv).toLocaleString('es-CO');
+  document.getElementById('savVal').textContent = Math.round(sav).toLocaleString('es-CO');
+
+  const roiMonths = Math.ceil(inv / sav);
+  const roiYrs = (roiMonths / 12).toFixed(1);
+  const net10 = sav * 120 - inv;
+  const net20 = sav * 240 - inv;
+
+  document.getElementById('roiYears').textContent = roiMonths > 300 ? '+25 años' : roiYrs + ' años';
+  document.getElementById('roi10').textContent = net10 > 0 ? fmt(net10) : fmt(0);
+  document.getElementById('roi20').textContent = net20 > 0 ? fmt(net20) : fmt(0);
+
+  const labels = [];
+  const data = [];
+  const zero = [];
+  for (let m = 0; m <= 240; m += 6) {
+    labels.push((m/12).toFixed(0) + 'a');
+    data.push(Math.round(sav * m - inv));
+    zero.push(0);
+  }
+
+  if (roiChart) roiChart.destroy();
+
+  roiChart = new Chart(document.getElementById('roiChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Saldo acumulado',
+          data,
+          borderColor: '#3d9966',
+          backgroundColor: 'rgba(61,153,102,0.07)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        },
+        {
+          label: 'Equilibrio',
+          data: zero,
+          borderColor: 'rgba(180,140,0,0.45)',
+          borderDash: [6,4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#7a9e8c', font: { size: 11 }, maxTicksLimit: 10 },
+          grid: { color: 'rgba(30,80,50,0.06)' }
+        },
+        y: {
+          ticks: {
+            color: '#7a9e8c',
+            font: { size: 11 },
+            callback: v => {
+              if (Math.abs(v) >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
+              if (Math.abs(v) >= 1000) return '$' + Math.round(v/1000) + 'k';
+              return '$' + v;
+            }
+          },
+          grid: { color: 'rgba(30,80,50,0.06)' }
+        }
+      }
+    }
+  });
+}
+
+document.getElementById('invSlider').addEventListener('input', updateRoi);
+document.getElementById('savSlider').addEventListener('input', updateRoi);
+
+// Stars
+const heroBg = document.getElementById('heroBg');
+for (let i = 0; i < 60; i++) {
+  const s = document.createElement('div');
+  s.className = 'star-particle';
+  const sz = Math.random() * 2 + 0.5;
+  s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*4}s;animation-duration:${2+Math.random()*3}s`;
+  heroBg.appendChild(s);
+}
+
+buildAppGrid();
+recalc();
+updateRoi();
+</script>
+</body>
+</html>
