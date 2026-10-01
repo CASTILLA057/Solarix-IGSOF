@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/core/router/rutas.dart';
+import 'package:solarix/core/theme/app_theme.dart';
+import 'package:solarix/core/theme/transicion_suave.dart';
 import 'package:solarix/features/auth/domain/mensajes_error.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
 import 'package:solarix/features/auth/domain/validadores.dart';
@@ -73,14 +76,14 @@ void main() {
   });
 
   group('redirigir', () {
-    test('sin sesión manda al login desde rutas privadas', () {
+    test('sin sesión manda a la bienvenida desde rutas privadas', () {
       expect(
         redirigir(autenticado: false, ubicacion: Rutas.inicio),
-        Rutas.login,
+        Rutas.bienvenida,
       );
       expect(
         redirigir(autenticado: false, ubicacion: Rutas.perfil),
-        Rutas.login,
+        Rutas.bienvenida,
       );
     });
     test('sin sesión deja ver las pantallas públicas', () {
@@ -88,7 +91,7 @@ void main() {
         expect(redirigir(autenticado: false, ubicacion: ruta), isNull);
       }
     });
-    test('con sesión saca de login, registro y verificación', () {
+    test('con sesión saca de bienvenida, login, registro y verificación', () {
       for (final ruta in Rutas.soloSinSesion) {
         expect(redirigir(autenticado: true, ubicacion: ruta), Rutas.inicio);
       }
@@ -102,8 +105,28 @@ void main() {
   test('Rutas.verificarCon codifica el correo en la URL', () {
     expect(
       Rutas.verificarCon('ana+solar@correo.com'),
-      '/verificar?email=ana%2Bsolar%40correo.com',
+      '/bienvenida/verificar?email=ana%2Bsolar%40correo.com',
     );
+  });
+
+  test('las pantallas de acceso son hijas de la bienvenida', () {
+    for (final ruta in [
+      Rutas.login,
+      Rutas.registro,
+      Rutas.verificar,
+      Rutas.recuperar,
+    ]) {
+      expect(ruta, startsWith('${Rutas.bienvenida}/'));
+    }
+  });
+
+  test('el tema usa la transición suave en todas las plataformas', () {
+    for (final tema in [AppTheme.claro, AppTheme.oscuro]) {
+      final constructores = tema.pageTransitionsTheme.builders;
+      for (final plataforma in TargetPlatform.values) {
+        expect(constructores[plataforma], isA<TransicionSuave>());
+      }
+    }
   });
 
   test('Perfil se lee y escribe con los nombres de columna de Supabase', () {

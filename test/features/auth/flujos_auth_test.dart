@@ -43,13 +43,32 @@ Future<void> tocar(WidgetTester tester, Finder boton) async {
 
 Finder boton(String texto) => find.widgetWithText(FilledButton, texto);
 
+final enBienvenida = find.text('Bienvenido a Solarix');
 final enInicio = find.byTooltip('Mi perfil');
 
+/// Desde la bienvenida, abre el login.
+Future<void> irALogin(WidgetTester tester) =>
+    tocar(tester, boton('Iniciar sesión'));
+
+/// Desde la bienvenida, abre "¿Olvidaste tu contraseña?" pasando por el login.
+Future<void> irARecuperar(WidgetTester tester) async {
+  await irALogin(tester);
+  await tocar(
+    tester,
+    find.widgetWithText(TextButton, '¿Olvidaste tu contraseña?'),
+  );
+}
+
 void main() {
-  group('Inicio de sesión', () {
-    testWidgets('sin sesión la app abre en el login', (tester) async {
+  group('Bienvenida', () {
+    testWidgets('sin sesión la app abre en la bienvenida', (tester) async {
       await abrirApp(tester, FakeAuthRepository());
+      expect(enBienvenida, findsOneWidget);
       expect(boton('Iniciar sesión'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Crear cuenta'),
+        findsOneWidget,
+      );
       expect(enInicio, findsNothing);
     });
 
@@ -61,11 +80,26 @@ void main() {
         FakeAuthRepository(usuario: FakeAuthRepository.usuarioPrueba),
       );
       expect(enInicio, findsOneWidget);
+      expect(enBienvenida, findsNothing);
     });
 
+    testWidgets('el botón atrás del login vuelve a la bienvenida', (
+      tester,
+    ) async {
+      await abrirApp(tester, FakeAuthRepository());
+      await irALogin(tester);
+      expect(enBienvenida, findsNothing);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(enBienvenida, findsOneWidget);
+    });
+  });
+
+  group('Inicio de sesión', () {
     testWidgets('valida los campos antes de llamar a Supabase', (tester) async {
       final auth = FakeAuthRepository();
       await abrirApp(tester, auth);
+      await irALogin(tester);
       await tocar(tester, boton('Iniciar sesión'));
       expect(find.text('Escribe tu correo.'), findsOneWidget);
       expect(find.text('Escribe tu contraseña.'), findsOneWidget);
@@ -75,6 +109,7 @@ void main() {
     testWidgets('con datos correctos entra al inicio', (tester) async {
       final auth = FakeAuthRepository();
       await abrirApp(tester, auth);
+      await irALogin(tester);
       await escribir(tester, 'Correo', 'ana@correo.com');
       await escribir(tester, 'Contraseña', 'solar2026');
       await tocar(tester, boton('Iniciar sesión'));
@@ -91,6 +126,7 @@ void main() {
           codigo: 'invalid_credentials',
         );
       await abrirApp(tester, auth);
+      await irALogin(tester);
       await escribir(tester, 'Correo', 'ana@correo.com');
       await escribir(tester, 'Contraseña', 'mala1234');
       await tocar(tester, boton('Iniciar sesión'));
@@ -107,6 +143,7 @@ void main() {
           codigo: CodigosError.correoSinConfirmar,
         );
       await abrirApp(tester, auth);
+      await irALogin(tester);
       await escribir(tester, 'Correo', 'ana@correo.com');
       await escribir(tester, 'Contraseña', 'solar2026');
       await tocar(tester, boton('Iniciar sesión'));
@@ -115,10 +152,12 @@ void main() {
     });
   });
 
-  testWidgets('registro con confirmación por código', (tester) async {
+  testWidgets('registro desde la bienvenida con confirmación por código', (
+    tester,
+  ) async {
     final auth = FakeAuthRepository();
     await abrirApp(tester, auth);
-    await tocar(tester, find.widgetWithText(TextButton, 'Crear cuenta'));
+    await tocar(tester, find.widgetWithText(OutlinedButton, 'Crear cuenta'));
 
     await escribir(tester, 'Nombre', 'Ana');
     await escribir(tester, 'Correo', 'ana@correo.com');
@@ -132,30 +171,90 @@ void main() {
     expect(auth.llamadas, ['registrarse:ana@correo.com:Ana']);
     expect(find.text('Confirma tu correo'), findsOneWidget);
 
-    await escribir(tester, 'Código', '123456');
+    await escribir(tester, 'Código', '12345678');
     await tocar(tester, boton('Confirmar cuenta'));
-    expect(auth.llamadas.last, 'confirmarRegistro:ana@correo.com:123456');
+    expect(auth.llamadas.last, 'confirmarRegistro:ana@correo.com:12345678');
     expect(enInicio, findsOneWidget);
   });
 
-  testWidgets('recuperar contraseña con código', (tester) async {
-    final auth = FakeAuthRepository();
-    await abrirApp(tester, auth);
-    await tocar(
-      tester,
-      find.widgetWithText(TextButton, '¿Olvidaste tu contraseña?'),
+  group('Recuperar contraseña en tres pasos', () {
+    final campoContrasenaNueva = find.widgetWithText(
+      TextFormField,
+      'Contraseña nueva',
     );
 
-    await escribir(tester, 'Correo', 'ana@correo.com');
-    await tocar(tester, boton('Enviar código'));
-    expect(auth.llamadas, ['enviarCodigoRecuperacion:ana@correo.com']);
+    Future<void> hastaPasoCodigo(
+      WidgetTester tester,
+      FakeAuthRepository auth,
+    ) async {
+      await abrirApp(tester, auth);
+      await irARecuperar(tester);
+      // Paso 1: solo el correo.
+      expect(find.widgetWithText(TextFormField, 'Código'), findsNothing);
+      expect(campoContrasenaNueva, findsNothing);
+      await escribir(tester, 'Correo', 'ana@correo.com');
+      await tocar(tester, boton('Enviar código'));
+    }
 
-    await escribir(tester, 'Código', '654321');
-    await escribir(tester, 'Contraseña nueva', 'nueva2026');
-    await escribir(tester, 'Repite la contraseña nueva', 'nueva2026');
-    await tocar(tester, boton('Cambiar contraseña'));
-    expect(auth.llamadas.last, 'restablecerContrasena:ana@correo.com:654321');
-    expect(enInicio, findsOneWidget);
+    testWidgets('pide el código antes que la contraseña nueva', (tester) async {
+      final auth = FakeAuthRepository();
+      await hastaPasoCodigo(tester, auth);
+
+      // Paso 2: solo el código.
+      expect(find.widgetWithText(TextFormField, 'Código'), findsOneWidget);
+      expect(campoContrasenaNueva, findsNothing);
+      await escribir(tester, 'Código', '87654321');
+      await tocar(tester, boton('Verificar código'));
+
+      // Paso 3: con el código correcto, la contraseña nueva.
+      expect(find.widgetWithText(TextFormField, 'Código'), findsNothing);
+      expect(campoContrasenaNueva, findsOneWidget);
+      await escribir(tester, 'Contraseña nueva', 'nueva2026');
+      await escribir(tester, 'Repite la contraseña nueva', 'nueva2026');
+      await tocar(tester, boton('Cambiar contraseña'));
+
+      expect(auth.llamadas, [
+        'enviarCodigoRecuperacion:ana@correo.com',
+        'verificarCodigoRecuperacion:ana@correo.com:87654321',
+        'cambiarContrasena',
+      ]);
+      expect(enInicio, findsOneWidget);
+    });
+
+    testWidgets('con un código incorrecto se queda en el paso del código', (
+      tester,
+    ) async {
+      final auth = FakeAuthRepository();
+      await hastaPasoCodigo(tester, auth);
+
+      auth.errorSiguiente = ErrorApp(
+        mensajeErrorAuth('otp_expired'),
+        codigo: 'otp_expired',
+      );
+      await escribir(tester, 'Código', '11111111');
+      await tocar(tester, boton('Verificar código'));
+
+      expect(find.text(mensajeErrorAuth('otp_expired')), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Código'), findsOneWidget);
+      expect(campoContrasenaNueva, findsNothing);
+    });
+
+    testWidgets('si sale sin cambiar la contraseña se cierra la sesión', (
+      tester,
+    ) async {
+      final auth = FakeAuthRepository();
+      await hastaPasoCodigo(tester, auth);
+      await escribir(tester, 'Código', '87654321');
+      await tocar(tester, boton('Verificar código'));
+      expect(campoContrasenaNueva, findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(auth.llamadas.last, 'cerrarSesion');
+      expect(auth.usuarioActual, isNull);
+      expect(enInicio, findsNothing);
+    });
   });
 
   testWidgets('perfil: editar, guardar y cerrar sesión', (tester) async {
@@ -184,6 +283,6 @@ void main() {
     await tocar(tester, find.widgetWithText(OutlinedButton, 'Cerrar sesión'));
     await tocar(tester, boton('Cerrar sesión'));
     expect(auth.llamadas, ['cerrarSesion']);
-    expect(boton('Iniciar sesión'), findsOneWidget);
+    expect(enBienvenida, findsOneWidget);
   });
 }

@@ -86,14 +86,17 @@ class FakeAuthRepository implements AuthRepository {
       _operacion('enviarCodigoRecuperacion:$email');
 
   @override
-  Future<void> restablecerContrasena({
+  Future<void> verificarCodigoRecuperacion({
     required String email,
     required String codigo,
-    required String nuevaContrasena,
   }) => _operacion(
-    'restablecerContrasena:$email:$codigo',
+    'verificarCodigoRecuperacion:$email:$codigo',
     () => _emitir(Usuario(id: 'u-1', email: email)),
   );
+
+  @override
+  Future<void> cambiarContrasena(String nuevaContrasena) =>
+      _operacion('cambiarContrasena');
 
   @override
   Future<void> cerrarSesion() =>
