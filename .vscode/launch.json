@@ -1,0 +1,22 @@
+{
+  // Configuraciones para ejecutar Solarix con F5 / Run and Debug.
+  // Cargan las credenciales de Supabase desde env.json (fuera de git).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Solarix (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "args": ["--dart-define-from-file=env.json"]
+    },
+    {
+      "name": "Solarix (Android)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--dart-define-from-file=env.json"]
+    }
+  ]
+}
