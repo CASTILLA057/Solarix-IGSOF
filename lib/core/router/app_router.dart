@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/application/auth_providers.dart';
+import '../../features/auth/presentation/bienvenida_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/perfil_screen.dart';
 import '../../features/auth/presentation/recuperar_screen.dart';
@@ -36,23 +37,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // Pantallas de acceso como hijas de la bienvenida: "atrás" vuelve a ella.
       GoRoute(
-        path: Rutas.login,
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: Rutas.registro,
-        builder: (context, state) => const RegistroScreen(),
-      ),
-      GoRoute(
-        path: Rutas.verificar,
-        builder: (context, state) => VerificarCorreoScreen(
-          email: state.uri.queryParameters['email'] ?? '',
-        ),
-      ),
-      GoRoute(
-        path: Rutas.recuperar,
-        builder: (context, state) => const RecuperarScreen(),
+        path: Rutas.bienvenida,
+        builder: (context, state) => const BienvenidaScreen(),
+        routes: [
+          GoRoute(
+            path: _subruta(Rutas.login),
+            builder: (context, state) => const LoginScreen(),
+          ),
+          GoRoute(
+            path: _subruta(Rutas.registro),
+            builder: (context, state) => const RegistroScreen(),
+          ),
+          GoRoute(
+            path: _subruta(Rutas.verificar),
+            builder: (context, state) => VerificarCorreoScreen(
+              email: state.uri.queryParameters['email'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: _subruta(Rutas.recuperar),
+            builder: (context, state) => const RecuperarScreen(),
+          ),
+        ],
       ),
     ],
   );
@@ -62,6 +70,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
   return router;
 });
+
+/// Último segmento de una ruta, para declararla como hija (`/a/b` → `b`).
+String _subruta(String ruta) => ruta.substring(ruta.lastIndexOf('/') + 1);
 
 /// Avisa al router cada vez que cambia la sesión.
 class _RefrescoSesion extends ChangeNotifier {
