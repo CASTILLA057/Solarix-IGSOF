@@ -1,0 +1,14 @@
+# Configuración de Supabase versionada en git.
+# `supabase config push` solo sube lo que este archivo declara; lo que no
+# aparece aquí queda igual en el proyecto. Revisar antes con `supabase config diff`.
+project_id = "solarix"
+
+# Correos con código de 6 dígitos ({{ .Token }}) en lugar de enlace: la app
+# pide escribir el código para confirmar la cuenta y para recuperar la contraseña.
+[auth.email.template.confirmation]
+subject = "Tu código de Solarix"
+content_path = "./supabase/templates/confirmacion.html"
+
+[auth.email.template.recovery]
+subject = "Recupera tu contraseña de Solarix"
+content_path = "./supabase/templates/recuperacion.html"
