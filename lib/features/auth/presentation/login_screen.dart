@@ -86,7 +86,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.push(Rutas.recuperar),
+                  // `go` y no `push`: al verificar el código se abre una
+                  // sesión temporal y el router no debe reevaluar el login.
+                  onPressed: () => context.go(Rutas.recuperar),
                   child: const Text('¿Olvidaste tu contraseña?'),
                 ),
               ),

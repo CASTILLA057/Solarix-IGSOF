@@ -76,18 +76,21 @@ class SupabaseAuthRepository implements AuthRepository {
       _ejecutar(() => _auth.resetPasswordForEmail(email.trim()));
 
   @override
-  Future<void> restablecerContrasena({
+  Future<void> verificarCodigoRecuperacion({
     required String email,
     required String codigo,
-    required String nuevaContrasena,
-  }) => _ejecutar(() async {
-    await _auth.verifyOTP(
+  }) => _ejecutar(
+    () => _auth.verifyOTP(
       email: email.trim(),
       token: codigo.trim(),
       type: OtpType.recovery,
-    );
-    await _auth.updateUser(UserAttributes(password: nuevaContrasena));
-  });
+    ),
+  );
+
+  @override
+  Future<void> cambiarContrasena(String nuevaContrasena) => _ejecutar(
+    () => _auth.updateUser(UserAttributes(password: nuevaContrasena)),
+  );
 
   @override
   Future<void> cerrarSesion() => _ejecutar(_auth.signOut);

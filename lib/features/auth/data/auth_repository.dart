@@ -32,12 +32,15 @@ abstract interface class AuthRepository {
 
   Future<void> enviarCodigoRecuperacion(String email);
 
-  /// Valida el código de recuperación (abre sesión) y cambia la contraseña.
-  Future<void> restablecerContrasena({
+  /// Valida el código de recuperación. Si es correcto, Supabase abre una
+  /// sesión temporal que permite llamar a [cambiarContrasena].
+  Future<void> verificarCodigoRecuperacion({
     required String email,
     required String codigo,
-    required String nuevaContrasena,
   });
+
+  /// Cambia la contraseña del usuario con sesión activa.
+  Future<void> cambiarContrasena(String nuevaContrasena);
 
   Future<void> cerrarSesion();
 }
@@ -84,11 +87,14 @@ class SinBackendAuthRepository implements AuthRepository {
   Future<void> enviarCodigoRecuperacion(String email) => Future.error(_error);
 
   @override
-  Future<void> restablecerContrasena({
+  Future<void> verificarCodigoRecuperacion({
     required String email,
     required String codigo,
-    required String nuevaContrasena,
   }) => Future.error(_error);
+
+  @override
+  Future<void> cambiarContrasena(String nuevaContrasena) =>
+      Future.error(_error);
 
   @override
   Future<void> cerrarSesion() async {}
