@@ -1,18 +1,79 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/application/auth_providers.dart';
+import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/perfil_screen.dart';
+import '../../features/auth/presentation/recuperar_screen.dart';
+import '../../features/auth/presentation/registro_screen.dart';
+import '../../features/auth/presentation/verificar_correo_screen.dart';
 import '../../features/dashboard/presentation/inicio_screen.dart';
+import 'rutas.dart';
 
-/// Rutas de la app. En la Etapa 2 se agregan login/registro y la
-/// redirección según la sesión de Supabase.
+/// Router de la app: protege las rutas según haya o no sesión (ver
+/// [redirigir]) y se reevalúa cada vez que cambia la sesión.
 final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
-    initialLocation: InicioScreen.ruta,
+  final auth = ref.watch(authRepositoryProvider);
+  final refresco = _RefrescoSesion(auth.cambiosDeSesion);
+  final router = GoRouter(
+    initialLocation: Rutas.inicio,
+    refreshListenable: refresco,
+    redirect: (context, state) => redirigir(
+      autenticado: auth.usuarioActual != null,
+      ubicacion: state.matchedLocation,
+    ),
     routes: [
       GoRoute(
-        path: InicioScreen.ruta,
+        path: Rutas.inicio,
         builder: (context, state) => const InicioScreen(),
+        routes: [
+          GoRoute(
+            path: Rutas.perfil.substring(1),
+            builder: (context, state) => const PerfilScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: Rutas.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: Rutas.registro,
+        builder: (context, state) => const RegistroScreen(),
+      ),
+      GoRoute(
+        path: Rutas.verificar,
+        builder: (context, state) => VerificarCorreoScreen(
+          email: state.uri.queryParameters['email'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: Rutas.recuperar,
+        builder: (context, state) => const RecuperarScreen(),
       ),
     ],
   );
+  ref.onDispose(() {
+    router.dispose();
+    refresco.dispose();
+  });
+  return router;
 });
+
+/// Avisa al router cada vez que cambia la sesión.
+class _RefrescoSesion extends ChangeNotifier {
+  _RefrescoSesion(Stream<Object?> cambios) {
+    _suscripcion = cambios.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<Object?> _suscripcion;
+
+  @override
+  void dispose() {
+    _suscripcion.cancel();
+    super.dispose();
+  }
+}

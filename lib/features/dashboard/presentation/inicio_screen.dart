@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/config/env.dart';
+import '../../../core/router/rutas.dart';
 
 /// Pantalla inicial provisional. Se convierte en el dashboard en la Etapa 7.
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key});
 
-  static const ruta = '/';
-
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Solarix')),
+      appBar: AppBar(
+        title: const Text('Solarix'),
+        actions: [
+          IconButton(
+            tooltip: 'Mi perfil',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => context.go(Rutas.perfil),
+          ),
+        ],
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
