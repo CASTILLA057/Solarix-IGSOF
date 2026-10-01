@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'transicion_suave.dart';
+
 /// Paleta solar de Solarix. Se ajusta en la Etapa 8 (pulido).
 abstract final class AppTheme {
   /// Ámbar solar, color semilla del esquema.
@@ -25,6 +27,12 @@ abstract final class AppTheme {
         border: OutlineInputBorder(),
       ),
       cardTheme: const CardThemeData(clipBehavior: Clip.antiAlias),
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final plataforma in TargetPlatform.values)
+            plataforma: const TransicionSuave(),
+        },
+      ),
     );
   }
 }
