@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
+import '../../../core/router/rutas.dart';
+import '../../degradacion/domain/integracion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
 import '../domain/modelos.dart';
@@ -24,8 +27,25 @@ class ResultadosScreen extends ConsumerStatefulWidget {
 
 class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
   bool _guardando = false;
-  bool _guardado = false;
+  String? _calculoId;
   String? _error;
+
+  bool get _guardado => _calculoId != null;
+
+  /// La simulación de degradación solo aplica a baterías de litio.
+  bool get _puedeSimular =>
+      widget.entradas.tipo.usaBateria &&
+      widget.entradas.quimica == QuimicaBateria.litio &&
+      widget.resultado.bateriaKwh > 0;
+
+  void _simularBateria() => context.push(
+    Rutas.simulacion,
+    extra: OrigenCalculo(
+      entradas: widget.entradas,
+      resultado: widget.resultado,
+      calculoId: _calculoId,
+    ),
+  );
 
   Future<void> _guardar() async {
     setState(() {
@@ -33,11 +53,11 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
       _error = null;
     });
     try {
-      await ref
+      final id = await ref
           .read(calculadoraRepositoryProvider)
           .guardarCalculo(widget.entradas, widget.resultado);
       if (!mounted) return;
-      setState(() => _guardado = true);
+      setState(() => _calculoId = id);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Cálculo guardado.')));
     } on ErrorApp catch (e) {
@@ -155,6 +175,26 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                 cargando: _guardando,
                 onPressed: _guardado ? () {} : _guardar,
               ),
+              if (_puedeSimular) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _simularBateria,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: const Icon(Icons.battery_charging_full_outlined),
+                  label: const Text('Simular la salud de esta batería'),
+                ),
+                if (!_guardado)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Guarda el cálculo antes para que la simulación quede '
+                      'vinculada a él.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+              ],
               const SizedBox(height: 24),
             ],
           ),

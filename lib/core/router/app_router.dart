@@ -16,6 +16,7 @@ import '../../features/calculadora/presentation/calculadora_screen.dart';
 import '../../features/calculadora/presentation/resultados_screen.dart';
 import '../../features/dashboard/presentation/inicio_screen.dart';
 import '../../features/degradacion/domain/comparacion.dart';
+import '../../features/degradacion/domain/integracion.dart';
 import '../../features/degradacion/presentation/resultados_simulacion_screen.dart';
 import '../../features/degradacion/presentation/simulacion_screen.dart';
 import 'rutas.dart';
@@ -66,18 +67,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: Rutas.simulacion.substring(1),
-            builder: (context, state) => const SimulacionScreen(),
+            // Desde la calculadora llega el cálculo de origen (Etapa 6).
+            builder: (context, state) => SimulacionScreen(
+              origen: state.extra is OrigenCalculo
+                  ? state.extra! as OrigenCalculo
+                  : null,
+            ),
             routes: [
               GoRoute(
                 path: _subruta(Rutas.resultadosSimulacion),
                 // Igual que en la calculadora: los resultados van en memoria.
                 redirect: (context, state) =>
-                    state.extra is ComparacionSimulacion
+                    state.extra is (ComparacionSimulacion, OrigenCalculo?)
                     ? null
                     : Rutas.simulacion,
-                builder: (context, state) => ResultadosSimulacionScreen(
-                  comparacion: state.extra! as ComparacionSimulacion,
-                ),
+                builder: (context, state) {
+                  final (comparacion, origen) =
+                      state.extra! as (ComparacionSimulacion, OrigenCalculo?);
+                  return ResultadosSimulacionScreen(
+                    comparacion: comparacion,
+                    origen: origen,
+                  );
+                },
               ),
             ],
           ),

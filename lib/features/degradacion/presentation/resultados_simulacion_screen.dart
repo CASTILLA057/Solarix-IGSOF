@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
+import '../../calculadora/domain/calculadora.dart';
 import '../application/simulacion_providers.dart';
 import '../domain/comparacion.dart';
+import '../domain/integracion.dart';
 import '../domain/parametros.dart';
 import '../domain/simulador.dart';
 import 'etiquetas.dart';
@@ -13,9 +15,16 @@ import 'etiquetas.dart';
 /// Resultados de la simulación: SoH de la política elegida y comparación
 /// lado a lado con la otra política bajo el mismo clima.
 class ResultadosSimulacionScreen extends ConsumerStatefulWidget {
-  const ResultadosSimulacionScreen({super.key, required this.comparacion});
+  const ResultadosSimulacionScreen({
+    super.key,
+    required this.comparacion,
+    this.origen,
+  });
 
   final ComparacionSimulacion comparacion;
+
+  /// Cálculo del que partió la simulación (Etapa 6), si lo hay.
+  final OrigenCalculo? origen;
 
   @override
   ConsumerState<ResultadosSimulacionScreen> createState() =>
@@ -34,7 +43,9 @@ class _ResultadosSimulacionScreenState
       _error = null;
     });
     try {
-      await ref.read(simulacionRepositoryProvider).guardar(widget.comparacion);
+      await ref
+          .read(simulacionRepositoryProvider)
+          .guardar(widget.comparacion, calculoId: widget.origen?.calculoId);
       if (!mounted) return;
       setState(() => _guardada = true);
       ScaffoldMessenger.of(context)
@@ -69,6 +80,15 @@ class _ResultadosSimulacionScreenState
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
+              if (widget.origen case final origen?)
+                _Tarjeta(
+                  titulo: 'Con el sistema que dimensionaste',
+                  icono: Icons.savings_outlined,
+                  child: _ImpactoInversion(
+                    origen: origen,
+                    simulacion: c.principal,
+                  ),
+                ),
               _Tarjeta(
                 titulo: 'Convencional frente a consciente',
                 icono: Icons.compare_arrows,
@@ -143,6 +163,98 @@ class _Destacado extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Vida de la batería según la simulación y su efecto en el retorno de la
+/// inversión calculado en la calculadora (que usaba la vida típica).
+class _ImpactoInversion extends StatelessWidget {
+  const _ImpactoInversion({required this.origen, required this.simulacion});
+
+  final OrigenCalculo origen;
+  final ResultadoSimulacion simulacion;
+
+  @override
+  Widget build(BuildContext context) {
+    final antes = origen.resultado;
+    final vidaTipica = origen.entradas.quimica.vidaUtilAnios;
+    final aniosVida = aniosHastaFinDeVida(simulacion);
+    final vida = vidaBateriaParaFlujo(simulacion);
+    // Sin degradación apreciable: no hay reemplazo dentro del horizonte.
+    final despues = calcular(
+      origen.entradas,
+      vidaBateriaAnios: vida ?? origen.entradas.supuestos.anios + 1,
+    );
+    final horizonte = origen.entradas.supuestos.anios;
+    final filas = <(String, String, String)>[
+      (
+        'Vida de la batería',
+        '$vidaTipica años (típica)',
+        aniosVida == null
+            ? 'Más de $horizonte años'
+            : '${Formato.numero(aniosVida, 1)} años',
+      ),
+      (
+        'Recuperación de la inversión',
+        Formato.anios(antes.paybackAnios, horizonte),
+        Formato.anios(despues.paybackAnios, horizonte),
+      ),
+      ('VPN', Formato.cop(antes.vpn), Formato.cop(despues.vpn)),
+      (
+        'Costo total en $horizonte años',
+        Formato.cop(antes.gastosTotales),
+        Formato.cop(despues.gastosTotales),
+      ),
+    ];
+    final estilo = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          aniosVida == null
+              ? 'Con tu consumo, la batería casi no se degrada en el horizonte '
+                    'del análisis.'
+              : 'Así se vería la salud de tu batería: llega al 80 % en unos '
+                    '${Formato.numero(aniosVida, 1)} años. Así cambia tu '
+                    'retorno de inversión al usar esa vida en lugar de la '
+                    'típica:',
+          style: estilo.bodyMedium,
+        ),
+        const SizedBox(height: 12),
+        Table(
+          columnWidths: const {0: FlexColumnWidth(1.4)},
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            TableRow(
+              children: [
+                const SizedBox.shrink(),
+                Text(
+                  'Calculadora',
+                  textAlign: TextAlign.end,
+                  style: estilo.labelLarge,
+                ),
+                Text(
+                  'Con simulación',
+                  textAlign: TextAlign.end,
+                  style: estilo.labelLarge,
+                ),
+              ],
+            ),
+            for (final (etiqueta, a, b) in filas)
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(etiqueta),
+                  ),
+                  Text(a, textAlign: TextAlign.end),
+                  Text(b, textAlign: TextAlign.end),
+                ],
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

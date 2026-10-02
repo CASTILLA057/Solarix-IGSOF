@@ -9,13 +9,18 @@ import '../../../core/router/rutas.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../calculadora/presentation/widgets/campos.dart';
 import '../application/simulacion_providers.dart';
+import '../domain/integracion.dart';
 import '../domain/parametros.dart';
 import 'etiquetas.dart';
 
 /// Formulario de la simulación de degradación (parámetros del modelo SimDeg-FV
 /// con los valores por defecto de NetLogo).
 class SimulacionScreen extends ConsumerStatefulWidget {
-  const SimulacionScreen({super.key});
+  const SimulacionScreen({super.key, this.origen});
+
+  /// Cálculo del que parte (Etapa 6): precarga batería, paneles, consumo y
+  /// escenario de irradiancia.
+  final OrigenCalculo? origen;
 
   @override
   ConsumerState<SimulacionScreen> createState() => _SimulacionScreenState();
@@ -24,11 +29,17 @@ class SimulacionScreen extends ConsumerStatefulWidget {
 class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
   static const _d = ParametrosSimulacion();
 
+  late final ParametrosSimulacion _inicial = widget.origen == null
+      ? _d
+      : parametrosDesdeCalculo(widget.origen!);
+
   final _form = GlobalKey<FormState>();
-  final _capacidad = TextEditingController(
-    text: _texto(_d.capacidadBateriaKwh),
+  late final _capacidad = TextEditingController(
+    text: _texto(_redondear(_inicial.capacidadBateriaKwh)),
   );
-  final _panel = TextEditingController(text: _texto(_d.potenciaPanelKw));
+  late final _panel = TextEditingController(
+    text: _texto(_redondear(_inicial.potenciaPanelKw)),
+  );
   final _tasaC = TextEditingController(text: _texto(_d.tasaCMaxima));
   final _socMin = TextEditingController(text: _texto(_d.cargaMinima));
   final _socMax = TextEditingController(text: _texto(_d.cargaMaxima));
@@ -44,10 +55,12 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
     text: _texto(_d.pesoVariacionCarga),
   );
   Politica _politica = _d.politica;
-  EscenarioIrradiancia _escenario = _d.escenario;
+  late EscenarioIrradiancia _escenario = _inicial.escenario;
   ZonaClimatica _zona = _d.zona;
   bool _simulando = false;
   String? _error;
+
+  static double _redondear(double v) => (v * 100).roundToDouble() / 100;
 
   /// Texto con coma decimal y sin notación científica (0,0000078).
   static String _texto(double v) {
@@ -102,6 +115,14 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
       politica: _politica,
       escenario: _escenario,
       zona: _zona,
+      // Con un cálculo de origen, el consumo se ajusta al de la casa
+      // (factor medido para el escenario elegido); sin él, perfil de NetLogo.
+      factorConsumo: widget.origen == null
+          ? 1
+          : factorConsumoPara(
+              widget.origen!.resultado.energiaDiaKwh,
+              _escenario,
+            ),
     );
     setState(() => _simulando = true);
     try {
@@ -112,7 +133,10 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
         semilla: math.Random().nextInt(1 << 31),
       ));
       if (!mounted) return;
-      await context.push(Rutas.resultadosSimulacion, extra: comparacion);
+      await context.push(
+        Rutas.resultadosSimulacion,
+        extra: (comparacion, widget.origen),
+      );
     } catch (e) {
       if (mounted) setState(() => _error = 'No se pudo simular: $e');
     } finally {
@@ -138,6 +162,25 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                   'de operación bajo el mismo clima.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                if (widget.origen case final origen?)
+                  Card(
+                    margin: const EdgeInsets.only(top: 16),
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                    child: ListTile(
+                      leading: const Icon(Icons.link),
+                      title: Text(
+                        origen.entradas.nombre.isEmpty
+                            ? 'Valores de tu cálculo'
+                            : 'Valores de "${origen.entradas.nombre}"',
+                      ),
+                      subtitle: Text(
+                        'Batería y paneles del sistema dimensionado; consumo '
+                        'ajustado a ${Formato.numero(origen.resultado.energiaDiaKwh, 1)} '
+                        'kWh/día; irradiancia del modelo más cercana a '
+                        '${Formato.numero(origen.entradas.hsp, 1)} HSP.',
+                      ),
+                    ),
+                  ),
                 _Seccion(
                   titulo: 'Sistema',
                   icono: Icons.solar_power_outlined,
