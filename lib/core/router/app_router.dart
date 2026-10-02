@@ -14,6 +14,9 @@ import '../../features/auth/presentation/verificar_correo_screen.dart';
 import '../../features/calculadora/domain/modelos.dart';
 import '../../features/calculadora/presentation/calculadora_screen.dart';
 import '../../features/calculadora/presentation/resultados_screen.dart';
+import '../../features/dashboard/domain/historial.dart';
+import '../../features/dashboard/presentation/detalle_simulacion_screen.dart';
+import '../../features/dashboard/presentation/historial_screen.dart';
 import '../../features/dashboard/presentation/inicio_screen.dart';
 import '../../features/degradacion/domain/comparacion.dart';
 import '../../features/degradacion/domain/integracion.dart';
@@ -62,6 +65,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                     resultado: resultado,
                   );
                 },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: Rutas.historial.substring(1),
+            builder: (context, state) => const HistorialScreen(),
+            routes: [
+              GoRoute(
+                path: _subruta(Rutas.detalleSimulacion),
+                redirect: (context, state) =>
+                    state.extra is SimulacionGuardada ? null : Rutas.historial,
+                builder: (context, state) => DetalleSimulacionScreen(
+                  simulacion: state.extra! as SimulacionGuardada,
+                ),
               ),
             ],
           ),

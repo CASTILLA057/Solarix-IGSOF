@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../dashboard/application/historial_providers.dart';
 import '../../degradacion/domain/integracion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
@@ -57,6 +58,7 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
           .read(calculadoraRepositoryProvider)
           .guardarCalculo(widget.entradas, widget.resultado);
       if (!mounted) return;
+      ref.invalidate(calculosGuardadosProvider); // actualiza el dashboard
       setState(() => _calculoId = id);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Cálculo guardado.')));
