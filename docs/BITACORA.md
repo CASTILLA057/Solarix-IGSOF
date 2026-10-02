@@ -232,3 +232,15 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` 94 pruebas pasan (nuevas: misma semilla en las dos políticas, serie mensual sin pérdida de energía, fila para Supabase y el flujo completo simular → comparar → guardar); `flutter analyze` sin advertencias; la versión web compila.
 - `HECHO` Prueba manual en Chrome y Android, verificada por el autor: simular, comparar y guardar funcionan.
 - `HECHO` **Etapa 5 completa.** Subida a GitHub en commits separados por tema.
+
+## 2026-10-01 — Etapa 6: conexión de la calculadora con la simulación
+
+- `HECHO` En los resultados de la calculadora, si el sistema lleva batería de litio, aparece **"Simular la salud de esta batería"**: abre la simulación con la capacidad de batería y la potencia de paneles dimensionadas (con plomo-ácido u on-grid no aparece, porque el modelo es de iones de litio).
+- `HECHO` **Consumo ajustado** (`integracion.dart`): el factor de consumo = consumo calculado ÷ consumo del perfil de NetLogo, medido con un año de referencia del modelo para el escenario elegido (el consumo del modelo sube con la temperatura, así que cambia según el escenario).
+- `DECISIÓN` **Escenario de irradiancia por cercanía**: se mide cuántas HSP produce cada escenario del modelo (alto ≈ 5, medio ≈ 3,5, bajo ≈ 0,3) y se elige el más cercano a las HSP del lugar. No se usaron los umbrales de la calculadora porque el escenario "bajo" de NetLogo (50 W/m²) es casi sin sol y daría resultados absurdos. La zona climática queda en mixta y el usuario la puede cambiar.
+- `HECHO` **Vida simulada en el flujo de caja**: `calcular` acepta una vida de batería externa. La vida es el año en que el SoH baja de 80 %; si no ocurre en el horizonte simulado, se extrapola con la pérdida anual (20 puntos ÷ pérdida por año; con 1,5 %/año ≈ 13 años). Si la batería casi no se degrada, no hay reemplazo.
+- `HECHO` **Pantalla de cierre**: en los resultados de la simulación, la tarjeta "Con el sistema que dimensionaste" compara vida de la batería, recuperación de la inversión, VPN y costo total con la vida típica (calculadora) y con la vida simulada.
+- `HECHO` **Vínculo en Supabase**: guardar un cálculo devuelve su `id`; la simulación se guarda con `calculo_id`. Si el cálculo no se guardó, la simulación queda sin vínculo (se avisa en pantalla).
+- `HECHO` 99 pruebas pasan (nuevas: escenario más cercano, consumo ajustado a 10 kWh/día, vida extrapolada y por fin de vida, reemplazo con la vida simulada y el flujo completo calculadora → simulación → guardado con `calculo_id`); `flutter analyze` sin advertencias.
+- `HECHO` Prueba manual en Chrome y Android, verificada por el autor: calcular, simular la batería del cálculo y guardar vinculado funcionan.
+- `HECHO` **Etapa 6 completa.** Subida a GitHub en commits separados por tema.

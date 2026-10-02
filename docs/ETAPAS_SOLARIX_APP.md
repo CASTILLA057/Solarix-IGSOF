@@ -148,13 +148,14 @@
 
 ## Etapa 6 — Conectar los dos módulos
 *Le da sentido a unir ambos proyectos en una sola app.*
-- [ ] Pasar automáticamente la capacidad de batería y la potencia de panel dimensionadas en la Etapa 3 como valores iniciales de la simulación (solo para batería de litio)
-- [ ] Ajustar el perfil de consumo de la simulación al consumo diario calculado en la Etapa 3 (factor de escala de la Etapa 4)
-- [ ] Mapear la ciudad/HSP del cálculo al escenario de irradiancia y la zona climática del modelo
-- [ ] Calcular aparte la venta de excedentes (on-grid/híbrido), porque en el modelo el excedente que no cabe en la batería se pierde
-- [ ] **Usar el año en que el SoH cae por debajo de 80 % como año de reemplazo de batería en el flujo de caja** de la Etapa 3 (reemplaza la vida típica por química)
-- [ ] Vincular la simulación con el cálculo que la originó (llave foránea `calculo_id`)
-- [ ] Pantalla de cierre: "con el sistema que dimensionaste, así se vería la salud de tu batería en 10 años y así cambia tu retorno de inversión"
+- [x] Pasar automáticamente la capacidad de batería y la potencia de panel dimensionadas en la Etapa 3 como valores iniciales de la simulación (solo para batería de litio; botón "Simular la salud de esta batería" en los resultados de la calculadora)
+- [x] Ajustar el perfil de consumo de la simulación al consumo diario calculado en la Etapa 3: el factor se mide con un año de referencia del modelo para el escenario elegido
+- [x] Mapear las HSP del cálculo al escenario de irradiancia del modelo más cercano (alto ≈ 5 HSP, medio ≈ 3,5, bajo ≈ 0,3); la zona climática queda en mixta y es editable
+- [x] Venta de excedentes calculada aparte: la hace la calculadora (Etapa 3); el modelo no la usa porque en él el excedente que no cabe en la batería se pierde
+- [x] **Usar el año en que el SoH cae por debajo de 80 % como año de reemplazo de batería en el flujo de caja** (si no llega en la simulación, se extrapola con la pérdida anual)
+- [x] Vincular la simulación con el cálculo que la originó (llave foránea `calculo_id`; el cálculo guardado devuelve su `id`)
+- [x] Pantalla de cierre: tarjeta "Con el sistema que dimensionaste" con la vida de la batería y el retorno de inversión antes (vida típica) y después (vida simulada)
+- [x] Prueba manual en Chrome y Android (calcular un sistema híbrido, guardarlo, simular su batería y guardar la simulación)
 
 ## Etapa 7 — Dashboard e historial
 - [ ] Pantalla de inicio (dashboard) con accesos y resumen del último cálculo/simulación
