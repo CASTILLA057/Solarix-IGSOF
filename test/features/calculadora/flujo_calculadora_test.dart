@@ -20,10 +20,13 @@ class FakeCalculadoraRepository implements CalculadoraRepository {
   Future<List<Ciudad>> obtenerCiudades() async => ciudadesBase;
 
   @override
-  Future<void> guardarCalculo(
+  Future<String> guardarCalculo(
     EntradasCalculo entradas,
     ResultadoCalculo resultado,
-  ) async => guardados.add((entradas, resultado));
+  ) async {
+    guardados.add((entradas, resultado));
+    return 'calc-${guardados.length}';
+  }
 }
 
 Future<FakeCalculadoraRepository> abrirCalculadora(WidgetTester tester) async {

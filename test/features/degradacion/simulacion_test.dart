@@ -12,10 +12,16 @@ import '../../helpers/fakes.dart';
 
 class FakeSimulacionRepository implements SimulacionRepository {
   final guardadas = <ComparacionSimulacion>[];
+  final calculosVinculados = <String?>[];
 
   @override
-  Future<void> guardar(ComparacionSimulacion simulacion) async =>
-      guardadas.add(simulacion);
+  Future<void> guardar(
+    ComparacionSimulacion simulacion, {
+    String? calculoId,
+  }) async {
+    guardadas.add(simulacion);
+    calculosVinculados.add(calculoId);
+  }
 }
 
 void main() {
