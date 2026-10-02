@@ -32,8 +32,9 @@ abstract final class Formato {
       // Coma decimal: los puntos son separadores de miles.
       t = t.replaceAll('.', '').replaceAll(',', '.');
     } else if ('.'.allMatches(t).length > 1 ||
-        RegExp(r'^\d{1,3}(\.\d{3})+$').hasMatch(t)) {
-      // Varios puntos, o grupos de tres: separadores de miles.
+        RegExp(r'^[1-9]\d{0,2}(\.\d{3})+$').hasMatch(t)) {
+      // Varios puntos, o grupos de tres: separadores de miles. Un número que
+      // empieza en "0." es decimal (0.036 no son 36).
       t = t.replaceAll('.', '');
     }
     return double.tryParse(t);

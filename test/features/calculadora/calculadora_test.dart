@@ -460,6 +460,10 @@ void main() {
       expect(Formato.leer('1.500'), 1500);
       expect(Formato.leer('4,5'), 4.5);
       expect(Formato.leer('4.5'), 4.5);
+      // Empieza en "0.": decimal, no miles.
+      expect(Formato.leer('0.036'), 0.036);
+      expect(Formato.leer('0,036'), 0.036);
+      expect(Formato.leer('0.0000078'), 0.0000078);
       expect(Formato.leer(r'$ 950'), 950);
       expect(Formato.leer('abc'), isNull);
       expect(Formato.leer(''), isNull);
