@@ -244,3 +244,16 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` 99 pruebas pasan (nuevas: escenario más cercano, consumo ajustado a 10 kWh/día, vida extrapolada y por fin de vida, reemplazo con la vida simulada y el flujo completo calculadora → simulación → guardado con `calculo_id`); `flutter analyze` sin advertencias.
 - `HECHO` Prueba manual en Chrome y Android, verificada por el autor: calcular, simular la batería del cálculo y guardar vinculado funcionan.
 - `HECHO` **Etapa 6 completa.** Subida a GitHub en commits separados por tema.
+
+## 2026-10-01 — Etapa 7: dashboard e historial
+
+- `HECHO` **Inicio como dashboard** (`inicio_screen.dart`): accesos a la calculadora y a la simulación, resumen del último cálculo (paneles, costo, recuperación) y de la última simulación con su gráfica de SoH, y enlace al historial. Se quitó el indicador "Supabase conectado" de la Etapa 0.
+- `HECHO` **Gráficas** con `fl_chart` (`widgets/graficas.dart`): SoH mes a mes con la banda de referencia 80–100 % y la línea de fin de vida (80 %), con la otra política punteada; generación y consumo por mes; energía comprada a la red acumulada. La gráfica de SoH también se agregó a los resultados de la simulación.
+- `HECHO` **Historial** (`historial_screen.dart`): pestañas de cálculos y simulaciones leídas de Supabase (más recientes primero), filtro por fecha (7 días, 30 días, este año) y por política, y eliminar con confirmación. Al tocar una simulación se abre su detalle con las tres gráficas a partir de la serie mensual guardada.
+- `DECISIÓN` Las filas se leen con la misma estructura que escriben la calculadora y la simulación (`resultados`, `parametros`, `serie`), sin cambios en las tablas ni migraciones nuevas. Las RLS existentes ya limitan la lectura y el borrado a las filas del usuario.
+- `HECHO` Al guardar un cálculo o una simulación se refresca el dashboard y el historial.
+- `DECISIÓN` Las fechas se muestran con nombres de mes en español escritos en el código ("2 oct 2026"), para no tener que inicializar los datos de idioma de `intl`.
+- `PENDIENTE` Exportar a PDF (tarea opcional) no se hizo.
+- `HECHO` 105 pruebas pasan (nuevas: lectura de las filas de Supabase a partir de un cálculo y una simulación reales, filtros por fecha y política, dashboard con datos y vacío, e historial: filtrar, abrir el detalle y eliminar); `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` Prueba manual en Chrome y Android, verificada por el autor: dashboard, gráficas, filtros, detalle y eliminar funcionan.
+- `HECHO` **Etapa 7 completa** (salvo el PDF opcional, que queda pendiente por decisión del autor). Subida a GitHub en commits separados por tema.

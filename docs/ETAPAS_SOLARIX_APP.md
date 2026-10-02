@@ -158,11 +158,12 @@
 - [x] Prueba manual en Chrome y Android (calcular un sistema híbrido, guardarlo, simular su batería y guardar la simulación)
 
 ## Etapa 7 — Dashboard e historial
-- [ ] Pantalla de inicio (dashboard) con accesos y resumen del último cálculo/simulación
-- [ ] Gráfica de SoH a lo largo del tiempo (con la banda de referencia 80–100 %)
-- [ ] Gráficas de consumo/generación mensual y energía comprada acumulada
-- [ ] Historial de **cálculos** y de **simulaciones** guardados en Supabase (filtrar por fecha o por política), con opción de eliminar
+- [x] Pantalla de inicio (dashboard) con accesos y resumen del último cálculo/simulación
+- [x] Gráfica de SoH a lo largo del tiempo (con la banda de referencia 80–100 %)
+- [x] Gráficas de consumo/generación mensual y energía comprada acumulada
+- [x] Historial de **cálculos** y de **simulaciones** guardados en Supabase (filtrar por fecha o por política), con opción de eliminar
 - [ ] Opcional: exportar un resumen en PDF de una simulación
+- [x] Prueba manual en Chrome y Android
 
 ## Etapa 8 — Pulido de interfaz
 - [ ] Ajustes finales del tema (paleta solar, modo claro/oscuro)
