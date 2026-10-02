@@ -121,25 +121,25 @@
 | Envejecimiento calendario | Mencionado (temperatura) | `t-bat` se calcula pero no entra en la degradación |
 | Excedente solar | — | Lo que no cabe en la batería se pierde (no se vende); en la Etapa 6 la venta de excedentes on-grid se calcula aparte |
 
-- [ ] Modelo de datos para los parámetros de entrada: capacidad de batería, potencia del panel, tasa C máxima, SOC mínimo/máximo, política (convencional/consciente), zona climática, escenario de irradiancia, tasa de polvo, umbral de limpieza y los cuatro coeficientes de degradación (`escala`, `exponente`, `peso-corriente`, `peso-variacion-carga`), con los valores por defecto del modelo
-- [ ] Generador de números aleatorios con semilla, para que una corrida de Dart sea reproducible (NetLogo usa semilla aleatoria, así que la comparación con NetLogo es estadística)
-- [ ] Generador de entorno hora a hora: irradiancia (campana solar + variación estacional), temperatura, consumo de la casa (picos de mañana y noche), clima diario con cadena de Markov, anomalías anuales de lluvia y polvo, tormentas de polvo y las cinco zonas climáticas (mixta, muy soleada, muy nublada, lluviosa, polvorienta)
-- [ ] Motor de reparto de energía por hora: panel → casa, excedente → batería, déficit → batería o red, respetando los límites de SOC y de potencia de carga/descarga (eficiencia η = 0,95)
-- [ ] Polvo y limpieza: acumulación de polvo por hora según el clima, lavado con lluvia, orden de limpieza del EMS al superar el umbral
-- [ ] Fórmulas de degradación: energía acumulada normalizada (x), estrés por corriente eficaz (c-rms), variabilidad del SOC (sigma-soc), `Z` y `SoH = 100·e^(−Z)` (el SoH nunca sube)
-- [ ] Factor de escala del perfil de consumo (por defecto 1 = igual a NetLogo, ≈ 20 kWh/día) para poder ajustarlo al consumo del usuario en la Etapa 6
-- [ ] Pruebas unitarias de cada componente (entorno, reparto, polvo, degradación)
-- [ ] **Validación estadística contra NetLogo**, con la misma estructura que `herramientas/validar_modelo.py` (escenarios media/alta × política convencional/consciente, zona mixta, 10 semillas):
-  - SoH **año a año** contra la tabla de `VALIDACION.md` (tolerancia ±0,3 puntos por año)
+- [x] Modelo de datos para los parámetros de entrada: capacidad de batería, potencia del panel, tasa C máxima, SOC mínimo/máximo, política (convencional/consciente), zona climática, escenario de irradiancia, tasa de polvo, umbral de limpieza y los cuatro coeficientes de degradación (`escala`, `exponente`, `peso-corriente`, `peso-variacion-carga`), con los valores por defecto del modelo
+- [x] Generador de números aleatorios con semilla, para que una corrida de Dart sea reproducible (NetLogo usa semilla aleatoria, así que la comparación con NetLogo es estadística)
+- [x] Generador de entorno hora a hora: irradiancia (campana solar + variación estacional), temperatura, consumo de la casa (picos de mañana y noche), clima diario con cadena de Markov, anomalías anuales de lluvia y polvo, tormentas de polvo y las cinco zonas climáticas (mixta, muy soleada, muy nublada, lluviosa, polvorienta)
+- [x] Motor de reparto de energía por hora: panel → casa, excedente → batería, déficit → batería o red, respetando los límites de SOC y de potencia de carga/descarga (eficiencia η = 0,95)
+- [x] Polvo y limpieza: acumulación de polvo por hora según el clima, lavado con lluvia, orden de limpieza del EMS al superar el umbral
+- [x] Fórmulas de degradación: energía acumulada normalizada (x), estrés por corriente eficaz (c-rms), variabilidad del SOC (sigma-soc), `Z` y `SoH = 100·e^(−Z)` (el SoH nunca sube)
+- [x] Factor de escala del perfil de consumo (por defecto 1 = igual a NetLogo, ≈ 20 kWh/día) para poder ajustarlo al consumo del usuario en la Etapa 6
+- [x] Pruebas unitarias de cada componente (entorno, reparto, polvo, degradación)
+- [x] **Validación estadística contra NetLogo**, con la misma estructura que `herramientas/validar_modelo.py` (escenarios media/alta × política convencional/consciente, zona mixta, 10 semillas):
+  - SoH **año a año** contra la tabla de `VALIDACION.md` (tolerancia ±0,3 puntos por año) → mayor diferencia 0,05
   - Energía comprada (±3 %), ciclos equivalentes y limpiezas (dentro del rango reportado)
-  - R², RMSE y MAPE contra la proyección de 1,5 %/año, igual que el script
-  - Configuraciones de `GUIA_VARIACION.md` (5 semillas cada una) como pruebas de sensibilidad
-  - Documentar la comparación lado a lado en `docs/VALIDACION_DART.md`
-- [ ] Medir el tiempo de una corrida de 87 600 horas (se espera menos de 1 s); si es así, simplificar la Etapa 5
+  - R², RMSE contra la proyección de 1,5 %/año, igual que el script
+  - Configuraciones de `GUIA_VARIACION.md` como pruebas de sensibilidad (20 semillas: con 5 las limpiezas varían demasiado) → 30 de 30 cumplen
+  - Comparación lado a lado en `docs/VALIDACION_DART.md` (se regenera con `dart run tool/validar_motor.dart`)
+- [x] Medir el tiempo de una corrida de 87 600 horas → **60–80 ms** en un PC; la Etapa 5 se simplifica
 
 ## Etapa 5 — Simulación de degradación dentro de la app
 - [ ] Formulario de parámetros con valores por defecto razonables
-- [ ] Ejecución de la simulación (hasta 10 años / 87 600 horas) sin congelar la interfaz: *isolate* (`compute()`) en Android; en Web, por bloques si la medición de la Etapa 4 lo hace necesario
+- [ ] Ejecución de la simulación (hasta 10 años / 87 600 horas) sin congelar la interfaz: una corrida tarda menos de 0,1 s en un PC (Etapa 4), así que basta con un *isolate* (`compute()`) en Android y un indicador breve en web; medir en el celular
 - [ ] Resultados: SoH final, energía comprada a la red, número de limpiezas, ciclos equivalentes, y comparación lado a lado de política convencional vs. consciente
 - [ ] Reducir la serie horaria a una serie diaria/mensual antes de guardar (no guardar las 87 600 horas; el plan gratis tiene 500 MB)
 - [ ] Guardar cada corrida en Supabase (tabla `simulaciones_degradacion`): parámetros + resultados + serie reducida
