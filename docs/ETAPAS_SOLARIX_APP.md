@@ -138,11 +138,13 @@
 - [x] Medir el tiempo de una corrida de 87 600 horas → **60–80 ms** en un PC; la Etapa 5 se simplifica
 
 ## Etapa 5 — Simulación de degradación dentro de la app
-- [ ] Formulario de parámetros con valores por defecto razonables
-- [ ] Ejecución de la simulación (hasta 10 años / 87 600 horas) sin congelar la interfaz: una corrida tarda menos de 0,1 s en un PC (Etapa 4), así que basta con un *isolate* (`compute()`) en Android y un indicador breve en web; medir en el celular
-- [ ] Resultados: SoH final, energía comprada a la red, número de limpiezas, ciclos equivalentes, y comparación lado a lado de política convencional vs. consciente
-- [ ] Reducir la serie horaria a una serie diaria/mensual antes de guardar (no guardar las 87 600 horas; el plan gratis tiene 500 MB)
-- [ ] Guardar cada corrida en Supabase (tabla `simulaciones_degradacion`): parámetros + resultados + serie reducida
+- [x] Formulario de parámetros con los valores por defecto del modelo (sistema, entorno, operación y una sección avanzada con polvo y coeficientes α, β, γ, δ)
+- [x] Ejecución de la simulación sin congelar la interfaz: *isolate* (`compute()`) en Android; en web corre en el mismo hilo con un indicador (tarda poco)
+- [x] Resultados: SoH final, pérdida por año, energía comprada a la red, limpiezas, ciclos equivalentes, SoH año a año y comparación lado a lado de política convencional vs. consciente **con la misma semilla (mismo clima)**
+- [x] Reducir la serie a una serie **mensual** antes de guardar (120 meses en 10 años, en lugar de 87 600 horas)
+- [x] Guardar cada corrida en Supabase (tabla `simulaciones_degradacion`): parámetros con la semilla + resultados (con el resumen de la otra política) + serie mensual
+- [x] Acceso desde el inicio ("Simular degradación de batería")
+- [x] Prueba manual en Chrome y Android (incluido medir cuánto tarda en el celular y guardar una simulación)
 
 ## Etapa 6 — Conectar los dos módulos
 *Le da sentido a unir ambos proyectos en una sola app.*

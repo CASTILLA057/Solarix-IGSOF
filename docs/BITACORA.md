@@ -220,3 +220,15 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `CORREGIDO` Con 5 semillas, el caso "polvo 0,1 g/h" daba 223 limpiezas (rango de NetLogo 230–293). Un diagnóstico con 100 semillas mostró que era azar: promedio 245 (referencia: 68,3 frente a ≈ 70 de NetLogo); las semillas 1–5 tienen por casualidad pocas tormentas de polvo. La sensibilidad se valida ahora con 20 semillas.
 - `DECISIÓN` Criterio de energía comprada en la sensibilidad: el mayor entre 3 % y dos errores estándar de la diferencia de medias. Con una batería de 20 kWh se compra poca energía (≈ 6 000 kWh en 10 años) y varía mucho entre corridas (± 407 kWh), así que un 3 % fijo confundía azar con error (+6,3 % frente a una tolerancia estadística de ±6,9 %). El criterio queda explicado en `VALIDACION_DART.md`.
 - `HECHO` 90 pruebas pasan (27 nuevas: submodelos con valores calculados a mano, reproducibilidad por semilla, fin de vida, factor de consumo, tiempo de corrida y los 4 casos de validación contra NetLogo con el SoH año a año); `flutter analyze` sin advertencias.
+
+## 2026-10-01 — Etapa 5: simulación dentro de la app
+
+- `HECHO` **Formulario** (`simulacion_screen.dart`) con los parámetros del modelo y sus valores por defecto de NetLogo: sistema (batería, paneles, tasa C), entorno (irradiancia y zona), operación (política, SOC mínimo y máximo, años) y una sección avanzada (polvo, umbral de limpieza y coeficientes α, β, γ, δ).
+- `DECISIÓN` Cada simulación corre la política elegida y la otra **con la misma semilla** (mismo clima), para que la comparación muestre solo el efecto de la política. La semilla queda guardada con los parámetros.
+- `HECHO` **Ejecución** con `compute()` (isolate en Android; en web corre en el mismo hilo con indicador, porque tarda poco). El ejecutor es un provider que las pruebas reemplazan por una ejecución directa.
+- `HECHO` **Resultados** (`resultados_simulacion_screen.dart`): SoH final destacado (o el año de fin de vida), pérdida por año frente a la banda de la literatura (1,3–1,7), tabla convencional vs. consciente (SoH, pérdida, energía comprada, ciclos, limpiezas) con el cambio porcentual, y SoH año a año de ambas políticas.
+- `HECHO` **Guardado** en `simulaciones_degradacion`: `politica`, `parametros` (+ semilla), `resultados` (resumen + resumen de la otra política + SoH anual) y `serie` **mensual** (120 meses en 10 años). Acceso desde el inicio.
+- `CORREGIDO` `Formato.leer` interpretaba "0.036" como 36 (lo tomaba como separador de miles). Un número que empieza en "0." ahora siempre es decimal; prueba agregada. No afectaba los campos de la calculadora, pero sí la tasa de polvo de este formulario.
+- `HECHO` 94 pruebas pasan (nuevas: misma semilla en las dos políticas, serie mensual sin pérdida de energía, fila para Supabase y el flujo completo simular → comparar → guardar); `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` Prueba manual en Chrome y Android, verificada por el autor: simular, comparar y guardar funcionan.
+- `HECHO` **Etapa 5 completa.** Subida a GitHub en commits separados por tema.
