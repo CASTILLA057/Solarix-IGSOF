@@ -46,6 +46,12 @@ class InicioScreen extends StatelessWidget {
                 icon: const Icon(Icons.calculate_outlined),
                 label: const Text('Calcular mi sistema solar'),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => context.go(Rutas.simulacion),
+                icon: const Icon(Icons.battery_charging_full_outlined),
+                label: const Text('Simular degradación de batería'),
+              ),
               const SizedBox(height: 16),
               Chip(
                 avatar: Icon(

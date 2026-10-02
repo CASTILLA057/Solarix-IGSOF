@@ -15,6 +15,9 @@ import '../../features/calculadora/domain/modelos.dart';
 import '../../features/calculadora/presentation/calculadora_screen.dart';
 import '../../features/calculadora/presentation/resultados_screen.dart';
 import '../../features/dashboard/presentation/inicio_screen.dart';
+import '../../features/degradacion/domain/comparacion.dart';
+import '../../features/degradacion/presentation/resultados_simulacion_screen.dart';
+import '../../features/degradacion/presentation/simulacion_screen.dart';
 import 'rutas.dart';
 
 /// Router de la app: protege las rutas según haya o no sesión (ver
@@ -58,6 +61,23 @@ final routerProvider = Provider<GoRouter>((ref) {
                     resultado: resultado,
                   );
                 },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: Rutas.simulacion.substring(1),
+            builder: (context, state) => const SimulacionScreen(),
+            routes: [
+              GoRoute(
+                path: _subruta(Rutas.resultadosSimulacion),
+                // Igual que en la calculadora: los resultados van en memoria.
+                redirect: (context, state) =>
+                    state.extra is ComparacionSimulacion
+                    ? null
+                    : Rutas.simulacion,
+                builder: (context, state) => ResultadosSimulacionScreen(
+                  comparacion: state.extra! as ComparacionSimulacion,
+                ),
               ),
             ],
           ),
