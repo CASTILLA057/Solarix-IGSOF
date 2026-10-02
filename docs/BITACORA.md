@@ -162,3 +162,48 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` 30 pruebas pasan: 5 nuevas (el botón atrás vuelve a la bienvenida, código incorrecto, salir sin cambiar la contraseña, rutas de acceso hijas de la bienvenida, transición suave en el tema) y las existentes adaptadas a la bienvenida y a los tres pasos; `flutter analyze` sin advertencias.
 - `HECHO` Prueba manual de las mejoras en Chrome y Android, verificada por el autor: bienvenida, transiciones y recuperación en tres pasos funcionan.
 - `HECHO` **Etapa 2 completa.** Subida a GitHub en commits separados por tema (transiciones, recuperación en tres pasos, bienvenida y rutas, pruebas, documentación).
+
+## 2026-10-01 — Etapa 3: calculadora solar
+
+- `HECHO` **Núcleo de cálculo** en Dart puro (`lib/features/calculadora/domain/`): modelos (`TipoSistema`, `QuimicaBateria`, `Equipo`, `Precios`, `Supuestos`, `EntradasCalculo`, `ResultadoCalculo`) y fórmulas (`calculadora.dart`): energía diaria, paneles, voltaje del banco (12/24/48 V), batería, inversor con arranque de motores, controlador, costos con instalación, ahorro con autoconsumo y excedentes, flujo de caja con alza de tarifa, pérdida de rendimiento de paneles, mantenimiento y reemplazo de batería, VPN y recuperación simple y descontada.
+- `HECHO` **Catálogos**: 12 equipos comunes con potencias típicas (la nevera por ciclos, 1,2 kWh/día) y 28 ciudades de Colombia con HSP aproximadas; clasificación de HSP en las zonas del modelo (≥ 5 alta, ≥ 4 media, < 4 baja).
+- `HECHO` **NASA POWER** (`recurso_solar.dart`): "usar mi ubicación" con `geolocator` (ubicación aproximada) y la climatología de NASA (`ALLSKY_SFC_SW_DWN`, promedio anual = HSP). Verificado con la API real: Ocaña = 5,03 HSP; permite llamadas desde el navegador (CORS). La API tarda más de 60 s, así que la app espera hasta 90 s y muestra un aviso; si falla, se elige una ciudad.
+- `HECHO` **Supabase**: migración `20261001000100_calculadora.sql` con `precios_referencia` (9 precios 2026 en COP) y `ciudades` (28 ciudades), lectura con sesión y RLS; guardado de cada cálculo en `calculos_consumo` (entradas y resultados en jsonb). Si las tablas no responden se usan los valores locales.
+- `HECHO` **Pantallas**: asistente de 4 pasos (tipo de sistema → consumo por equipos o factura → ubicación por ciudad, NASA o a mano → panel, batería, supuestos y precios editables) y pantalla de resultados (consumo, sistema recomendado, costos, ahorro, recuperación, VPN) con botón para guardar. Acceso desde el inicio.
+- `HECHO` Dependencias nuevas: `http` y `geolocator`. Lectura de números escritos a la colombiana (`1.500.000`, `4,5`) en `Formato.leer`.
+- `CORREGIDO` El `AndroidManifest.xml` principal **no tenía el permiso de internet**: Flutter solo lo agrega en la compilación de desarrollo, así que el APK de producción no habría podido conectarse a Supabase. Agregado junto con el permiso de ubicación aproximada.
+- `CORREGIDO` Detectado por las pruebas: el `Stepper` construye los botones y mensajes de todos los pasos (los ocultos con altura cero), lo que duplicaba botones para lectores de pantalla. Ahora solo se dibujan los del paso actual.
+- `HECHO` 60 pruebas pasan (30 nuevas: fórmulas con valores calculados a mano, flujo de caja, NASA POWER, formato de números y el flujo completo del asistente); `flutter analyze` sin advertencias; la versión web compila.
+- `DECISIÓN` Valores por defecto (todos editables en la app): tarifa 950 COP/kWh, panel 550 W, rendimiento del sistema 78 %, eficiencia del inversor 90 %, autonomía 2 días, autoconsumo 60 % (red) y 90 % (híbrido), excedentes al 70 % de la tarifa, alza de tarifa 6 %/año, pérdida de paneles 0,5 %/año, mantenimiento 1 %/año, tasa de descuento 10 %, horizonte 20 años; vida de batería 10 años (litio) y 4 (plomo).
+- ~~`PENDIENTE` Aplicar la migración en Supabase.~~ → Hecho, ver la entrada siguiente.
+- ~~`PENDIENTE` Revisar los precios y las HSP de referencia con cotizaciones y datos reales.~~ → Hecho, ver la entrada siguiente.
+- `PENDIENTE` Opcional: incentivos de la Ley 1715 de 2014.
+- `PENDIENTE` Prueba manual en Chrome y Android.
+
+## 2026-10-01 — Etapa 3: precios y HSP con datos reales, migración aplicada
+
+- `CORREGIDO` **Precios de referencia** actualizados con precios publicados por tiendas colombianas (consultados el 2026-10-01):
+
+  | Clave | Antes | Ahora | Base |
+  |---|---|---|---|
+  | Panel | 900 COP/Wp | **1.050 COP/Wp** | Panel de 550 W ~ $580.000 (rango $400.000–750.000) |
+  | Inversor de red | 600 COP/W | **900 COP/W** | Growatt MIN 5000TL-X ~ $4,68 M |
+  | Inversor aislado/híbrido | 900 COP/W | **1.000 COP/W** | 5 kW: $2,4 M (económicos) a $8 M (Deye, Growatt) |
+  | Batería de litio | 1.500.000 COP/kWh | **820.000 COP/kWh** | LiFePO4 48 V 100 Ah (5,12 kWh): $3,59 M–4,65 M |
+  | Batería de plomo | 500.000 COP/kWh | **650.000 COP/kWh** | Gel 12 V 200 Ah (2,4 kWh): $1,29 M–2,5 M |
+  | Controlador | 15.000 COP/A | **12.000 COP/A** | MPPT 60 A: $550.000–850.000 |
+  | Estructura, cableado y protecciones | 150.000 COP/panel | **300.000 COP/panel** | Calibración (ver abajo) |
+  | Instalación, RETIE y trámites | 15 % (mín. $500.000) | **30 % (mín. $1,5 M)** | Calibración (ver abajo) |
+  | Tarifa por defecto | 950 COP/kWh | **890 COP/kWh** | Costo unitario CENS (Norte de Santander), enero 2026: $888/kWh |
+
+- `HECHO` **Calibración del costo total**: con solo los precios de equipos, un sistema conectado a la red de 5,5 kWp salía en ~ $12,7 M, por debajo del mercado (**$18–25 M por 5 kWp instalado; $2–5,5 M por kWp** con RETIE y trámites). Con estructura y protecciones a $300.000/panel e instalación al 30 %, queda en ~ $3,3 M/kWp. Una prueba nueva verifica que sistemas de 150, 300 y 600 kWh/mes queden en el rango de $2–5,5 M/kWp.
+- `HECHO` Hallazgo: con precios reales, el litio (820.000 COP/kWh, 90 % usable) sale más barato por kWh útil que el plomo (650.000 COP/kWh, 50 % usable) y dura más del doble.
+- `CORREGIDO` **HSP de las 28 ciudades** reemplazadas por la climatología de NASA POWER (`ALLSKY_SFC_SW_DWN`, promedio anual) consultada en las coordenadas de cada ciudad, redondeada a un decimal. Cambios notables: Bogotá 4,1 → 4,6; Cúcuta 5,0 → 4,3; Medellín 4,5 → 4,9; Bucaramanga 4,6 → 5,1; Santa Marta 5,5 → 5,7; Riohacha 6,0 → 5,5; Quibdó 3,5 → 4,0. Ocaña se mantiene en 5,0 (5,03).
+- `DECISIÓN` Limitación documentada: NASA POWER tiene una resolución de unos 50 km, así que ciudades cercanas comparten valor (Armenia, Ibagué y Pereira: 4,5468) y en zonas montañosas puede diferir del Atlas de Radiación del IDEAM. Se eligió por ser una fuente pública, consistente para todo el país y la misma que usa "usar mi ubicación".
+- `HECHO` Prueba nueva que lee la migración SQL y verifica que sus precios y ciudades coincidan con los valores locales del código (`Precios.referencia`, `ciudadesBase`). 63 pruebas pasan.
+- `HECHO` Migración `20261001000100_calculadora.sql` aplicada al proyecto `solarix` (confirmado por el autor). Verificado con consultas de solo lectura: `precios_referencia` con 9 filas y `ciudades` con 28, ambas con RLS activo; panel a 1.050 COP/Wp y Ocaña con 5,0 HSP.
+- `HECHO` Prueba manual de la calculadora en Chrome y Android, verificada por el autor; 2 cálculos guardados en `calculos_consumo` (híbrido y aislado), comprobado con una consulta de solo lectura.
+- `CORREGIDO` Reportado por el autor: las etiquetas "Potencia de cada panel", "Rendimiento del sistema (PR)" y "Panel" aparecían cortadas. Eran el primer campo de bloques que recortan su contenido (el paso del Stepper y las dos secciones desplegables), y la etiqueta flotante sobresale por arriba del campo. Se agregó un margen superior de 12 px a esos bloques.
+- `DECISIÓN` "Mi ubicación" se deja como está: tarda 40–70 s porque NASA POWER calcula en el momento el promedio de unos 20 años. Se evaluaron dar al instante el valor de la ciudad más cercana y guardar las consultas por zona en Supabase; el autor prefirió no hacerlo por ahora. PVGIS se descartó porque bloquea las llamadas desde el navegador (CORS).
+- `HECHO` **Etapa 3 completa** (salvo la tarea opcional de la Ley 1715). Subida a GitHub en commits separados por tema.
+- Fuentes consultadas: [Autosolar — precios de paneles 2026](https://autosolar.co/energia-solar/cuanto-cuesta-un-panel-solar-en-colombia), [Solartech — precios 2026](https://solartech.com.co/precios-paneles-solares-colombia/), [Ineldec — baterías LiFePO4 48 V](https://ineldec.com/producto/bateria-de-litio-lifepo4-100ah-48v-must/), [Emergente — inversores híbridos](https://www.emergente.com.co/categoria-producto/inversores-solares/inversores-hibridos), [Autosolar — Growatt MIN 5000TL-X](https://autosolar.co/inversores-on-grid-bifasicos/inversor-growatt-min-5000tl-x-doble-mppt), [Emergente — baterías de gel 12 V 200 Ah](https://www.emergente.com.co/producto/bateria-de-gel-12v-200ah-csbattery), [Autosolar — controlador MPPT 60 A](https://autosolar.co/controladores-de-carga-mppt/controlador-carga-mppt-60a-ml4860-122448-lcd-srne), [OPS Colombia — costo real de un sistema solar 2026](https://www.opscolombia.com/blog/cuanto-cuesta-realmente-un-sistema-solar-en-colombia), [CENS — tarifas enero 2026](https://www.cens.com.co/Portals/cens/clientes-y-usuarios/Tarifas-de-energia/T2026/Tarifas_CENS_202601_.pdf), [NASA POWER](https://power.larc.nasa.gov/).

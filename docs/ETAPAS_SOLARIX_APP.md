@@ -78,28 +78,34 @@
 *Evolución del proyecto de Proyecto Integrador I, ahora para cualquier zona, no solo rural. Corrige los supuestos fijos del HTML original (ver `BITACORA.md`, revisión del HTML).*
 
 **Entradas**
-- [ ] Tipo de sistema: **conectado a red (on-grid), aislado (off-grid) o híbrido**; cambia el dimensionamiento de batería y el cálculo de ahorro
-- [ ] Consumo por electrodomésticos: lista base editable + **equipos personalizados** (nombre, potencia W, horas/día, cantidad); los equipos cíclicos (nevera) se ingresan en kWh/día o con % de tiempo encendido
-- [ ] Consumo alternativo desde la factura: kWh/mes y tarifa COP/kWh
-- [ ] Recurso solar (HSP): tabla de ciudades principales de Colombia (sin internet) + opción "usar mi ubicación" con la API NASA POWER; las categorías baja/media/alta quedan como respaldo
-- [ ] Equipos: potencia del panel editable (por defecto 550 W), química de batería (LiFePO₄ / plomo-ácido), días de autonomía (off-grid)
+- [x] Tipo de sistema: **conectado a red (on-grid), aislado (off-grid) o híbrido**; cambia el dimensionamiento de batería y el cálculo de ahorro
+- [x] Consumo por electrodomésticos: lista base editable + **equipos personalizados** (nombre, potencia W, horas/día, cantidad); los equipos cíclicos (nevera) se ingresan en kWh/día
+- [x] Consumo alternativo desde la factura: kWh/mes y tarifa COP/kWh
+- [x] Recurso solar (HSP): tabla de ciudades principales de Colombia (sin internet) + opción "usar mi ubicación" con la API NASA POWER + HSP a mano
+- [x] Equipos: potencia del panel editable (por defecto 550 W), química de batería (LiFePO₄ / plomo-ácido), días de autonomía (off-grid)
 
 **Cálculos** (cada fórmula con prueba unitaria)
-- [ ] Energía: `E_día = Σ P·h·cantidad` (+ kWh/día de equipos cíclicos); E_mes = E_día · 30
-- [ ] Paneles: `n = ceil(E_día / (HSP · PR) / W_panel)`, con PR (rendimiento del sistema) ≈ 0,78 editable
-- [ ] Batería: `C = E_cubrir · días_autonomía / (DoD · η_inv)`; DoD según química (plomo 50 %, LiFePO₄ 80–90 %); E_cubrir = consumo diario (off-grid) o consumo nocturno (híbrido); voltaje del banco según tamaño (12 / 24 / 48 V)
-- [ ] Inversor: mayor entre potencia simultánea · 1,25 y el pico de arranque (factor de arranque por equipo: motores 3–5×)
-- [ ] Controlador de carga: `I = P_paneles / V_sistema · 1,25`
-- [ ] Costos: equipos + estructura/cableado + **instalación**, desde `precios_referencia` y editables por el usuario
-- [ ] Ahorro: off-grid frente al gasto actual (combustible, etc.); on-grid/híbrido = autoconsumo · tarifa + excedentes · precio de excedentes (editable, CREG 174 de 2021)
-- [ ] Flujo de caja a N años: incremento anual de tarifa, pérdida de rendimiento de paneles (≈ 0,5 %/año), mantenimiento/limpiezas, **reemplazo de batería** (vida típica por química hasta tener la simulación de la Etapa 6), VPN con tasa de descuento, payback simple y descontado
+- [x] Energía: `E_día = Σ P·h·cantidad` (+ kWh/día de equipos cíclicos); E_mes = E_día · 30
+- [x] Paneles: `n = ceil(E_día / (HSP · PR) / W_panel)`, con PR (rendimiento del sistema) ≈ 0,78 editable
+- [x] Batería: `C = E_cubrir · días_autonomía / (DoD · η_inv)`; DoD según química (plomo 50 %, LiFePO₄ 90 %); E_cubrir = consumo diario (off-grid) o consumo nocturno (híbrido); voltaje del banco según tamaño (12 / 24 / 48 V)
+- [x] Inversor: mayor entre potencia simultánea · 1,25 y el pico de arranque (factor de arranque por equipo: motores 3–5×)
+- [x] Controlador de carga: `I = P_paneles / V_sistema · 1,25`
+- [x] Costos: equipos + estructura/cableado + **instalación**, desde `precios_referencia` y editables por el usuario
+- [x] Ahorro: off-grid frente al gasto actual (combustible, etc.); on-grid/híbrido = autoconsumo · tarifa + excedentes · precio de excedentes (editable, CREG 174 de 2021)
+- [x] Flujo de caja a N años: incremento anual de tarifa, pérdida de rendimiento de paneles (≈ 0,5 %/año), mantenimiento, **reemplazo de batería** (vida típica por química hasta tener la simulación de la Etapa 6), VPN con tasa de descuento, payback simple y descontado
 - [ ] Opcional: incentivos de la Ley 1715 de 2014 (exclusión de IVA, deducción de renta)
-- [ ] Pruebas unitarias de todas las fórmulas de esta etapa
+- [x] Pruebas unitarias de todas las fórmulas de esta etapa
 
 **Datos y pantallas**
-- [ ] Migración SQL: tabla `precios_referencia` (lectura pública, edición solo administrador) con valores de referencia 2026 y tabla de ciudades con HSP
-- [ ] Guardar cada cálculo en Supabase (tabla `calculos_consumo`)
-- [ ] Pantalla de resultados con el resumen (energía, paneles/batería/inversor recomendados, costos, flujo de caja, payback)
+- [x] Migración SQL `20261001000100_calculadora.sql`: tablas `precios_referencia` y `ciudades` (lectura con sesión; se editan desde el panel de Supabase) con valores de referencia 2026
+- [x] Aplicar la migración en Supabase
+- [x] Guardar cada cálculo en Supabase (tabla `calculos_consumo`)
+- [x] Pantalla de resultados con el resumen (energía, paneles/batería/inversor recomendados, costos, ahorro, payback, VPN)
+- [x] Acceso desde el inicio ("Calcular mi sistema solar")
+- [x] Permiso de internet en el manifiesto principal de Android (faltaba para el APK de producción) y de ubicación aproximada
+- [x] Revisar los precios y las HSP de referencia con datos reales (precios de tiendas colombianas, HSP de NASA POWER; detalle en `BITACORA.md`)
+- [x] Prueba manual en Chrome y Android (incluido guardar un cálculo y "usar mi ubicación")
+- [x] Corregir etiquetas cortadas en "Equipos y costos" (margen superior en los bloques que recortan)
 
 ## Etapa 4 — Motor SimDeg-FV en Dart puro (sin interfaz)
 *Trae la lógica del modelo de NetLogo como una librería Dart independiente de Flutter, fácil de probar. La fuente es el código de `DegradacionBateriasSistemasFotovoltaicos.nlogox` (no el Word), porque es la versión calibrada.*
