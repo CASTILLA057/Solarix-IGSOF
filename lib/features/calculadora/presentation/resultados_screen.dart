@@ -1,0 +1,281 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/errors/error_app.dart';
+import '../../../core/formato.dart';
+import '../../auth/presentation/widgets/auth_widgets.dart';
+import '../application/calculadora_providers.dart';
+import '../domain/modelos.dart';
+
+/// Resumen del cálculo: consumo, sistema recomendado, costos y retorno.
+class ResultadosScreen extends ConsumerStatefulWidget {
+  const ResultadosScreen({
+    super.key,
+    required this.entradas,
+    required this.resultado,
+  });
+
+  final EntradasCalculo entradas;
+  final ResultadoCalculo resultado;
+
+  @override
+  ConsumerState<ResultadosScreen> createState() => _ResultadosScreenState();
+}
+
+class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
+  bool _guardando = false;
+  bool _guardado = false;
+  String? _error;
+
+  Future<void> _guardar() async {
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(calculadoraRepositoryProvider)
+          .guardarCalculo(widget.entradas, widget.resultado);
+      if (!mounted) return;
+      setState(() => _guardado = true);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Cálculo guardado.')));
+    } on ErrorApp catch (e) {
+      if (mounted) setState(() => _error = e.mensaje);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.entradas;
+    final r = widget.resultado;
+    final anios = e.supuestos.anios;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Resultados')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _Destacado(resultado: r, entradas: e),
+              _Seccion(
+                titulo: 'Tu consumo',
+                icono: Icons.bolt_outlined,
+                filas: [
+                  (
+                    'Energía diaria',
+                    '${Formato.numero(r.energiaDiaKwh, 2)} kWh',
+                  ),
+                  ('Energía mensual', '${Formato.numero(r.energiaMesKwh)} kWh'),
+                  (
+                    'Horas solares pico',
+                    '${Formato.numero(e.hsp, 2)} · ${e.ubicacion}',
+                  ),
+                ],
+              ),
+              _Seccion(
+                titulo:
+                    'Sistema recomendado (${e.tipo.etiqueta.toLowerCase()})',
+                icono: Icons.solar_power_outlined,
+                filas: [
+                  (
+                    'Paneles',
+                    '${r.numeroPaneles} × ${Formato.numero(e.potenciaPanelW)} W '
+                        '= ${Formato.numero(r.potenciaInstaladaKw, 2)} kWp',
+                  ),
+                  (
+                    'Generación estimada',
+                    '${Formato.numero(r.generacionMesKwh)} kWh/mes',
+                  ),
+                  if (r.bateriaKwh > 0)
+                    (
+                      'Batería (${e.quimica.etiqueta})',
+                      '${Formato.numero(r.bateriaKwh, 1)} kWh · '
+                          '${Formato.numero(r.bateriaAh)} Ah a ${r.voltajeSistema} V',
+                    ),
+                  ('Inversor', '${Formato.numero(r.inversorW)} W'),
+                  if (r.controladorA > 0)
+                    ('Controlador de carga', '${r.controladorA} A'),
+                ],
+              ),
+              _Seccion(
+                titulo: 'Costos estimados',
+                icono: Icons.payments_outlined,
+                filas: [
+                  ('Paneles', Formato.cop(r.costos.paneles)),
+                  if (r.costos.baterias > 0)
+                    ('Baterías', Formato.cop(r.costos.baterias)),
+                  ('Inversor', Formato.cop(r.costos.inversor)),
+                  if (r.costos.controlador > 0)
+                    ('Controlador', Formato.cop(r.costos.controlador)),
+                  ('Estructura y cableado', Formato.cop(r.costos.estructura)),
+                  ('Instalación', Formato.cop(r.costos.instalacion)),
+                  ('Total', Formato.cop(r.costos.total)),
+                ],
+              ),
+              _Seccion(
+                titulo: 'Ahorro y retorno',
+                icono: Icons.trending_up,
+                filas: [
+                  ('Ahorro el primer mes', Formato.cop(r.ahorroMensual)),
+                  if (r.excedenteMesKwh > 0)
+                    (
+                      'Energía vendida a la red',
+                      '${Formato.numero(r.excedenteMesKwh)} kWh/mes',
+                    ),
+                  (
+                    'Recuperación de la inversión',
+                    Formato.anios(r.paybackAnios, anios),
+                  ),
+                  (
+                    'Recuperación descontada',
+                    Formato.anios(r.paybackDescontadoAnios, anios),
+                  ),
+                  ('Valor presente neto (VPN)', Formato.cop(r.vpn)),
+                  ('Ahorro total en $anios años', Formato.cop(r.ahorroTotal)),
+                  ('Costo total en $anios años', Formato.cop(r.gastosTotales)),
+                ],
+                nota: e.tipo.usaBateria
+                    ? 'Incluye cambiar la batería cada '
+                          '${e.quimica.vidaUtilAnios} años (vida típica). En el '
+                          'siguiente módulo se calculará con la simulación de '
+                          'degradación.'
+                    : null,
+              ),
+              const SizedBox(height: 8),
+              if (_error != null) ...[
+                MensajeError(_error!),
+                const SizedBox(height: 12),
+              ],
+              BotonPrincipal(
+                texto: _guardado ? 'Cálculo guardado' : 'Guardar cálculo',
+                cargando: _guardando,
+                onPressed: _guardado ? () {} : _guardar,
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta con las cifras principales.
+class _Destacado extends StatelessWidget {
+  const _Destacado({required this.resultado, required this.entradas});
+
+  final ResultadoCalculo resultado;
+  final EntradasCalculo entradas;
+
+  @override
+  Widget build(BuildContext context) {
+    final esquema = Theme.of(context).colorScheme;
+    final estilo = Theme.of(context).textTheme;
+    Widget cifra(String valor, String etiqueta) => Expanded(
+      child: Column(
+        children: [
+          Text(
+            valor,
+            style: estilo.titleLarge?.copyWith(
+              color: esquema.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            etiqueta,
+            style: estilo.bodySmall?.copyWith(
+              color: esquema.onPrimaryContainer,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+    return Card(
+      color: esquema.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            cifra('${resultado.numeroPaneles}', 'paneles'),
+            cifra(Formato.cop(resultado.costos.total), 'inversión'),
+            cifra(
+              resultado.paybackAnios == null
+                  ? '—'
+                  : Formato.numero(resultado.paybackAnios!, 1),
+              'años para recuperarla',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Seccion extends StatelessWidget {
+  const _Seccion({
+    required this.titulo,
+    required this.icono,
+    required this.filas,
+    this.nota,
+  });
+
+  final String titulo;
+  final IconData icono;
+  final List<(String, String)> filas;
+  final String? nota;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icono, color: tema.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(titulo, style: tema.textTheme.titleMedium),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final (etiqueta, valor) in filas)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: Text(etiqueta)),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        valor,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (nota != null) ...[
+              const SizedBox(height: 8),
+              Text(nota!, style: tema.textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

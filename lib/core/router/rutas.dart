@@ -5,6 +5,8 @@
 abstract final class Rutas {
   static const inicio = '/';
   static const perfil = '/perfil';
+  static const calculadora = '/calculadora';
+  static const resultados = '$calculadora/resultados';
   static const bienvenida = '/bienvenida';
   static const login = '$bienvenida/login';
   static const registro = '$bienvenida/registro';

@@ -11,6 +11,9 @@ import '../../features/auth/presentation/perfil_screen.dart';
 import '../../features/auth/presentation/recuperar_screen.dart';
 import '../../features/auth/presentation/registro_screen.dart';
 import '../../features/auth/presentation/verificar_correo_screen.dart';
+import '../../features/calculadora/domain/modelos.dart';
+import '../../features/calculadora/presentation/calculadora_screen.dart';
+import '../../features/calculadora/presentation/resultados_screen.dart';
 import '../../features/dashboard/presentation/inicio_screen.dart';
 import 'rutas.dart';
 
@@ -34,6 +37,29 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: Rutas.perfil.substring(1),
             builder: (context, state) => const PerfilScreen(),
+          ),
+          GoRoute(
+            path: Rutas.calculadora.substring(1),
+            builder: (context, state) => const CalculadoraScreen(),
+            routes: [
+              GoRoute(
+                path: _subruta(Rutas.resultados),
+                // Sin datos (p. ej. al recargar en el navegador) vuelve a la
+                // calculadora: los resultados se pasan en memoria.
+                redirect: (context, state) =>
+                    state.extra is (EntradasCalculo, ResultadoCalculo)
+                    ? null
+                    : Rutas.calculadora,
+                builder: (context, state) {
+                  final (entradas, resultado) =
+                      state.extra! as (EntradasCalculo, ResultadoCalculo);
+                  return ResultadosScreen(
+                    entradas: entradas,
+                    resultado: resultado,
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
