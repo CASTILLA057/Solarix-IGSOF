@@ -7,7 +7,8 @@ import '../domain/comparacion.dart';
 /// Guarda las simulaciones del usuario en `simulaciones_degradacion`
 /// (protegida por RLS: cada usuario solo ve sus filas).
 abstract interface class SimulacionRepository {
-  Future<void> guardar(ComparacionSimulacion simulacion);
+  /// `calculoId` vincula la simulación con el cálculo del que partió.
+  Future<void> guardar(ComparacionSimulacion simulacion, {String? calculoId});
 }
 
 class SupabaseSimulacionRepository implements SimulacionRepository {
@@ -16,9 +17,15 @@ class SupabaseSimulacionRepository implements SimulacionRepository {
   final SupabaseClient _db;
 
   @override
-  Future<void> guardar(ComparacionSimulacion simulacion) async {
+  Future<void> guardar(
+    ComparacionSimulacion simulacion, {
+    String? calculoId,
+  }) async {
     try {
-      await _db.from('simulaciones_degradacion').insert(simulacion.aFila());
+      await _db.from('simulaciones_degradacion').insert({
+        ...simulacion.aFila(),
+        'calculo_id': ?calculoId,
+      });
     } on PostgrestException {
       throw const ErrorApp('No se pudo guardar la simulación.');
     } catch (_) {
@@ -31,6 +38,6 @@ class SinBackendSimulacionRepository implements SimulacionRepository {
   const SinBackendSimulacionRepository();
 
   @override
-  Future<void> guardar(ComparacionSimulacion simulacion) =>
+  Future<void> guardar(ComparacionSimulacion simulacion, {String? calculoId}) =>
       Future.error(ErrorApp(mensajeErrorAuth(CodigosError.sinBackend)));
 }

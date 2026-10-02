@@ -14,8 +14,9 @@ abstract interface class CalculadoraRepository {
   /// Ciudades con HSP; si la tabla no responde, la lista local.
   Future<List<Ciudad>> obtenerCiudades();
 
-  /// Guarda el cálculo del usuario con sesión activa.
-  Future<void> guardarCalculo(
+  /// Guarda el cálculo del usuario con sesión activa y devuelve su `id`
+  /// (para vincular la simulación de degradación, Etapa 6).
+  Future<String> guardarCalculo(
     EntradasCalculo entradas,
     ResultadoCalculo resultado,
   );
@@ -54,19 +55,24 @@ class SupabaseCalculadoraRepository implements CalculadoraRepository {
   }
 
   @override
-  Future<void> guardarCalculo(
+  Future<String> guardarCalculo(
     EntradasCalculo entradas,
     ResultadoCalculo resultado,
   ) async {
     try {
-      await _db.from('calculos_consumo').insert({
-        'nombre': entradas.nombre.trim().isEmpty
-            ? null
-            : entradas.nombre.trim(),
-        'tipo_sistema': entradas.tipo.valorBd,
-        'entradas': entradas.aMapa(),
-        'resultados': resultado.aMapa(),
-      });
+      final fila = await _db
+          .from('calculos_consumo')
+          .insert({
+            'nombre': entradas.nombre.trim().isEmpty
+                ? null
+                : entradas.nombre.trim(),
+            'tipo_sistema': entradas.tipo.valorBd,
+            'entradas': entradas.aMapa(),
+            'resultados': resultado.aMapa(),
+          })
+          .select('id')
+          .single();
+      return fila['id'] as String;
     } on PostgrestException {
       throw const ErrorApp('No se pudo guardar el cálculo.');
     } catch (_) {
@@ -86,7 +92,7 @@ class SinBackendCalculadoraRepository implements CalculadoraRepository {
   Future<List<Ciudad>> obtenerCiudades() async => ciudadesBase;
 
   @override
-  Future<void> guardarCalculo(
+  Future<String> guardarCalculo(
     EntradasCalculo entradas,
     ResultadoCalculo resultado,
   ) => Future.error(ErrorApp(mensajeErrorAuth(CodigosError.sinBackend)));

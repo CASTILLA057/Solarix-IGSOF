@@ -237,7 +237,11 @@ double? recuperacionAnios(double inversion, List<double> acumulados) {
 }
 
 /// Ejecuta el cálculo completo.
-ResultadoCalculo calcular(EntradasCalculo e) {
+///
+/// `vidaBateriaAnios` reemplaza la vida típica de la química en el flujo de
+/// caja; en la Etapa 6 viene de la simulación de degradación (años hasta que
+/// el SoH llega al 80 %).
+ResultadoCalculo calcular(EntradasCalculo e, {int? vidaBateriaAnios}) {
   final s = e.supuestos;
   final energiaDiaWh = energiaDiariaWh(e);
   final cobertura = e.tipo == TipoSistema.offGrid ? 1.0 : s.cobertura;
@@ -287,7 +291,7 @@ ResultadoCalculo calcular(EntradasCalculo e) {
     inversion: costos.total,
     ahorroAnualInicial: ahorro.ahorro * 12,
     costoBaterias: costos.baterias,
-    vidaBateriaAnios: e.quimica.vidaUtilAnios,
+    vidaBateriaAnios: vidaBateriaAnios ?? e.quimica.vidaUtilAnios,
     supuestos: s,
   );
   return ResultadoCalculo(
