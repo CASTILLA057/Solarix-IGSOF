@@ -5,6 +5,8 @@ import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../calculadora/domain/calculadora.dart';
+import '../../dashboard/application/historial_providers.dart';
+import '../../dashboard/presentation/widgets/graficas.dart';
 import '../application/simulacion_providers.dart';
 import '../domain/comparacion.dart';
 import '../domain/integracion.dart';
@@ -47,6 +49,7 @@ class _ResultadosSimulacionScreenState
           .read(simulacionRepositoryProvider)
           .guardar(widget.comparacion, calculoId: widget.origen?.calculoId);
       if (!mounted) return;
+      ref.invalidate(simulacionesGuardadasProvider); // actualiza el dashboard
       setState(() => _guardada = true);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Simulación guardada.')));
@@ -70,6 +73,19 @@ class _ResultadosSimulacionScreenState
             padding: const EdgeInsets.all(16),
             children: [
               _Destacado(resultado: c.principal),
+              _Tarjeta(
+                titulo: 'Salud de la batería mes a mes',
+                icono: Icons.show_chart,
+                child: GraficaSoh(
+                  sohMensual: [
+                    for (final m in serieMensual(c.principal.dias)) m.soh,
+                  ],
+                  etiqueta: p.politica.etiqueta,
+                  alternativaAnual: c.alternativa.sohAnual,
+                  etiquetaAlternativa:
+                      c.alternativa.parametros.politica.etiqueta,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 '${Formato.numero(p.capacidadBateriaKwh, 1)} kWh · '
