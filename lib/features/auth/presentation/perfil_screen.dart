@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/error_app.dart';
+import '../../../core/theme/tema_providers.dart';
+import '../../../core/widgets/estados.dart';
 import '../application/auth_providers.dart';
 import '../domain/perfil.dart';
 import '../domain/validadores.dart';
@@ -17,22 +19,10 @@ class PerfilScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
       body: perfil.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                MensajeError(e is ErrorApp ? e.mensaje : '$e'),
-                const SizedBox(height: 16),
-                OutlinedButton(
-                  onPressed: () => ref.invalidate(perfilProvider),
-                  child: const Text('Reintentar'),
-                ),
-              ],
-            ),
-          ),
+        loading: () => const Cargando(),
+        error: (e, _) => EstadoError(
+          error: e,
+          alReintentar: () => ref.invalidate(perfilProvider),
         ),
         data: (p) => _FormularioPerfil(perfil: p, email: email),
       ),
@@ -180,6 +170,34 @@ class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
                   texto: 'Guardar cambios',
                   cargando: _guardando,
                   onPressed: _guardar,
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Apariencia',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<ThemeMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      icon: Icon(Icons.brightness_auto_outlined),
+                      label: Text('Sistema'),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.light,
+                      icon: Icon(Icons.light_mode_outlined),
+                      label: Text('Claro'),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.dark,
+                      icon: Icon(Icons.dark_mode_outlined),
+                      label: Text('Oscuro'),
+                    ),
+                  ],
+                  selected: {ref.watch(modoTemaProvider)},
+                  onSelectionChanged: (s) =>
+                      ref.read(modoTemaProvider.notifier).cambiar(s.first),
                 ),
                 const SizedBox(height: 32),
                 OutlinedButton.icon(

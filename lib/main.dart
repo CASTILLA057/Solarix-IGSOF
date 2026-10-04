@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/config/env.dart';
+import 'core/theme/tema_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,5 +19,16 @@ Future<void> main() async {
     );
   }
 
-  runApp(const ProviderScope(child: SolarixApp()));
+  // Preferencias locales (modo claro/oscuro). Si fallan, tema del sistema.
+  SharedPreferences? preferencias;
+  try {
+    preferencias = await SharedPreferences.getInstance();
+  } catch (_) {}
+
+  runApp(
+    ProviderScope(
+      overrides: [preferenciasProvider.overrideWithValue(preferencias)],
+      child: const SolarixApp(),
+    ),
+  );
 }

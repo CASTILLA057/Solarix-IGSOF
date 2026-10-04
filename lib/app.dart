@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/tema_providers.dart';
 
 class SolarixApp extends ConsumerWidget {
   const SolarixApp({super.key});
@@ -14,7 +15,7 @@ class SolarixApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.claro,
       darkTheme: AppTheme.oscuro,
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(modoTemaProvider),
       routerConfig: ref.watch(routerProvider),
     );
   }
