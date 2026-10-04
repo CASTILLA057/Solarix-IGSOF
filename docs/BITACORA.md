@@ -286,3 +286,12 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `CORREGIDO` Reportado por el autor: al tocar la gráfica de SoH, en algunos puntos solo aparecía el valor de una política. La otra tenía un punto por año y la principal uno por mes, así que entre años no había punto que mostrar. Ahora las dos van mes a mes: en los resultados de la simulación con la serie mensual real de la otra política, y en el historial y el inicio interpolando entre años, porque lo guardado en Supabase solo trae el SoH anual de la otra política (la serie mensual guardada es la de la política elegida). Prueba nueva.
 - `HECHO` Prueba manual en Chrome y Android, verificada por el autor: tema claro/oscuro recordado, mensajes de error, estados vacíos, validación y gráficas corregidas funcionan.
 - `HECHO` **Etapa 8 completa.** Subida a GitHub en commits separados por tema.
+
+## 2026-10-03 — Corrección: aviso de "sin conexión"
+
+- `CORREGIDO` Reportado por el autor: al desconectar el internet la pantalla se quedaba en "Cargando…" y no aparecía el mensaje de sin conexión. Las consultas a Supabase no tenían tiempo límite. Sin una red que responda, o mientras Supabase reintenta renovar la sesión, una petición puede quedar esperando minutos en vez de fallar enseguida.
+- `HECHO` `ejecutarRemoto` (`core/errors/traducir_error.dart`): todas las consultas de los repositorios (Auth, perfil, guardar cálculo y simulación, historial) tienen un límite de **15 s**. Al pasar ese tiempo se muestra "No se pudo conectar con el servidor. Revisa tu conexión a internet." con el botón para reintentar.
+- `HECHO` Precios y ciudades de la calculadora esperan como máximo **8 s** y luego usan los valores locales, para que la calculadora funcione sin internet.
+- `HECHO` 3 pruebas nuevas (consulta colgada → sin conexión, resultado y traducción de errores, límite por defecto); 126 pruebas pasan.
+- `CORREGIDO` A pedido del autor (15 s se sentía muy lento), el límite bajó a **5 s** para todas las consultas, incluidos precios y ciudades de la calculadora.
+- `DECISIÓN` Registrarse, reenviar el código y recuperar la contraseña conservan **15 s**: envían un correo por SMTP (Brevo), que puede tardar varios segundos aun con buena conexión, y con 5 s podrían mostrar un falso "sin conexión" aunque el correo sí se envíe. 126 pruebas pasan.
