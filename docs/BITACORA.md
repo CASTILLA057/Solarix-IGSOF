@@ -257,3 +257,32 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` 105 pruebas pasan (nuevas: lectura de las filas de Supabase a partir de un cálculo y una simulación reales, filtros por fecha y política, dashboard con datos y vacío, e historial: filtrar, abrir el detalle y eliminar); `flutter analyze` sin advertencias; la versión web compila.
 - `HECHO` Prueba manual en Chrome y Android, verificada por el autor: dashboard, gráficas, filtros, detalle y eliminar funcionan.
 - `HECHO` **Etapa 7 completa** (salvo el PDF opcional, que queda pendiente por decisión del autor). Subida a GitHub en commits separados por tema.
+
+## 2026-10-02 — Etapa 8: pulido de interfaz
+
+- `HECHO` **Tema**: paleta solar con ámbar como color principal y azul cielo como terciario (la otra política en las gráficas); tarjetas planas con borde, botones de 48 px de alto con esquinas redondeadas, campos con fondo, avisos flotantes. Claro y oscuro salen del mismo esquema.
+- `HECHO` **Modo claro/oscuro** elegible en "Mi perfil" → Apariencia (Sistema, Claro, Oscuro). Se guarda en el dispositivo con `shared_preferences` (dependencia nueva; `supabase_flutter` ya la usaba por dentro), así que se recuerda al volver a abrir la app.
+- `HECHO` **Errores claros** con un traductor central (`core/errors/traducir_error.dart`) que usan todos los repositorios de Supabase:
+  - Sin conexión (sin internet, servidor inalcanzable o tiempo agotado).
+  - **Proyecto de Supabase pausado** (respuesta HTTP 540): "El servidor de Solarix está en pausa por inactividad…".
+  - Sesión expirada (JWT vencido).
+  - Cualquier otro error: "No se pudo [guardar el cálculo, cargar tus simulaciones…]. Intenta de nuevo." Antes, cualquier error desconocido se mostraba como "sin conexión".
+- `DECISIÓN` Los mensajes de error pasaron de `features/auth/domain` a `core/errors/mensajes_error.dart`, porque ya los usaban todas las funciones de la app, no solo Auth.
+- `PENDIENTE` La detección del proyecto pausado se probó con respuestas simuladas (código 540 y el texto "Project paused"), no con el proyecto real pausado, para no tener que pausar `solarix`.
+- `CORREGIDO` El dashboard mostraba "Aún no tienes cálculos guardados" mientras cargaba o si la consulta fallaba. Ahora cada tarjeta muestra "Cargando…" o el error con un botón para reintentar.
+- `HECHO` **Estados de carga, vacío y error** reutilizables (`core/widgets/estados.dart`), usados en el historial y el perfil. El historial vacío ofrece ir a la calculadora o a la simulación; si los filtros ocultan todo, ofrece "Quitar filtros".
+- `CORREGIDO` La simulación mostraba el error técnico (`No se pudo simular: <excepción>`); ahora da un mensaje claro y el detalle queda en la consola de depuración.
+- `HECHO` **Validación**: los campos numéricos muestran el error mientras se escribe (después del primer cambio) y los límites salen sin decimales de sobra ("Debe ser al menos 1", no "1,0"), con `Formato.corto`.
+- `HECHO` **Tamaños de pantalla**: el historial ahora tiene ancho máximo en escritorio, como las demás pantallas. Una prueba recorre todas las pantallas (inicio, perfil, calculadora y resultados, simulación y resultados, historial y detalle) en un celular de 320 × 640, en un celular en modo oscuro y en un escritorio de 1440 × 900, sin desbordes.
+- `HECHO` Formato de moneda (COP) y números con `intl` ya estaba en `core/formato.dart` desde la Etapa 3; se revisó que ninguna pantalla muestre números sin formato.
+- `HECHO` 118 pruebas pasan (13 nuevas: traducción de errores, `Formato.corto`, modo de tema elegido y recordado, dashboard con error y reintento, historial con "Quitar filtros" y el recorrido de pantallas en tres tamaños); `flutter analyze` sin advertencias; la versión web compila.
+- `CORREGIDO` Reportado por el autor en la prueba manual, en las gráficas:
+  - SoH: aparecían "101" (el tope del eje, 100,5) y "78" (el mínimo) en el eje Y. fl_chart rotula también los extremos del eje; ahora solo se rotulan los múltiplos del intervalo (cada 5 puntos, o cada 10 si el SoH baja más de 30).
+  - Generación y consumo: el "9" salía repetido en el eje X (el último mes, 119, también se rotulaba como año 9). Se aplica la misma regla a los años.
+  - Generación y consumo usaban dos tonos marrones parecidos; ahora la generación es ámbar vivo y el consumo azul cielo.
+  - Energía comprada: las etiquetas del eje Y se partían en dos líneas ("24.05" / "2"). El ancho del eje se calcula según el número más largo y las etiquetas van en una sola línea. Como en el SoH, ya no se rotula el extremo sin redondear (24.052), sino los valores redondos (5.000, 10.000…).
+  - 3 pruebas nuevas de los ejes; 121 pruebas pasan.
+- `CORREGIDO` Reportado por el autor: al tocar una gráfica (o pasar el mouse) el valor salía con muchos decimales. Ahora sale con máximo 3 decimales, coma decimal y la unidad (p. ej. "99,123 %", "1.250,5 kWh"), en el color de cada línea. Prueba nueva; 122 pruebas pasan.
+- `CORREGIDO` Reportado por el autor: al tocar la gráfica de SoH, en algunos puntos solo aparecía el valor de una política. La otra tenía un punto por año y la principal uno por mes, así que entre años no había punto que mostrar. Ahora las dos van mes a mes: en los resultados de la simulación con la serie mensual real de la otra política, y en el historial y el inicio interpolando entre años, porque lo guardado en Supabase solo trae el SoH anual de la otra política (la serie mensual guardada es la de la política elegida). Prueba nueva.
+- `HECHO` Prueba manual en Chrome y Android, verificada por el autor: tema claro/oscuro recordado, mensajes de error, estados vacíos, validación y gráficas corregidas funcionan.
+- `HECHO` **Etapa 8 completa.** Subida a GitHub en commits separados por tema.

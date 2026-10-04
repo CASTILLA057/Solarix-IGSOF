@@ -166,11 +166,12 @@
 - [x] Prueba manual en Chrome y Android
 
 ## Etapa 8 — Pulido de interfaz
-- [ ] Ajustes finales del tema (paleta solar, modo claro/oscuro)
-- [ ] Validación de formularios y mensajes de error claros (incluido "sin conexión" y "proyecto de Supabase pausado")
-- [ ] Estados de carga y de "aún no tienes simulaciones guardadas"
-- [ ] Revisar que se vea bien en distintos tamaños de pantalla (celular y navegador de escritorio)
-- [ ] Formato de moneda (COP) y números con `intl`
+- [x] Ajustes finales del tema (paleta solar, modo claro/oscuro)
+- [x] Validación de formularios y mensajes de error claros (incluido "sin conexión" y "proyecto de Supabase pausado")
+- [x] Estados de carga y de "aún no tienes simulaciones guardadas"
+- [x] Revisar que se vea bien en distintos tamaños de pantalla (celular y navegador de escritorio)
+- [x] Formato de moneda (COP) y números con `intl`
+- [x] Prueba manual en Chrome y Android
 
 ## Etapa 9 — Pruebas integrales
 - [ ] Pruebas de widgets en las pantallas principales
