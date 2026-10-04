@@ -66,7 +66,8 @@ void main() {
     final (_, prefs) = await _abrir(tester);
     ThemeMode modo() =>
         tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode!;
-    expect(modo(), ThemeMode.system);
+    // Sin preferencia guardada empieza en claro.
+    expect(modo(), ThemeMode.light);
 
     await tester.tap(find.byTooltip('Mi perfil'));
     await tester.pumpAndSettle();

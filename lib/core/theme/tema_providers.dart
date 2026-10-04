@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 final preferenciasProvider = Provider<SharedPreferences?>((ref) => null);
 
 /// Modo de tema elegido por el usuario (sistema, claro u oscuro), guardado
-/// en el dispositivo.
+/// en el dispositivo. Mientras no elija, la app empieza en claro (no sigue
+/// el modo del celular).
 final modoTemaProvider = NotifierProvider<ModoTema, ThemeMode>(ModoTema.new);
 
 class ModoTema extends Notifier<ThemeMode> {
@@ -18,7 +19,7 @@ class ModoTema extends Notifier<ThemeMode> {
     final guardado = ref.watch(preferenciasProvider)?.getString(_clave);
     return ThemeMode.values.firstWhere(
       (m) => m.name == guardado,
-      orElse: () => ThemeMode.system,
+      orElse: () => ThemeMode.light,
     );
   }
 
