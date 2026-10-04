@@ -69,6 +69,43 @@ void main() {
     });
   });
 
+  group('ejecutarRemoto', () {
+    test('una consulta que nunca responde termina en "sin conexión"', () {
+      final colgada = Completer<int>().future;
+      expect(
+        ejecutarRemoto(() => colgada, limite: const Duration(milliseconds: 20)),
+        throwsA(
+          isA<ErrorApp>().having(
+            (e) => e.codigo,
+            'codigo',
+            CodigosError.sinConexion,
+          ),
+        ),
+      );
+    });
+
+    test('devuelve el resultado y traduce los errores', () async {
+      expect(await ejecutarRemoto(() async => 7), 7);
+      expect(
+        ejecutarRemoto(
+          () async => throw const PostgrestException(message: 'x', code: '540'),
+        ),
+        throwsA(
+          isA<ErrorApp>().having(
+            (e) => e.codigo,
+            'codigo',
+            CodigosError.pausado,
+          ),
+        ),
+      );
+    });
+
+    test('límites: 5 s por consulta, 15 s si se envía un correo', () {
+      expect(limiteConsulta, const Duration(seconds: 5));
+      expect(limiteEnvioCorreo, const Duration(seconds: 15));
+    });
+  });
+
   test('Formato.corto quita los decimales de sobra', () {
     expect(Formato.corto(1), '1');
     expect(Formato.corto(0.036), '0,036');
