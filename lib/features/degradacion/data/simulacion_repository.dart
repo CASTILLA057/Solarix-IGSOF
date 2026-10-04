@@ -18,19 +18,13 @@ class SupabaseSimulacionRepository implements SimulacionRepository {
   final SupabaseClient _db;
 
   @override
-  Future<void> guardar(
-    ComparacionSimulacion simulacion, {
-    String? calculoId,
-  }) async {
-    try {
-      await _db.from('simulaciones_degradacion').insert({
-        ...simulacion.aFila(),
-        'calculo_id': ?calculoId,
-      });
-    } catch (e) {
-      throw errorDesde(e, accion: 'guardar la simulación');
-    }
-  }
+  Future<void> guardar(ComparacionSimulacion simulacion, {String? calculoId}) =>
+      ejecutarRemoto(() async {
+        await _db.from('simulaciones_degradacion').insert({
+          ...simulacion.aFila(),
+          'calculo_id': ?calculoId,
+        });
+      }, accion: 'guardar la simulación');
 }
 
 class SinBackendSimulacionRepository implements SimulacionRepository {

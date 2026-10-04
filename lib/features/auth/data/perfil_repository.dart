@@ -18,34 +18,26 @@ class SupabasePerfilRepository implements PerfilRepository {
   final SupabaseClient _db;
 
   @override
-  Future<Perfil> obtener(String usuarioId) async {
-    try {
-      final fila = await _db
-          .from('perfiles')
-          .select('id, nombre, ciudad, zona_irradiancia')
-          .eq('id', usuarioId)
-          .maybeSingle();
-      // El trigger crea la fila al registrarse; si faltara, perfil vacío.
-      return fila == null ? Perfil(id: usuarioId) : Perfil.desdeMapa(fila);
-    } catch (e) {
-      throw errorDesde(e, accion: 'cargar tu perfil');
-    }
-  }
+  Future<Perfil> obtener(String usuarioId) => ejecutarRemoto(() async {
+    final fila = await _db
+        .from('perfiles')
+        .select('id, nombre, ciudad, zona_irradiancia')
+        .eq('id', usuarioId)
+        .maybeSingle();
+    // El trigger crea la fila al registrarse; si faltara, perfil vacío.
+    return fila == null ? Perfil(id: usuarioId) : Perfil.desdeMapa(fila);
+  }, accion: 'cargar tu perfil');
 
   @override
-  Future<void> guardar(Perfil perfil) async {
-    try {
-      await _db
-          .from('perfiles')
-          .update({
-            ...perfil.aMapaEditable(),
-            'actualizado_en': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', perfil.id);
-    } catch (e) {
-      throw errorDesde(e, accion: 'guardar tu perfil');
-    }
-  }
+  Future<void> guardar(Perfil perfil) => ejecutarRemoto(() async {
+    await _db
+        .from('perfiles')
+        .update({
+          ...perfil.aMapaEditable(),
+          'actualizado_en': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', perfil.id);
+  }, accion: 'guardar tu perfil');
 }
 
 class SinBackendPerfilRepository implements PerfilRepository {

@@ -54,7 +54,7 @@ class SupabaseAuthRepository implements AuthRepository {
       );
     }
     return respuesta.session != null;
-  });
+  }, limite: limiteEnvioCorreo);
 
   @override
   Future<void> confirmarRegistro({
@@ -69,12 +69,16 @@ class SupabaseAuthRepository implements AuthRepository {
   );
 
   @override
-  Future<void> reenviarCodigoRegistro(String email) =>
-      _ejecutar(() => _auth.resend(email: email.trim(), type: OtpType.signup));
+  Future<void> reenviarCodigoRegistro(String email) => _ejecutar(
+    () => _auth.resend(email: email.trim(), type: OtpType.signup),
+    limite: limiteEnvioCorreo,
+  );
 
   @override
-  Future<void> enviarCodigoRecuperacion(String email) =>
-      _ejecutar(() => _auth.resetPasswordForEmail(email.trim()));
+  Future<void> enviarCodigoRecuperacion(String email) => _ejecutar(
+    () => _auth.resetPasswordForEmail(email.trim()),
+    limite: limiteEnvioCorreo,
+  );
 
   @override
   Future<void> verificarCodigoRecuperacion({
@@ -99,11 +103,8 @@ class SupabaseAuthRepository implements AuthRepository {
   static Usuario? _aUsuario(User? user) =>
       user == null ? null : Usuario(id: user.id, email: user.email ?? '');
 
-  static Future<T> _ejecutar<T>(Future<T> Function() accion) async {
-    try {
-      return await accion();
-    } catch (e) {
-      throw errorDesde(e);
-    }
-  }
+  static Future<T> _ejecutar<T>(
+    Future<T> Function() accion, {
+    Duration limite = limiteConsulta,
+  }) => ejecutarRemoto(accion, limite: limite);
 }

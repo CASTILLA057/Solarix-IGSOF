@@ -18,13 +18,8 @@ class SupabaseHistorialRepository implements HistorialRepository {
 
   final SupabaseClient _db;
 
-  Future<T> _ejecutar<T>(String que, Future<T> Function() accion) async {
-    try {
-      return await accion();
-    } catch (e) {
-      throw errorDesde(e, accion: que);
-    }
-  }
+  Future<T> _ejecutar<T>(String que, Future<T> Function() accion) =>
+      ejecutarRemoto(accion, accion: que);
 
   @override
   Future<List<CalculoGuardado>> calculos() => _ejecutar(

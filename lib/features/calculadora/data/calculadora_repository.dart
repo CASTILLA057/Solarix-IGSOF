@@ -31,7 +31,11 @@ class SupabaseCalculadoraRepository implements CalculadoraRepository {
   @override
   Future<Precios> obtenerPrecios() async {
     try {
-      final filas = await _db.from('precios_referencia').select('clave, valor');
+      // Sin respuesta pronto, se usan los precios locales.
+      final filas = await _db
+          .from('precios_referencia')
+          .select('clave, valor')
+          .timeout(limiteConsulta);
       return Precios.desdeFilas({
         for (final f in filas)
           f['clave'] as String: (f['valor'] as num).toDouble(),
@@ -47,7 +51,8 @@ class SupabaseCalculadoraRepository implements CalculadoraRepository {
       final filas = await _db
           .from('ciudades')
           .select('nombre, departamento, hsp')
-          .order('nombre');
+          .order('nombre')
+          .timeout(limiteConsulta);
       final ciudades = [for (final f in filas) Ciudad.desdeMapa(f)];
       return ciudades.isEmpty ? ciudadesBase : ciudades;
     } catch (_) {
@@ -59,25 +64,21 @@ class SupabaseCalculadoraRepository implements CalculadoraRepository {
   Future<String> guardarCalculo(
     EntradasCalculo entradas,
     ResultadoCalculo resultado,
-  ) async {
-    try {
-      final fila = await _db
-          .from('calculos_consumo')
-          .insert({
-            'nombre': entradas.nombre.trim().isEmpty
-                ? null
-                : entradas.nombre.trim(),
-            'tipo_sistema': entradas.tipo.valorBd,
-            'entradas': entradas.aMapa(),
-            'resultados': resultado.aMapa(),
-          })
-          .select('id')
-          .single();
-      return fila['id'] as String;
-    } catch (e) {
-      throw errorDesde(e, accion: 'guardar el cálculo');
-    }
-  }
+  ) => ejecutarRemoto(() async {
+    final fila = await _db
+        .from('calculos_consumo')
+        .insert({
+          'nombre': entradas.nombre.trim().isEmpty
+              ? null
+              : entradas.nombre.trim(),
+          'tipo_sistema': entradas.tipo.valorBd,
+          'entradas': entradas.aMapa(),
+          'resultados': resultado.aMapa(),
+        })
+        .select('id')
+        .single();
+    return fila['id'] as String;
+  }, accion: 'guardar el cálculo');
 }
 
 /// Sin `env.json` (CI, pruebas): datos locales y sin guardado.
