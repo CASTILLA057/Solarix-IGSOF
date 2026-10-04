@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:solarix/core/theme/app_theme.dart';
 import 'package:solarix/features/dashboard/presentation/widgets/graficas.dart';
+import 'package:solarix/features/degradacion/domain/parametros.dart';
 
 Future<void> _dibujar(WidgetTester tester, Widget grafica) async {
   tester.view.physicalSize = const Size(400, 900);
@@ -22,7 +24,10 @@ void main() {
   final meses = List.generate(120, (i) => 100 - (i + 1) * 0.178);
 
   testWidgets('SoH: sin "101" ni el mínimo suelto en el eje Y', (tester) async {
-    await _dibujar(tester, GraficaSoh(sohMensual: meses, etiqueta: 'Prueba'));
+    await _dibujar(
+      tester,
+      GraficaSoh(sohMensual: meses, politica: Politica.convencional),
+    );
     expect(find.text('101'), findsNothing);
     expect(find.text('78'), findsNothing);
     expect(find.text('100'), findsOneWidget);
@@ -67,7 +72,10 @@ void main() {
   testWidgets('al tocar la gráfica el valor tiene máximo 3 decimales', (
     tester,
   ) async {
-    await _dibujar(tester, GraficaSoh(sohMensual: meses, etiqueta: 'Prueba'));
+    await _dibujar(
+      tester,
+      GraficaSoh(sohMensual: meses, politica: Politica.convencional),
+    );
     final datos = tester.widget<LineChart>(find.byType(LineChart)).data;
     final linea = datos.lineBarsData.last;
     final textos = datos.lineTouchData.touchTooltipData
@@ -83,9 +91,9 @@ void main() {
       tester,
       GraficaSoh(
         sohMensual: List.generate(24, (i) => 100 - (i + 1) * 0.2),
-        etiqueta: 'Convencional',
+        politica: Politica.convencional,
         alternativaAnual: const [100, 98, 96],
-        etiquetaAlternativa: 'Consciente',
+        politicaAlternativa: Politica.consciente,
       ),
     );
     final datos = tester.widget<LineChart>(find.byType(LineChart)).data;
@@ -95,5 +103,33 @@ void main() {
     // Mitad del primer año: entre 100 y 98.
     expect(otra[6].y, closeTo(99, 1e-9));
     expect(otra.last.y, 96);
+  });
+
+  testWidgets('cada política tiene su color fijo, sea la elegida o no', (
+    tester,
+  ) async {
+    const colores = ColoresSolarix.claro;
+    for (final (elegida, otra) in [
+      (Politica.consciente, Politica.convencional),
+      (Politica.convencional, Politica.consciente),
+    ]) {
+      await _dibujar(
+        tester,
+        GraficaSoh(
+          sohMensual: List.generate(24, (i) => 100 - (i + 1) * 0.2),
+          politica: elegida,
+          alternativaAnual: const [100, 98, 96],
+          politicaAlternativa: otra,
+        ),
+      );
+      Color colorDe(Politica p) =>
+          p == Politica.consciente ? colores.consciente : colores.convencional;
+      final barras = tester
+          .widget<LineChart>(find.byType(LineChart))
+          .data
+          .lineBarsData;
+      expect(barras.last.color, colorDe(elegida));
+      expect(barras.first.color, colorDe(otra));
+    }
   });
 }
