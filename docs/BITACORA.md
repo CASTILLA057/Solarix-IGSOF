@@ -344,3 +344,19 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` El recorrido de principio a fin usa ahora "Volver al inicio" en vez de tocar atrás varias veces. 6 pruebas nuevas de navegación (cancelar, salir sin guardar, guardar y salir, ya guardado, simulación, ícono en las pantallas internas). 148 pruebas pasan; el recorrido volvió a pasar en el celular.
 - `HECHO` Prueba manual de `PRUEBAS.md` en Android y Chrome, verificada por el autor, incluidos los botones para volver al inicio.
 - `HECHO` **Etapa 10 completa.** Subida a GitHub en commits separados por tema.
+
+## 2026-10-03 — Etapa 11: despliegue (Android)
+
+- `DECISIÓN` El autor dejó **en espera la publicación web** y, con ella, la configuración de URLs de Auth en Supabase, que depende de la dirección publicada. Solo **APK**: sin AAB para Google Play.
+- `HECHO` **Ícono** diseñado con código (`tool/icono/generar_icono_test.dart`): un sol ámbar `#F59E0B` de 12 rayos con el núcleo en degradado, sobre crema `#FFFBEB`. Se ajustó a rayos del mismo largo porque alternar largos y cortos lo hacía ver desequilibrado. Genera `assets/icono/icono.png` (completo), `icono_frente.png` (frente del ícono adaptable de Android 8+, dentro de la zona segura) y `sol.png` (splash).
+- `HECHO` `flutter_launcher_icons` genera los íconos de Android (incluido el adaptable con fondo crema) y de la web; `flutter_native_splash` genera el splash: el sol sobre crema, también con el formato de Android 12+ (al principio tenía versión carbón para el modo oscuro; ver la corrección más abajo). Ambos son dependencias de desarrollo.
+- `CORREGIDO` El nombre visible era "solarix" en minúscula (Android, pestaña y manifiesto web); ahora es "Solarix". Se corrigieron las tildes de la descripción web ("degradación de baterías").
+- `HECHO` **Firma del APK**: `android/app/build.gradle.kts` lee la llave desde `android/key.properties` (en `.gitignore`, igual que los `.jks`; plantilla `android/key.properties.example`). Sin ese archivo, el APK de publicación se firma con la llave de depuración y Gradle lo avisa. Probado: `flutter build apk --release` compila (55,9 MB, universal).
+- `HECHO` Guía [`DESPLIEGUE.md`](DESPLIEGUE.md): regenerar ícono y splash, crear la llave con `keytool` (fuera del proyecto, con copia de respaldo), compilar e instalar el APK, versión web en espera y aviso de pausa de Supabase antes de presentar.
+- `HECHO` 148 pruebas pasan; `flutter analyze` sin advertencias.
+- `CORREGIDO` Notado por el autor: la app siempre arrancaba en oscuro. Empezaba en el modo "Sistema" (copia el del celular, que estaba en oscuro). Ahora, mientras el usuario no elija, **empieza en claro**; en Perfil → Apariencia puede elegir Oscuro o Sistema y se recuerda.
+- `DECISIÓN` El splash queda **siempre crema**, para no mostrar un arranque carbón seguido de la app en claro. Si el usuario elige Oscuro, el splash sigue crema por un instante: es nativo de Android y no puede leer la preferencia guardada en la app.
+- `HECHO` El autor creó la llave (`C:/Users/Scast/claves/solarix.jks`, alias `solarix`, fuera del proyecto) y `android/key.properties`; se verificó que git lo ignora y que las contraseñas no son las de ejemplo, sin mostrarlas. Al principio `keytool` falló porque la carpeta `claves` no existía; se creó y se repitió.
+- `HECHO` **APK firmado**: `flutter build apk --release` (55,8 MB). `apksigner verify --print-certs` confirma el certificado propio (CN=Santiago Castilla, OU=Ufpso, O=Solarix, L=Ocana, ST=Norte de Santander, C=CO), no el de depuración.
+- `HECHO` El autor desinstaló la versión de desarrollo y se instaló el APK firmado por USB (`adb install`). Prueba manual verificada por el autor: ícono, nombre, splash, arranque en claro y la app completa funcionan.
+- `HECHO` **Etapa 11 completa para Android.** La publicación web y las URLs de Auth en Supabase quedan **en espera** por decisión del autor. Subida a GitHub en commits separados por tema.

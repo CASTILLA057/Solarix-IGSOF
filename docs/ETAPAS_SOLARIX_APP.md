@@ -202,10 +202,13 @@ Guía de pruebas y lista de prueba manual: [`PRUEBAS.md`](PRUEBAS.md).
 - [x] Prueba manual en un celular Android real y en el navegador (lista en `PRUEBAS.md`)
 
 ## Etapa 11 — Despliegue
-- [ ] Ícono de la app y pantalla de inicio (splash)
-- [ ] APK/AAB de Android firmado (keystore fuera del repo)
-- [ ] Publicar la versión web (por ejemplo, Firebase Hosting, Netlify o GitHub Pages)
-- [ ] Configurar en Supabase las URLs de redirección de Auth para la versión publicada
+Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
+- [x] Ícono de la app y pantalla de inicio (splash)
+- [x] Configuración de firma del APK (`android/key.properties`, fuera del repo) y nombre visible "Solarix"
+- [x] APK de Android firmado con la llave propia (solo APK, sin AAB para Google Play)
+- [x] Prueba manual del APK firmado en el celular (ícono, splash, arranque en claro, app completa)
+- [ ] *En espera:* publicar la versión web (por ejemplo, Netlify o Firebase Hosting)
+- [ ] *En espera:* configurar en Supabase las URLs de redirección de Auth para la versión publicada
 
 ## Etapa 12 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase

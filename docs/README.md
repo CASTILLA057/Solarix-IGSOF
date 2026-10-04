@@ -5,6 +5,7 @@ Calculadora de dimensionamiento y costos de paneles solares + simulador de degra
 - **Plataformas:** Android y Web
 - **Stack:** Flutter · Riverpod · go_router · Supabase · fl_chart
 - **Plan de trabajo:** ver [ETAPAS_SOLARIX_APP.md](ETAPAS_SOLARIX_APP.md)
+- **Despliegue (ícono, APK firmado, web):** ver [DESPLIEGUE.md](DESPLIEGUE.md)
 
 ## Requisitos
 
