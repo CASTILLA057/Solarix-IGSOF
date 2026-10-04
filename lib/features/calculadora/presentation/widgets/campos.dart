@@ -28,10 +28,10 @@ class CampoNumero extends StatelessWidget {
     final valor = Formato.leer(texto);
     if (valor == null) return 'Escribe un número.';
     if (minimo != null && valor < minimo!) {
-      return 'Debe ser al menos ${Formato.numero(minimo!, 1)}.';
+      return 'Debe ser al menos ${Formato.corto(minimo!)}.';
     }
     if (maximo != null && valor > maximo!) {
-      return 'Debe ser como máximo ${Formato.numero(maximo!, 1)}.';
+      return 'Debe ser como máximo ${Formato.corto(maximo!)}.';
     }
     return null;
   }
@@ -42,6 +42,7 @@ class CampoNumero extends StatelessWidget {
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       validator: _validar,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: etiqueta,

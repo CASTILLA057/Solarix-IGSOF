@@ -17,6 +17,11 @@ abstract final class Formato {
         decimalDigits: decimales,
       ).format(valor);
 
+  /// Número con hasta 3 decimales, sin ceros de sobra: `1` → `1`,
+  /// `0.036` → `0,036`, `1500` → `1.500`.
+  static String corto(num valor) =>
+      NumberFormat('#,##0.###', 'es_CO').format(valor);
+
   static String porcentaje(num fraccion) => '${numero(fraccion * 100)} %';
 
   /// Años con un decimal, o "más de N años" si no se recupera.
