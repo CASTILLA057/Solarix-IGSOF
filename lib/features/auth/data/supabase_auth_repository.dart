@@ -1,7 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_app.dart';
-import '../domain/mensajes_error.dart';
+import '../../../core/errors/mensajes_error.dart';
+import '../../../core/errors/traducir_error.dart';
 import '../domain/usuario.dart';
 import 'auth_repository.dart';
 
@@ -101,20 +102,8 @@ class SupabaseAuthRepository implements AuthRepository {
   static Future<T> _ejecutar<T>(Future<T> Function() accion) async {
     try {
       return await accion();
-    } on ErrorApp {
-      rethrow;
-    } on AuthRetryableFetchException {
-      throw ErrorApp(
-        mensajeErrorAuth(CodigosError.sinConexion),
-        codigo: CodigosError.sinConexion,
-      );
-    } on AuthException catch (e) {
-      throw ErrorApp(mensajeErrorAuth(e.code), codigo: e.code);
-    } catch (_) {
-      throw ErrorApp(
-        mensajeErrorAuth(CodigosError.sinConexion),
-        codigo: CodigosError.sinConexion,
-      );
+    } catch (e) {
+      throw errorDesde(e);
     }
   }
 }

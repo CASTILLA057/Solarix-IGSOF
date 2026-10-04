@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/router/rutas.dart';
 import '../application/auth_providers.dart';
-import '../domain/mensajes_error.dart';
+import '../../../core/errors/mensajes_error.dart';
 import '../domain/validadores.dart';
 import 'widgets/auth_widgets.dart';
 

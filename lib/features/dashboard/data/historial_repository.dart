@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/errors/error_app.dart';
-import '../../auth/domain/mensajes_error.dart';
+import '../../../core/errors/traducir_error.dart';
 import '../domain/historial.dart';
 
 /// Lista y elimina los cálculos y simulaciones del usuario (RLS: cada
@@ -22,10 +21,8 @@ class SupabaseHistorialRepository implements HistorialRepository {
   Future<T> _ejecutar<T>(String que, Future<T> Function() accion) async {
     try {
       return await accion();
-    } on PostgrestException {
-      throw ErrorApp('No se pudo $que.');
-    } catch (_) {
-      throw ErrorApp(mensajeErrorAuth(CodigosError.sinConexion));
+    } catch (e) {
+      throw errorDesde(e, accion: que);
     }
   }
 

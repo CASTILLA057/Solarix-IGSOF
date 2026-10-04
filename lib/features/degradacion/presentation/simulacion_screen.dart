@@ -137,8 +137,16 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
         Rutas.resultadosSimulacion,
         extra: (comparacion, widget.origen),
       );
-    } catch (e) {
-      if (mounted) setState(() => _error = 'No se pudo simular: $e');
+    } catch (e, pila) {
+      debugPrint('Error al simular: $e');
+      debugPrintStack(stackTrace: pila);
+      if (mounted) {
+        setState(
+          () => _error =
+              'No se pudo simular con estos parámetros. Revísalos e intenta '
+              'de nuevo.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _simulando = false);
     }

@@ -1,7 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_app.dart';
-import '../../auth/domain/mensajes_error.dart';
+import '../../../core/errors/mensajes_error.dart';
+import '../../../core/errors/traducir_error.dart';
 import '../domain/comparacion.dart';
 
 /// Guarda las simulaciones del usuario en `simulaciones_degradacion`
@@ -26,10 +27,8 @@ class SupabaseSimulacionRepository implements SimulacionRepository {
         ...simulacion.aFila(),
         'calculo_id': ?calculoId,
       });
-    } on PostgrestException {
-      throw const ErrorApp('No se pudo guardar la simulación.');
-    } catch (_) {
-      throw ErrorApp(mensajeErrorAuth(CodigosError.sinConexion));
+    } catch (e) {
+      throw errorDesde(e, accion: 'guardar la simulación');
     }
   }
 }

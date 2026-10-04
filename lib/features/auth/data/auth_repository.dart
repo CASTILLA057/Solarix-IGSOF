@@ -1,5 +1,5 @@
 import '../../../core/errors/error_app.dart';
-import '../domain/mensajes_error.dart';
+import '../../../core/errors/mensajes_error.dart';
 import '../domain/usuario.dart';
 
 /// Operaciones de autenticación. Todos los métodos lanzan [ErrorApp] con un

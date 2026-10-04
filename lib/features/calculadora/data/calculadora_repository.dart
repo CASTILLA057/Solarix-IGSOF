@@ -1,7 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_app.dart';
-import '../../auth/domain/mensajes_error.dart';
+import '../../../core/errors/mensajes_error.dart';
+import '../../../core/errors/traducir_error.dart';
 import '../domain/catalogos.dart';
 import '../domain/modelos.dart';
 
@@ -73,10 +74,8 @@ class SupabaseCalculadoraRepository implements CalculadoraRepository {
           .select('id')
           .single();
       return fila['id'] as String;
-    } on PostgrestException {
-      throw const ErrorApp('No se pudo guardar el cálculo.');
-    } catch (_) {
-      throw ErrorApp(mensajeErrorAuth(CodigosError.sinConexion));
+    } catch (e) {
+      throw errorDesde(e, accion: 'guardar el cálculo');
     }
   }
 }

@@ -4,6 +4,10 @@ abstract final class CodigosError {
   static const sinBackend = 'sin_backend';
   static const correoSinConfirmar = 'email_not_confirmed';
   static const usuarioExistente = 'user_already_exists';
+
+  /// El proyecto de Supabase está pausado (plan gratuito tras días sin uso).
+  static const pausado = 'proyecto_pausado';
+  static const sesionExpirada = 'session_expired';
 }
 
 /// Traduce un código de error de Supabase Auth a un mensaje en español.
@@ -22,6 +26,11 @@ String mensajeErrorAuth(String? codigo) => switch (codigo) {
     'Demasiados intentos. Espera un momento e intenta de nuevo.',
   CodigosError.sinConexion =>
     'No se pudo conectar con el servidor. Revisa tu conexión a internet.',
+  CodigosError.pausado =>
+    'El servidor de Solarix está en pausa por inactividad. Intenta más tarde '
+        'o avísale al administrador para que lo reactive.',
+  CodigosError.sesionExpirada || 'refresh_token_not_found' =>
+    'Tu sesión expiró. Cierra sesión y vuelve a entrar.',
   CodigosError.sinBackend =>
     'La app no tiene configurado Supabase (falta env.json).',
   _ => 'Ocurrió un error inesperado. Intenta de nuevo.',

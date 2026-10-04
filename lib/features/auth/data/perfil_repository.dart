@@ -1,7 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/errors/error_app.dart';
-import '../domain/mensajes_error.dart';
+import '../../../core/errors/mensajes_error.dart';
+import '../../../core/errors/traducir_error.dart';
 import '../domain/perfil.dart';
 
 /// Lectura y edición del perfil del usuario (tabla `perfiles`, protegida
@@ -26,10 +27,8 @@ class SupabasePerfilRepository implements PerfilRepository {
           .maybeSingle();
       // El trigger crea la fila al registrarse; si faltara, perfil vacío.
       return fila == null ? Perfil(id: usuarioId) : Perfil.desdeMapa(fila);
-    } on PostgrestException {
-      throw const ErrorApp('No se pudo cargar tu perfil.');
-    } catch (_) {
-      throw ErrorApp(mensajeErrorAuth(CodigosError.sinConexion));
+    } catch (e) {
+      throw errorDesde(e, accion: 'cargar tu perfil');
     }
   }
 
@@ -43,10 +42,8 @@ class SupabasePerfilRepository implements PerfilRepository {
             'actualizado_en': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', perfil.id);
-    } on PostgrestException {
-      throw const ErrorApp('No se pudo guardar tu perfil.');
-    } catch (_) {
-      throw ErrorApp(mensajeErrorAuth(CodigosError.sinConexion));
+    } catch (e) {
+      throw errorDesde(e, accion: 'guardar tu perfil');
     }
   }
 }
