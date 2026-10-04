@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
 import '../domain/calculadora.dart';
@@ -217,7 +218,10 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
     final precios = ref.watch(preciosProvider);
     precios.whenData(_cargarPrecios);
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculadora solar')),
+      appBar: AppBar(
+        title: const Text('Calculadora solar'),
+        actions: const [BotonInicio()],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
@@ -252,7 +256,11 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
                           MensajeError(_error!),
                           const SizedBox(height: 12),
                         ],
-                        Row(
+                        // Wrap: en celulares angostos el "Atrás" baja de
+                        // línea en vez de desbordarse.
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
                             FilledButton(
                               onPressed: detalles.onStepContinue,
@@ -260,7 +268,6 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
                                 _paso == 3 ? 'Calcular' : 'Siguiente',
                               ),
                             ),
-                            const SizedBox(width: 8),
                             if (detalles.onStepCancel != null)
                               TextButton(
                                 onPressed: detalles.onStepCancel,

@@ -6,6 +6,7 @@ import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/widgets/estados.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../../degradacion/domain/parametros.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../application/historial_providers.dart';
@@ -82,6 +83,7 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Historial'),
+          actions: const [BotonInicio()],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Cálculos'),

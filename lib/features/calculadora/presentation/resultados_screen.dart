@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../../dashboard/application/historial_providers.dart';
 import '../../degradacion/domain/integracion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
@@ -48,7 +49,8 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
     ),
   );
 
-  Future<void> _guardar() async {
+  /// `true` si quedó guardado.
+  Future<bool> _guardar() async {
     setState(() {
       _guardando = true;
       _error = null;
@@ -57,17 +59,28 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
       final id = await ref
           .read(calculadoraRepositoryProvider)
           .guardarCalculo(widget.entradas, widget.resultado);
-      if (!mounted) return;
+      if (!mounted) return true;
       ref.invalidate(calculosGuardadosProvider); // actualiza el dashboard
       setState(() => _calculoId = id);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Cálculo guardado.')));
+      return true;
     } on ErrorApp catch (e) {
       if (mounted) setState(() => _error = e.mensaje);
+      return false;
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
   }
+
+  /// Antes de ir al inicio: si no está guardado, pregunta.
+  Future<bool> _puedeSalir() async =>
+      _guardado ||
+      await confirmarSalidaSinGuardar(
+        context,
+        que: 'este cálculo',
+        guardar: _guardar,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +88,10 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
     final r = widget.resultado;
     final anios = e.supuestos.anios;
     return Scaffold(
-      appBar: AppBar(title: const Text('Resultados')),
+      appBar: AppBar(
+        title: const Text('Resultados'),
+        actions: [BotonInicio(antesDeSalir: _puedeSalir)],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
@@ -197,6 +213,8 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                     ),
                   ),
               ],
+              const SizedBox(height: 4),
+              BotonVolverAlInicio(antesDeSalir: _puedeSalir),
               const SizedBox(height: 24),
             ],
           ),

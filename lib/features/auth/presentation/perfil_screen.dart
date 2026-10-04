@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/theme/tema_providers.dart';
 import '../../../core/widgets/estados.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../application/auth_providers.dart';
 import '../domain/perfil.dart';
 import '../domain/validadores.dart';
@@ -17,7 +18,10 @@ class PerfilScreen extends ConsumerWidget {
     final perfil = ref.watch(perfilProvider);
     final email = ref.watch(sesionProvider).value?.email ?? '';
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi perfil')),
+      appBar: AppBar(
+        title: const Text('Mi perfil'),
+        actions: const [BotonInicio()],
+      ),
       body: perfil.when(
         loading: () => const Cargando(),
         error: (e, _) => EstadoError(

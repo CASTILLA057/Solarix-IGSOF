@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../calculadora/domain/calculadora.dart';
 import '../../dashboard/application/historial_providers.dart';
@@ -39,7 +40,8 @@ class _ResultadosSimulacionScreenState
   bool _guardada = false;
   String? _error;
 
-  Future<void> _guardar() async {
+  /// `true` si quedó guardada.
+  Future<bool> _guardar() async {
     setState(() {
       _guardando = true;
       _error = null;
@@ -48,24 +50,38 @@ class _ResultadosSimulacionScreenState
       await ref
           .read(simulacionRepositoryProvider)
           .guardar(widget.comparacion, calculoId: widget.origen?.calculoId);
-      if (!mounted) return;
+      if (!mounted) return true;
       ref.invalidate(simulacionesGuardadasProvider); // actualiza el dashboard
       setState(() => _guardada = true);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Simulación guardada.')));
+      return true;
     } on ErrorApp catch (e) {
       if (mounted) setState(() => _error = e.mensaje);
+      return false;
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
   }
+
+  /// Antes de ir al inicio: si no está guardada, pregunta.
+  Future<bool> _puedeSalir() async =>
+      _guardada ||
+      await confirmarSalidaSinGuardar(
+        context,
+        que: 'esta simulación',
+        guardar: _guardar,
+      );
 
   @override
   Widget build(BuildContext context) {
     final c = widget.comparacion;
     final p = c.parametros;
     return Scaffold(
-      appBar: AppBar(title: const Text('Resultados de la simulación')),
+      appBar: AppBar(
+        title: const Text('Resultados de la simulación'),
+        actions: [BotonInicio(antesDeSalir: _puedeSalir)],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
@@ -127,6 +143,8 @@ class _ResultadosSimulacionScreenState
                 cargando: _guardando,
                 onPressed: _guardada ? () {} : _guardar,
               ),
+              const SizedBox(height: 4),
+              BotonVolverAlInicio(antesDeSalir: _puedeSalir),
               const SizedBox(height: 24),
             ],
           ),

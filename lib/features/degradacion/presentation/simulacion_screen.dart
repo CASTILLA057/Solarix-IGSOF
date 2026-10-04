@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../calculadora/presentation/widgets/campos.dart';
 import '../application/simulacion_providers.dart';
@@ -155,7 +156,10 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Simular degradación')),
+      appBar: AppBar(
+        title: const Text('Simular degradación'),
+        actions: const [BotonInicio()],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),

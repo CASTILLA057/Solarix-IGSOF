@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/formato.dart';
+import '../../../core/widgets/navegacion.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../domain/historial.dart';
 import 'historial_screen.dart';
@@ -32,7 +33,10 @@ class DetalleSimulacionScreen extends StatelessWidget {
       ),
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Simulación guardada')),
+      appBar: AppBar(
+        title: const Text('Simulación guardada'),
+        actions: const [BotonInicio()],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
