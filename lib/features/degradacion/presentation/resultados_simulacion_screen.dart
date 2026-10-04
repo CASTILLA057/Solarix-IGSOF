@@ -82,6 +82,9 @@ class _ResultadosSimulacionScreenState
                   ],
                   etiqueta: p.politica.etiqueta,
                   alternativaAnual: c.alternativa.sohAnual,
+                  alternativaMensual: [
+                    for (final m in serieMensual(c.alternativa.dias)) m.soh,
+                  ],
                   etiquetaAlternativa:
                       c.alternativa.parametros.politica.etiqueta,
                 ),

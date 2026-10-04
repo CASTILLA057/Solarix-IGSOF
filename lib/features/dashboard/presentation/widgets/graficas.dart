@@ -4,9 +4,28 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/formato.dart';
+import '../../../../core/theme/app_theme.dart';
+
+/// fl_chart también rotula los extremos del eje (p. ej. 100,5 → "101" o el
+/// último mes → un año repetido); solo se rotulan los múltiplos del
+/// intervalo.
+bool _esMarca(double valor, double intervalo) {
+  final pasos = valor / intervalo;
+  return (pasos - pasos.round()).abs() < 1e-6;
+}
+
+/// Ancho reservado para las etiquetas del eje Y según el valor más largo,
+/// para que "24.052" no se parta en dos líneas.
+double _anchoEjeY(double maximo) =>
+    math.max(36, Formato.numero(maximo).length * 8.0 + 12);
 
 /// Eje X en meses con marcas cada año.
-FlTitlesData _titulos(BuildContext context, {required String unidadY}) {
+FlTitlesData _titulos(
+  BuildContext context, {
+  required String unidadY,
+  double anchoY = 44,
+  double? intervaloY,
+}) {
   final estilo = Theme.of(context).textTheme.bodySmall;
   return FlTitlesData(
     topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -17,22 +36,55 @@ FlTitlesData _titulos(BuildContext context, {required String unidadY}) {
         showTitles: true,
         interval: 12,
         reservedSize: 24,
-        getTitlesWidget: (valor, meta) => SideTitleWidget(
-          meta: meta,
-          child: Text('${valor ~/ 12}', style: estilo),
-        ),
+        getTitlesWidget: (valor, meta) => _esMarca(valor, 12)
+            ? SideTitleWidget(
+                meta: meta,
+                child: Text('${valor ~/ 12}', style: estilo),
+              )
+            : const SizedBox.shrink(),
       ),
     ),
     leftTitles: AxisTitles(
       axisNameWidget: Text(unidadY, style: estilo),
       sideTitles: SideTitles(
         showTitles: true,
-        reservedSize: 44,
-        getTitlesWidget: (valor, meta) => SideTitleWidget(
-          meta: meta,
-          child: Text(Formato.numero(valor), style: estilo),
-        ),
+        reservedSize: anchoY,
+        interval: intervaloY,
+        getTitlesWidget: (valor, meta) => _esMarca(valor, meta.appliedInterval)
+            ? SideTitleWidget(
+                meta: meta,
+                child: Text(
+                  Formato.numero(valor),
+                  style: estilo,
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+              )
+            : const SizedBox.shrink(),
       ),
+    ),
+  );
+}
+
+/// Valores al tocar o pasar el mouse: máximo 3 decimales (`Formato.corto`)
+/// y la unidad, en el color de cada línea.
+LineTouchData _toque(BuildContext context, String unidad) {
+  final esquema = Theme.of(context).colorScheme;
+  return LineTouchData(
+    touchTooltipData: LineTouchTooltipData(
+      getTooltipColor: (_) => esquema.surfaceContainerHighest,
+      fitInsideHorizontally: true,
+      fitInsideVertically: true,
+      getTooltipItems: (puntos) => [
+        for (final p in puntos)
+          LineTooltipItem(
+            '${Formato.corto(p.y)} $unidad',
+            TextStyle(
+              color: p.bar.color ?? esquema.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+      ],
     ),
   );
 }
@@ -65,19 +117,46 @@ Widget _leyenda(BuildContext context, List<(Color, String)> elementos) => Wrap(
 /// SoH a lo largo del tiempo con la banda de referencia 80–100 % y la línea
 /// de fin de vida (80 %). `sohMensual[i]` es el SoH al final del mes i;
 /// `alternativaAnual[k]` es el SoH de la otra política al final del año k.
+/// La otra política también se dibuja mes a mes, para que al tocar la
+/// gráfica muestre su valor en cualquier punto: con [alternativaMensual]
+/// (resultados recién simulados) o interpolando entre años (historial, que
+/// solo guarda el SoH anual de la otra política).
 class GraficaSoh extends StatelessWidget {
   const GraficaSoh({
     super.key,
     required this.sohMensual,
     required this.etiqueta,
     this.alternativaAnual,
+    this.alternativaMensual,
     this.etiquetaAlternativa,
   });
 
   final List<double> sohMensual;
   final String etiqueta;
   final List<double>? alternativaAnual;
+  final List<double>? alternativaMensual;
   final String? etiquetaAlternativa;
+
+  List<FlSpot> _alternativaPorMes() {
+    final mensual = alternativaMensual;
+    if (mensual != null && mensual.isNotEmpty) {
+      return [
+        const FlSpot(0, 100),
+        for (final (i, s) in mensual.indexed) FlSpot(i + 1.0, s),
+      ];
+    }
+    final anual = alternativaAnual ?? const <double>[];
+    if (anual.isEmpty) return const [];
+    return [
+      FlSpot(0, anual.first),
+      for (var k = 1; k < anual.length; k++)
+        for (var m = 1; m <= 12; m++)
+          FlSpot(
+            (k - 1) * 12.0 + m,
+            anual[k - 1] + (anual[k] - anual[k - 1]) * m / 12,
+          ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,10 +165,7 @@ class GraficaSoh extends StatelessWidget {
       const FlSpot(0, 100),
       for (final (i, s) in sohMensual.indexed) FlSpot(i + 1.0, s),
     ];
-    final alternativa = [
-      for (final (k, s) in (alternativaAnual ?? const <double>[]).indexed)
-        FlSpot(k * 12.0, s),
-    ];
+    final alternativa = _alternativaPorMes();
     final minimo = [
       ...principal.map((p) => p.y),
       ...alternativa.map((p) => p.y),
@@ -130,7 +206,12 @@ class GraficaSoh extends StatelessWidget {
               ),
               gridData: const FlGridData(drawVerticalLine: false),
               borderData: FlBorderData(show: false),
-              titlesData: _titulos(context, unidadY: 'SoH (%)'),
+              lineTouchData: _toque(context, '%'),
+              titlesData: _titulos(
+                context,
+                unidadY: 'SoH (%)',
+                intervaloY: 100 - minimo > 30 ? 10 : 5,
+              ),
               lineBarsData: [
                 if (alternativa.isNotEmpty)
                   _linea(alternativa, esquema.tertiary, trazo: [6, 4]),
@@ -165,6 +246,10 @@ class GraficaEnergiaMensual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final esquema = Theme.of(context).colorScheme;
+    // Ámbar vivo (sol) frente a azul cielo (casa), fáciles de distinguir.
+    const colorGeneracion = AppTheme.semilla;
+    final colorConsumo = esquema.tertiary;
+    final maximo = [...generacion, ...consumo].fold<double>(0, math.max);
     List<FlSpot> puntos(List<double> v) => [
       for (final (i, x) in v.indexed) FlSpot(i.toDouble(), x),
     ];
@@ -178,18 +263,23 @@ class GraficaEnergiaMensual extends StatelessWidget {
               minY: 0,
               gridData: const FlGridData(drawVerticalLine: false),
               borderData: FlBorderData(show: false),
-              titlesData: _titulos(context, unidadY: 'kWh/mes'),
+              lineTouchData: _toque(context, 'kWh'),
+              titlesData: _titulos(
+                context,
+                unidadY: 'kWh/mes',
+                anchoY: _anchoEjeY(maximo),
+              ),
               lineBarsData: [
-                _linea(puntos(generacion), esquema.primary),
-                _linea(puntos(consumo), esquema.secondary),
+                _linea(puntos(generacion), colorGeneracion),
+                _linea(puntos(consumo), colorConsumo),
               ],
             ),
           ),
         ),
         const SizedBox(height: 8),
         _leyenda(context, [
-          (esquema.primary, 'Generación solar'),
-          (esquema.secondary, 'Consumo de la casa'),
+          (colorGeneracion, 'Generación solar'),
+          (colorConsumo, 'Consumo de la casa'),
         ]),
       ],
     );
@@ -218,7 +308,12 @@ class GraficaCompradaAcumulada extends StatelessWidget {
           minY: 0,
           gridData: const FlGridData(drawVerticalLine: false),
           borderData: FlBorderData(show: false),
-          titlesData: _titulos(context, unidadY: 'kWh acumulados'),
+          lineTouchData: _toque(context, 'kWh'),
+          titlesData: _titulos(
+            context,
+            unidadY: 'kWh acumulados',
+            anchoY: _anchoEjeY(acumulado),
+          ),
           lineBarsData: [_linea(puntos, esquema.error)],
         ),
       ),
