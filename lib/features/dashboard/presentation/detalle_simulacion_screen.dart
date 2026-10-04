@@ -88,9 +88,9 @@ class DetalleSimulacionScreen extends StatelessWidget {
                 'Salud de la batería (SoH)',
                 GraficaSoh(
                   sohMensual: [for (final m in serie) m.soh],
-                  etiqueta: s.politica.etiqueta,
+                  politica: s.politica,
                   alternativaAnual: s.sohAnualAlternativa,
-                  etiquetaAlternativa: s.politicaAlternativa.etiqueta,
+                  politicaAlternativa: s.politicaAlternativa,
                 ),
               ),
               if (serie.isNotEmpty) ...[

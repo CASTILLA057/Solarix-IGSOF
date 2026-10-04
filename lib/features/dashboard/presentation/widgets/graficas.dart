@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/formato.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../degradacion/domain/parametros.dart';
+import '../../../degradacion/presentation/etiquetas.dart';
 
 /// fl_chart también rotula los extremos del eje (p. ej. 100,5 → "101" o el
 /// último mes → un año repetido); solo se rotulan los múltiplos del
@@ -67,7 +69,7 @@ FlTitlesData _titulos(
 }
 
 /// Valores al tocar o pasar el mouse: máximo 3 decimales (`Formato.corto`)
-/// y la unidad, en el color de cada línea.
+/// y la unidad, en texto legible con una marca del color de la línea.
 LineTouchData _toque(BuildContext context, String unidad) {
   final esquema = Theme.of(context).colorScheme;
   return LineTouchData(
@@ -79,10 +81,13 @@ LineTouchData _toque(BuildContext context, String unidad) {
         for (final p in puntos)
           LineTooltipItem(
             '${Formato.corto(p.y)} $unidad',
-            TextStyle(
-              color: p.bar.color ?? esquema.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
+            TextStyle(color: esquema.onSurface, fontWeight: FontWeight.w600),
+            children: [
+              TextSpan(
+                text: ' ●',
+                style: TextStyle(color: p.bar.color ?? esquema.onSurface),
+              ),
+            ],
           ),
       ],
     ),
@@ -121,21 +126,22 @@ Widget _leyenda(BuildContext context, List<(Color, String)> elementos) => Wrap(
 /// gráfica muestre su valor en cualquier punto: con [alternativaMensual]
 /// (resultados recién simulados) o interpolando entre años (historial, que
 /// solo guarda el SoH anual de la otra política).
+/// Cada política tiene su color fijo: consciente verde, convencional ámbar.
 class GraficaSoh extends StatelessWidget {
   const GraficaSoh({
     super.key,
     required this.sohMensual,
-    required this.etiqueta,
+    required this.politica,
     this.alternativaAnual,
     this.alternativaMensual,
-    this.etiquetaAlternativa,
+    this.politicaAlternativa,
   });
 
   final List<double> sohMensual;
-  final String etiqueta;
+  final Politica politica;
   final List<double>? alternativaAnual;
   final List<double>? alternativaMensual;
-  final String? etiquetaAlternativa;
+  final Politica? politicaAlternativa;
 
   List<FlSpot> _alternativaPorMes() {
     final mensual = alternativaMensual;
@@ -161,6 +167,13 @@ class GraficaSoh extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final esquema = Theme.of(context).colorScheme;
+    final colores = ColoresSolarix.of(context);
+    Color colorDe(Politica p) => switch (p) {
+      Politica.consciente => colores.consciente,
+      Politica.convencional => colores.convencional,
+    };
+    final otra =
+        politicaAlternativa ?? Politica.values.firstWhere((p) => p != politica);
     final principal = [
       const FlSpot(0, 100),
       for (final (i, s) in sohMensual.indexed) FlSpot(i + 1.0, s),
@@ -198,7 +211,7 @@ class GraficaSoh extends StatelessWidget {
                 horizontalLines: [
                   HorizontalLine(
                     y: 80,
-                    color: esquema.error,
+                    color: colores.finDeVida,
                     strokeWidth: 1.5,
                     dashArray: [6, 4],
                   ),
@@ -214,18 +227,17 @@ class GraficaSoh extends StatelessWidget {
               ),
               lineBarsData: [
                 if (alternativa.isNotEmpty)
-                  _linea(alternativa, esquema.tertiary, trazo: [6, 4]),
-                _linea(principal, esquema.primary),
+                  _linea(alternativa, colorDe(otra), trazo: [6, 4]),
+                _linea(principal, colorDe(politica)),
               ],
             ),
           ),
         ),
         const SizedBox(height: 8),
         _leyenda(context, [
-          (esquema.primary, etiqueta),
-          if (alternativa.isNotEmpty)
-            (esquema.tertiary, etiquetaAlternativa ?? 'Otra política'),
-          (esquema.error, 'Fin de vida (80 %)'),
+          (colorDe(politica), politica.etiqueta),
+          if (alternativa.isNotEmpty) (colorDe(otra), otra.etiqueta),
+          (colores.finDeVida, 'Fin de vida (80 %)'),
         ]),
       ],
     );
@@ -245,10 +257,10 @@ class GraficaEnergiaMensual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final esquema = Theme.of(context).colorScheme;
-    // Ámbar vivo (sol) frente a azul cielo (casa), fáciles de distinguir.
-    const colorGeneracion = AppTheme.semilla;
-    final colorConsumo = esquema.tertiary;
+    final colores = ColoresSolarix.of(context);
+    // Ámbar (sol) frente a azul (casa), fáciles de distinguir.
+    final colorGeneracion = colores.generacion;
+    final colorConsumo = colores.consumo;
     final maximo = [...generacion, ...consumo].fold<double>(0, math.max);
     List<FlSpot> puntos(List<double> v) => [
       for (final (i, x) in v.indexed) FlSpot(i.toDouble(), x),

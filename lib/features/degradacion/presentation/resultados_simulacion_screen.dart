@@ -80,13 +80,12 @@ class _ResultadosSimulacionScreenState
                   sohMensual: [
                     for (final m in serieMensual(c.principal.dias)) m.soh,
                   ],
-                  etiqueta: p.politica.etiqueta,
+                  politica: p.politica,
                   alternativaAnual: c.alternativa.sohAnual,
                   alternativaMensual: [
                     for (final m in serieMensual(c.alternativa.dias)) m.soh,
                   ],
-                  etiquetaAlternativa:
-                      c.alternativa.parametros.politica.etiqueta,
+                  politicaAlternativa: c.alternativa.parametros.politica,
                 ),
               ),
               const SizedBox(height: 8),

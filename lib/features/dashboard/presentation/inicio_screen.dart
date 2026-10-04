@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/estados.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../application/historial_providers.dart';
@@ -53,7 +54,7 @@ class InicioScreen extends ConsumerWidget {
                     Icon(
                       Icons.wb_sunny_rounded,
                       size: 40,
-                      color: tema.colorScheme.primary,
+                      color: ColoresSolarix.of(context).solar,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -152,11 +153,11 @@ class InicioScreen extends ConsumerWidget {
                                     sohMensual: [
                                       for (final m in simulacion.serie) m.soh,
                                     ],
-                                    etiqueta: simulacion.politica.etiqueta,
+                                    politica: simulacion.politica,
                                     alternativaAnual:
                                         simulacion.sohAnualAlternativa,
-                                    etiquetaAlternativa:
-                                        simulacion.politicaAlternativa.etiqueta,
+                                    politicaAlternativa:
+                                        simulacion.politicaAlternativa,
                                   ),
                                 ],
                               ),
