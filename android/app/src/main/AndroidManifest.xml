@@ -5,7 +5,7 @@
     <!-- "Usar mi ubicación" en la calculadora: basta la ubicación aproximada. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
-        android:label="solarix"
+        android:label="Solarix"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

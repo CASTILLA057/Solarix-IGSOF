@@ -1,0 +1,4 @@
+storeFile=C:/Users/Scast/claves/solarix.jks
+storePassword=CONTRASEÑA_DEL_ALMACEN
+keyAlias=solarix
+keyPassword=CONTRASEÑA_DE_LA_LLAVE

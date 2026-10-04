@@ -1,11 +1,11 @@
 {
-    "name": "solarix",
-    "short_name": "solarix",
+    "name": "Solarix",
+    "short_name": "Solarix",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Calculadora solar y simulador de degradacion de baterias",
+    "background_color": "#FFFBEB",
+    "theme_color": "#F59E0B",
+    "description": "Calculadora solar y simulador de degradación de baterías",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
