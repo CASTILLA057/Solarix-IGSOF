@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/core/router/rutas.dart';
 import 'package:solarix/core/theme/app_theme.dart';
 import 'package:solarix/core/theme/transicion_suave.dart';
-import 'package:solarix/features/auth/domain/mensajes_error.dart';
+import 'package:solarix/core/errors/mensajes_error.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
 import 'package:solarix/features/auth/domain/validadores.dart';
 

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/app.dart';
 import 'package:solarix/core/errors/error_app.dart';
 import 'package:solarix/features/auth/application/auth_providers.dart';
-import 'package:solarix/features/auth/domain/mensajes_error.dart';
+import 'package:solarix/core/errors/mensajes_error.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
 
 import '../../helpers/fakes.dart';
