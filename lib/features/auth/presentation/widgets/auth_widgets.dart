@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
+
 /// Estructura común de las pantallas de autenticación: centrada, con ancho
 /// máximo para que se vea bien en el navegador de escritorio.
 class AuthScaffold extends StatelessWidget {
@@ -31,7 +33,7 @@ class AuthScaffold extends StatelessWidget {
                   Icon(
                     Icons.wb_sunny_rounded,
                     size: 56,
-                    color: tema.colorScheme.primary,
+                    color: ColoresSolarix.of(context).solar,
                   ),
                   const SizedBox(height: 12),
                   Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/rutas.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// Primera pantalla sin sesión: presenta Solarix y lleva a iniciar sesión o
 /// a crear una cuenta. El contenido aparece con un fundido suave.
@@ -11,7 +12,7 @@ class BienvenidaScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    final esquema = tema.colorScheme;
+    final solar = ColoresSolarix.of(context).solar;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -27,13 +28,14 @@ class BienvenidaScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: esquema.primaryContainer,
+                          color: ColoresSolarix.of(context).solar
+                              .withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.wb_sunny_rounded,
                           size: 72,
-                          color: esquema.onPrimaryContainer,
+                          color: solar,
                         ),
                       ),
                     ),
