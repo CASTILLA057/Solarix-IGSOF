@@ -56,3 +56,6 @@ env.json
 supabase/.db-password
 supabase/.temp/
 
+
+# Cuenta de prueba para integration_test/supabase_real_test.dart (solo local)
+prueba.json
