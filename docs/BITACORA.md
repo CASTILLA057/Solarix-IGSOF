@@ -295,3 +295,28 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` 3 pruebas nuevas (consulta colgada → sin conexión, resultado y traducción de errores, límite por defecto); 126 pruebas pasan.
 - `CORREGIDO` A pedido del autor (15 s se sentía muy lento), el límite bajó a **5 s** para todas las consultas, incluidos precios y ciudades de la calculadora.
 - `DECISIÓN` Registrarse, reenviar el código y recuperar la contraseña conservan **15 s**: envían un correo por SMTP (Brevo), que puede tardar varios segundos aun con buena conexión, y con 5 s podrían mostrar un falso "sin conexión" aunque el correo sí se envíe. 126 pruebas pasan.
+
+## 2026-10-03 — Plan: nueva Etapa 9 (paleta de colores y accesibilidad)
+
+- `DECISIÓN` El autor propuso una paleta nueva. Se acordó:
+  - Primario ámbar vivo `#F59E0B` con texto carbón `#1C1917` (contraste ≈ 8:1). Se descartaron `#D97706` con texto blanco (3,8:1, no cumple AA) y `#EAB308`.
+  - Verde `#059669` para la política consciente y azul `#0284C7` para el consumo, con colores fijos por política en las gráficas.
+  - Fondo crema `#FFFBEB` y una versión oscura equivalente.
+- `HECHO` Se agregó como **Etapa 9** del plan. Las siguientes se corrieron un número: Pruebas integrales pasa a la 10, Despliegue a la 11 y Documentación y entrega a la 12. El plan queda con 13 etapas (0–12). Las menciones a números de etapa en entradas anteriores de esta bitácora se refieren a la numeración de su momento.
+
+## 2026-10-03 — Etapa 9: paleta de colores y accesibilidad
+
+- `HECHO` **Paleta fija** en `app_theme.dart`. El esquema ya no sale solo de la semilla: los colores se fijan a mano en claro y en oscuro. Fondo crema `#FFFBEB` con tarjetas blancas y texto carbón `#1C1917`; en oscuro, fondo carbón `#1C1917` con tarjetas `#292524`. Verde como secundario y azul como terciario.
+- `HECHO` **`ColoresSolarix`** (extensión del tema): colores con significado que cambian con el modo: solar, generación, consumo, consciente, convencional y fin de vida.
+- `HECHO` **Botón principal** en ámbar vivo `#F59E0B` con texto carbón (≈ 8:1). **Botón secundario** con texto carbón (claro en oscuro), borde ámbar de 1,5 px y fondo ámbar al 8 %. El ícono del sol (inicio, bienvenida y pantallas de acceso) va en ámbar vivo.
+- `DECISIÓN` El ámbar vivo **no** se usa como color de texto. Material usa el primario también en enlaces ("¿Olvidaste tu contraseña?", "Crear cuenta"), pestañas y etiquetas de campos, y `#F59E0B` sobre el crema da 2,1:1. El primario del esquema en modo claro es `#B45309` (ámbar oscuro, 4,8:1); los botones principales sí usan `#F59E0B`. En modo oscuro el `#FBBF24` sirve para todo (10:1).
+- `DECISIÓN` En las gráficas del modo claro, generación y convencional usan `#D97706` en vez de `#F59E0B`: sobre las tarjetas blancas el ámbar vivo queda en 2,1:1 y `#D97706` en 3,8:1 (mínimo para elementos gráficos: 3:1).
+- `HECHO` **Gráficas**:
+  - Colores fijos por política: consciente siempre verde (`#059669` / `#34D399`), convencional siempre ámbar, sea la elegida (línea continua) o la comparada (punteada). `GraficaSoh` recibe ahora las políticas en vez de sus nombres.
+  - Generación en ámbar, consumo en azul (`#0284C7` / `#38BDF8`) y fin de vida en rojo (`#DC2626` / `#F87171`).
+  - El valor al tocar se escribe en el color del texto, con una marca (●) del color de la línea, para que se lea en cualquier modo.
+- `HECHO` **Tarjetas** con sombra suave en claro, además del borde; en oscuro, el borde marca la separación.
+- `HECHO` Prueba de contraste (`test/core/paleta_contraste_test.dart`) con los colores reales del tema, en claro y en oscuro: 13 pares de texto y fondo ≥ 4,5:1 (fondo, tarjetas, enlaces, botones, verde, azul, rojo y errores) y las 5 líneas de las gráficas ≥ 3:1 sobre las tarjetas. Otra prueba verifica el color fijo de cada política en la gráfica de SoH. 133 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `DECISIÓN` El ícono del sol en ámbar vivo sobre el crema no cumple 3:1, pero es decorativo: siempre va junto al nombre o al título, y WCAG no exige contraste a elementos decorativos.
+- `HECHO` Prueba manual en Chrome y Android, verificada por el autor: paleta, botones, tarjetas y colores de las gráficas, en claro y en oscuro.
+- `HECHO` **Etapa 9 completa.** Subida a GitHub en commits separados por tema.

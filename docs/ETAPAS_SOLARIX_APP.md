@@ -173,18 +173,39 @@
 - [x] Formato de moneda (COP) y números con `intl`
 - [x] Prueba manual en Chrome y Android
 
-## Etapa 9 — Pruebas integrales
+## Etapa 9 — Paleta de colores y accesibilidad
+Colores con significado y contraste legible (mínimo 4,5:1 para texto, WCAG AA). Hoy el primario sale ocre (`#784E11`) porque Material 3 oscurece el ámbar semilla; los colores se fijan a mano.
+
+| Elemento | Modo claro | Modo oscuro |
+|---|---|---|
+| Primario (botones, ícono del sol) | `#F59E0B` con texto `#1C1917` | `#FBBF24` con texto carbón |
+| Consciente / detalles ecológicos | verde `#059669` | verde `#34D399` |
+| Consumo de la casa | azul `#0284C7` | azul `#38BDF8` |
+| Generación y política convencional | ámbar | ámbar |
+| Fin de vida (80 %) | rojo `#DC2626` | rojo `#F87171` |
+| Fondo | crema `#FFFBEB`, tarjetas blancas | carbón `#1C1917`, tarjetas un tono más claro |
+| Texto principal | `#1C1917` | blanco cálido |
+
+- [x] Paleta nueva en el tema (claro y oscuro equivalente)
+- [x] Colores fijos por política en todas las gráficas: consciente siempre verde, convencional siempre ámbar (sin importar cuál se eligió)
+- [x] Generación en ámbar y consumo en azul; fin de vida en rojo
+- [x] Botones secundarios ("Simular degradación de batería", "Crear cuenta"): texto carbón, borde de 1,5 px y fondo ámbar al 8 %
+- [x] Tarjetas con sombra suave además del borde (en oscuro, el borde marca la separación)
+- [x] Prueba automática del contraste de cada par texto/fondo (≥ 4,5:1) en claro y oscuro
+- [x] Prueba manual en Chrome y Android
+
+## Etapa 10 — Pruebas integrales
 - [ ] Pruebas de widgets en las pantallas principales
 - [ ] Prueba de integración de principio a fin: registro → calculadora → simulación de degradación → guardar → ver en historial
 - [ ] Prueba manual en un celular Android real y en el navegador
 
-## Etapa 10 — Despliegue
+## Etapa 11 — Despliegue
 - [ ] Ícono de la app y pantalla de inicio (splash)
 - [ ] APK/AAB de Android firmado (keystore fuera del repo)
 - [ ] Publicar la versión web (por ejemplo, Firebase Hosting, Netlify o GitHub Pages)
 - [ ] Configurar en Supabase las URLs de redirección de Auth para la versión publicada
 
-## Etapa 11 — Documentación y entrega
+## Etapa 12 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase
 - [ ] Manual breve de usuario (puedes reaprovechar texto de los dos Word que ya tienes)
 - [ ] Documento de validación del modelo (Dart vs. NetLogo) de la Etapa 4
