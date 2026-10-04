@@ -320,3 +320,27 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `DECISIÓN` El ícono del sol en ámbar vivo sobre el crema no cumple 3:1, pero es decorativo: siempre va junto al nombre o al título, y WCAG no exige contraste a elementos decorativos.
 - `HECHO` Prueba manual en Chrome y Android, verificada por el autor: paleta, botones, tarjetas y colores de las gráficas, en claro y en oscuro.
 - `HECHO` **Etapa 9 completa.** Subida a GitHub en commits separados por tema.
+
+## 2026-10-03 — Etapa 10: pruebas integrales
+
+- `HECHO` **Recorrido de principio a fin** compartido (`test/helpers/flujo_completo.dart`): registro con código → calculadora híbrida con litio y nombre → guardar → simular la batería del cálculo → guardar la simulación vinculada → inicio (último cálculo y última simulación) → historial (cálculo, simulación "de un cálculo") → detalle con sus tres gráficas.
+  - `test/flujo_completo_test.dart`: corre en `flutter test` y en CI, en tamaño de celular (360 × 800).
+  - `integration_test/flujo_completo_test.dart`: el mismo recorrido en el celular, con la app real manejándose sola. **Pasó en el Honor del autor (Android 14) en 1 min.**
+- `HECHO` **Supabase falso en memoria** (`test/helpers/backend_memoria.dart`): guarda filas con las mismas columnas que las tablas y el historial las lee con los mismos `desdeFila` de producción, incluido `on delete set null` del vínculo.
+- `HECHO` **Prueba con el Supabase real** (`integration_test/supabase_real_test.dart`): inicia sesión con una cuenta de prueba, hace el recorrido con un nombre único, verifica las filas en la base de datos y al final borra lo que guardó y cierra la sesión, aunque falle. Las credenciales van en `prueba.json` (en `.gitignore`, plantilla `prueba.example.json`); sin él se omite.
+- `DECISIÓN` El registro no se automatiza contra el Supabase real porque exige el código del correo. Queda cubierto por la prueba con Supabase falso y por la prueba manual.
+- `CORREGIDO` Encontrado por la prueba de principio a fin en tamaño de celular: los botones "Siguiente / Atrás" de la calculadora se desbordaban 0,5 px en pantallas de 360 px de ancho (franja amarilla y negra). Ahora van en un `Wrap`. La prueba de pantallas de la Etapa 8 no lo veía porque solo revisaba el primer paso del formulario.
+- `CORREGIDO` En el celular, la prueba no encontraba "Guardar cálculo": en una pantalla pequeña lo que está más abajo en una lista no se construye hasta desplazarse. El recorrido ahora desplaza la lista hasta encontrar lo que busca.
+- `HECHO` **Cobertura** (`flutter test --coverage`): **88,5 %** de las líneas, frente a 85,4 % al empezar la etapa. Pruebas nuevas del editor de equipos (agregar del catálogo, "Otro equipo…" con validación, editar cantidad y consumo por ciclos, cancelar, quitar: 24 % → 100 %) y de "Confirma tu correo" (reenviar código, error, correo inválido, volver al login: 66 % → 95 %). Todas las pantallas quedan ≥ 84 %. Los repositorios de Supabase quedan bajos en `flutter test` porque ahí no hay backend; los cubre la prueba con el Supabase real.
+- `HECHO` Guía [`PRUEBAS.md`](PRUEBAS.md): cómo correr cada tipo de prueba y **lista de prueba manual** de 19 pasos para Android y Chrome. CI revisa también el formato de `integration_test/`.
+- `HECHO` Paquete `integration_test` (de Flutter) como dependencia de desarrollo.
+- `DECISIÓN` El celular Honor del autor tenía los registros del sistema apagados (`persist.log.tag = S`). Flutter los necesita para conectarse a una prueba de integración, que arranca la app en pausa: la app se quedaba en la pantalla negra con el ícono de Flutter. El autor los activó desde el menú oculto (`*#*#2846579#*#*` → Background Settings → LOG Settings → AP Log) y reinició. Queda anotado en `PRUEBAS.md`.
+- `HECHO` 142 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` El autor creó la cuenta de prueba y `prueba.json`. **La prueba con el Supabase real pasó en su celular en 1 min 12 s**: inicio de sesión, cálculo y simulación vinculada guardados en `calculos_consumo` y `simulaciones_degradacion`, inicio, historial y detalle. Al final borró lo que guardó y cerró la sesión.
+- `CORREGIDO` Notado por el autor al ver las pruebas: al terminar un cálculo o una simulación, para volver al inicio había que tocar la flecha atrás varias veces (resultados de la simulación → simulación → resultados del cálculo → calculadora → inicio). Ahora (`core/widgets/navegacion.dart`):
+  - **Ícono de casa** ("Ir al inicio") en la barra superior de todas las pantallas internas: calculadora, resultados, simulación, resultados de la simulación, historial, detalle y perfil.
+  - Botón **"Volver al inicio"** al final de los resultados del cálculo y de la simulación.
+  - Si el resultado **no está guardado**, primero pregunta: "Guardar y salir", "Salir sin guardar" o "Cancelar". "Guardar y salir" solo sale si el guardado funcionó; si falla, se queda y muestra el error.
+- `HECHO` El recorrido de principio a fin usa ahora "Volver al inicio" en vez de tocar atrás varias veces. 6 pruebas nuevas de navegación (cancelar, salir sin guardar, guardar y salir, ya guardado, simulación, ícono en las pantallas internas). 148 pruebas pasan; el recorrido volvió a pasar en el celular.
+- `HECHO` Prueba manual de `PRUEBAS.md` en Android y Chrome, verificada por el autor, incluidos los botones para volver al inicio.
+- `HECHO` **Etapa 10 completa.** Subida a GitHub en commits separados por tema.

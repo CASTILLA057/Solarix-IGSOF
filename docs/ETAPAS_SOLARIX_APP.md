@@ -195,9 +195,11 @@ Colores con significado y contraste legible (mínimo 4,5:1 para texto, WCAG AA).
 - [x] Prueba manual en Chrome y Android
 
 ## Etapa 10 — Pruebas integrales
-- [ ] Pruebas de widgets en las pantallas principales
-- [ ] Prueba de integración de principio a fin: registro → calculadora → simulación de degradación → guardar → ver en historial
-- [ ] Prueba manual en un celular Android real y en el navegador
+Guía de pruebas y lista de prueba manual: [`PRUEBAS.md`](PRUEBAS.md).
+- [x] Pruebas de widgets en las pantallas principales (todas las pantallas ≥ 84 % de líneas cubiertas)
+- [x] Prueba de integración de principio a fin: registro → calculadora → simulación de degradación → guardar → ver en historial (en `flutter test`/CI y en el celular con Supabase falso)
+- [x] Prueba de integración con el Supabase real (cuenta de prueba y `prueba.json`)
+- [x] Prueba manual en un celular Android real y en el navegador (lista en `PRUEBAS.md`)
 
 ## Etapa 11 — Despliegue
 - [ ] Ícono de la app y pantalla de inicio (splash)

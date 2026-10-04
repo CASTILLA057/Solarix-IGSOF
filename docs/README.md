@@ -35,7 +35,7 @@ flutter analyze
 flutter test
 ```
 
-GitHub Actions corre formato, análisis y pruebas en cada push a `main`.
+GitHub Actions corre formato, análisis y pruebas en cada push a `main`. Las pruebas de integración en el celular (con Supabase falso y con el real) y la lista de prueba manual están en [PRUEBAS.md](PRUEBAS.md).
 
 ## Estructura
 
@@ -47,6 +47,8 @@ lib/
     calculadora/   consumo, dimensionamiento y costos (Etapa 3)
     degradacion/   motor SimDeg-FV y simulación (Etapas 4–5)
     dashboard/     inicio, gráficas e historial (Etapa 7)
+test/                  pruebas automáticas (flutter test)
+integration_test/      pruebas de principio a fin en el celular
 supabase/migrations/   esquema SQL versionado
 docs/referencia/       modelo NetLogo y proyecto HTML originales
 ```
