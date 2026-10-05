@@ -97,6 +97,8 @@ class SimulacionGuardada {
     required this.capacidadKwh,
     required this.potenciaKw,
     required this.escenario,
+    this.irradianciaMaximaLugar,
+    this.temperaturaMediaLugar,
     required this.zona,
     required this.sohFinal,
     required this.perdidaAnual,
@@ -134,6 +136,9 @@ class SimulacionGuardada {
         EscenarioIrradiancia.alta,
       ),
       zona: porNombre(ZonaClimatica.values, p['zona'], ZonaClimatica.mixta),
+      irradianciaMaximaLugar: (p['irradiancia_maxima_lugar'] as num?)
+          ?.toDouble(),
+      temperaturaMediaLugar: (p['temperatura_media_lugar'] as num?)?.toDouble(),
       sohFinal: _d(r['soh_final']),
       perdidaAnual: _d(r['perdida_anual']),
       compradaKwh: _d(r['energia_comprada_kwh']),
@@ -165,6 +170,11 @@ class SimulacionGuardada {
   final double capacidadKwh;
   final double potenciaKw;
   final EscenarioIrradiancia escenario;
+
+  /// Irradiancia máxima y temperatura del lugar (Etapa 12); `null` en una
+  /// configuración de NetLogo o en simulaciones guardadas antes.
+  final double? irradianciaMaximaLugar;
+  final double? temperaturaMediaLugar;
   final ZonaClimatica zona;
   final double sohFinal;
   final double perdidaAnual;

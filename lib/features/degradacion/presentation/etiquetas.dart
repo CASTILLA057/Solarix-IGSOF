@@ -1,3 +1,4 @@
+import '../../../core/formato.dart';
 import '../domain/parametros.dart';
 
 /// Textos en español de las opciones del modelo.
@@ -32,4 +33,19 @@ extension EtiquetaZona on ZonaClimatica {
     ZonaClimatica.lluviosa => 'Lluviosa',
     ZonaClimatica.polvorienta => 'Polvorienta',
   };
+}
+
+/// Entorno simulado en una línea: el de un lugar (irradiancia y temperatura
+/// propias, Etapa 12) o una configuración de NetLogo.
+String textoEntorno({
+  required EscenarioIrradiancia escenario,
+  required ZonaClimatica zona,
+  double? irradianciaMaximaLugar,
+  double? temperaturaMediaLugar,
+}) {
+  final lugar = irradianciaMaximaLugar != null
+      ? 'irradiancia máxima ${Formato.numero(irradianciaMaximaLugar)} W/m²'
+            '${temperaturaMediaLugar != null ? ' · ${Formato.numero(temperaturaMediaLugar, 1)} °C' : ''}'
+      : 'irradiancia ${escenario.etiqueta.toLowerCase()} (NetLogo)';
+  return '$lugar · zona ${zona.etiqueta.toLowerCase()}';
 }

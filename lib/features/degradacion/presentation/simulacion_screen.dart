@@ -8,6 +8,9 @@ import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/widgets/navegacion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
+import '../../auth/application/auth_providers.dart';
+import '../../calculadora/domain/catalogos.dart';
+import '../../calculadora/domain/modelos.dart';
 import '../../calculadora/presentation/widgets/campos.dart';
 import '../application/simulacion_providers.dart';
 import '../domain/integracion.dart';
@@ -20,7 +23,7 @@ class SimulacionScreen extends ConsumerStatefulWidget {
   const SimulacionScreen({super.key, this.origen});
 
   /// Cálculo del que parte (Etapa 6): precarga batería, paneles, consumo y
-  /// escenario de irradiancia.
+  /// el lugar (Etapa 12).
   final OrigenCalculo? origen;
 
   @override
@@ -56,7 +59,16 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
     text: _texto(_d.pesoVariacionCarga),
   );
   Politica _politica = _d.politica;
-  late EscenarioIrradiancia _escenario = _inicial.escenario;
+
+  /// Lugar que se simula: [_delCalculo] o el nombre de una ciudad. Sin
+  /// cálculo, la ciudad del perfil (si está en la lista) o Ocaña.
+  late String _lugar = widget.origen != null ? _delCalculo : _ciudadInicial();
+  static const _delCalculo = '__calculo__';
+
+  /// "Avanzado": usar una configuración de NetLogo (escenario y zona) tal
+  /// cual, validada contra el modelo original.
+  bool _netLogo = false;
+  EscenarioIrradiancia _escenario = _d.escenario;
   ZonaClimatica _zona = _d.zona;
   bool _simulando = false;
   String? _error;
@@ -100,6 +112,7 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
       setState(() => _error = 'El SOC mínimo debe ser menor que el máximo.');
       return;
     }
+    final entorno = _entorno;
     final parametros = ParametrosSimulacion(
       capacidadBateriaKwh: _leer(_capacidad),
       potenciaPanelKw: _leer(_panel),
@@ -114,16 +127,16 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
       pesoCorriente: _leer(_pesoCorriente),
       pesoVariacionCarga: _leer(_pesoVariacion),
       politica: _politica,
-      escenario: _escenario,
-      zona: _zona,
-      // Con un cálculo de origen, el consumo se ajusta al de la casa
-      // (factor medido para el escenario elegido); sin él, perfil de NetLogo.
-      factorConsumo: widget.origen == null
-          ? 1
-          : factorConsumoPara(
-              widget.origen!.resultado.energiaDiaKwh,
-              _escenario,
-            ),
+      escenario: entorno.escenario,
+      zona: entorno.zona,
+      irradianciaMaximaLugar: entorno.irradianciaMaximaLugar,
+      temperaturaMediaLugar: entorno.temperaturaMediaLugar,
+      // Con un cálculo de origen, el consumo se ajusta al de la casa (medido
+      // en el entorno elegido); sin él, el perfil de NetLogo.
+      factorConsumo: switch (widget.origen) {
+        null => 1,
+        final o => factorConsumoPara(o.resultado.energiaDiaKwh, entorno),
+      },
     );
     setState(() => _simulando = true);
     try {
@@ -151,6 +164,61 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
     } finally {
       if (mounted) setState(() => _simulando = false);
     }
+  }
+
+  String _ciudadInicial() {
+    final delPerfil = ref.read(perfilProvider).value?.ciudad?.trim();
+    final ciudad = ciudadesBase.where(
+      (c) =>
+          delPerfil != null &&
+          delPerfil.toLowerCase().startsWith(c.nombre.toLowerCase()),
+    );
+    return ciudad.isEmpty ? 'Ocaña' : ciudad.first.nombre;
+  }
+
+  /// HSP y clima del lugar elegido.
+  (double, ClimaLugar?) get _hspYClima {
+    final origen = widget.origen;
+    if (_lugar == _delCalculo && origen != null) {
+      return (origen.entradas.hsp, origen.entradas.clima);
+    }
+    final ciudad = ciudadesBase.firstWhere((c) => c.nombre == _lugar);
+    return (ciudad.hsp, climaDeCiudad(ciudad.nombre));
+  }
+
+  /// Entorno que se simula: el del lugar o, en "Avanzado", una
+  /// configuración de NetLogo sin cambios.
+  ParametrosSimulacion get _entorno {
+    if (_netLogo) {
+      return ParametrosSimulacion(escenario: _escenario, zona: _zona);
+    }
+    final (hsp, clima) = _hspYClima;
+    return entornoDelLugar(hsp: hsp, clima: clima);
+  }
+
+  /// Zonas posibles con cada escenario: con irradiancia baja (casi sin sol)
+  /// no hay zona muy soleada ni polvorienta (seca y despejada).
+  static List<ZonaClimatica> _zonasPara(EscenarioIrradiancia e) => [
+    for (final z in ZonaClimatica.values)
+      if (e != EscenarioIrradiancia.baja ||
+          (z != ZonaClimatica.muySoleada && z != ZonaClimatica.polvorienta))
+        z,
+  ];
+
+  String _resumenEntorno(ParametrosSimulacion e) {
+    final base =
+        'Zona ${e.zona.etiqueta.toLowerCase()} · irradiancia máxima '
+        '${Formato.numero(e.irradianciaMaxima)} W/m² · '
+        '${Formato.numero(e.temperaturaMedia, 1)} °C de media · '
+        '${Formato.numero(hspModelo(e), 1)} HSP.';
+    if (_netLogo) return '$base Configuración original de NetLogo.';
+    final (_, clima) = _hspYClima;
+    return clima == null
+        ? '$base Sin datos del clima del lugar: zona mixta y temperatura del '
+              'escenario de NetLogo.'
+        : '$base Zona según la lluvia (${Formato.numero(clima.lluviaMmAnio)} '
+              'mm/año) y las nubes (${Formato.numero(clima.nubosidadPct)} %); '
+              'irradiancia para dar las HSP del lugar.';
   }
 
   @override
@@ -186,10 +254,9 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                             : 'Valores de "${origen.entradas.nombre}"',
                       ),
                       subtitle: Text(
-                        'Batería y paneles del sistema dimensionado; consumo '
+                        'Batería y paneles del sistema dimensionado y consumo '
                         'ajustado a ${Formato.numero(origen.resultado.energiaDiaKwh, 1)} '
-                        'kWh/día; irradiancia del modelo más cercana a '
-                        '${Formato.numero(origen.entradas.hsp, 1)} HSP.',
+                        'kWh/día. El lugar se elige en "Entorno".',
                       ),
                     ),
                   ),
@@ -225,31 +292,102 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                   titulo: 'Entorno',
                   icono: Icons.wb_cloudy_outlined,
                   hijos: [
-                    Text(
-                      'Irradiancia',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    SegmentedButton<EscenarioIrradiancia>(
-                      segments: [
-                        for (final e in EscenarioIrradiancia.values)
-                          ButtonSegment(value: e, label: Text(e.etiqueta)),
-                      ],
-                      selected: {_escenario},
-                      onSelectionChanged: (s) =>
-                          setState(() => _escenario = s.first),
-                    ),
-                    DropdownButtonFormField<ZonaClimatica>(
-                      initialValue: _zona,
+                    DropdownButtonFormField<String>(
+                      initialValue: _lugar,
                       isExpanded: true,
                       decoration: const InputDecoration(
-                        labelText: 'Zona climática',
-                        helperText: 'Cambia la lluvia, las nubes y el polvo.',
+                        labelText: 'Lugar',
+                        prefixIcon: Icon(Icons.location_city_outlined),
                       ),
                       items: [
-                        for (final z in ZonaClimatica.values)
-                          DropdownMenuItem(value: z, child: Text(z.etiqueta)),
+                        if (widget.origen case final o?)
+                          DropdownMenuItem(
+                            value: _delCalculo,
+                            child: Text(
+                              'Del cálculo · '
+                              '${Formato.numero(o.entradas.hsp, 1)} HSP',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        for (final c in ciudadesBase)
+                          DropdownMenuItem(
+                            value: c.nombre,
+                            child: Text(
+                              '${c.nombre} · ${Formato.numero(c.hsp, 1)} HSP',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                       ],
-                      onChanged: (z) => setState(() => _zona = z!),
+                      onChanged: _netLogo
+                          ? null
+                          : (l) => setState(() => _lugar = l!),
+                    ),
+                    Text(
+                      _resumenEntorno(_entorno),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Avanzado: configuración de NetLogo'),
+                      initiallyExpanded: _netLogo,
+                      childrenPadding: const EdgeInsets.only(bottom: 8),
+                      children: [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Usar un escenario de NetLogo'),
+                          subtitle: const Text(
+                            'Irradiancia y zona originales del modelo, '
+                            'validadas contra NetLogo, en lugar del lugar.',
+                          ),
+                          value: _netLogo,
+                          onChanged: (v) => setState(() => _netLogo = v),
+                        ),
+                        if (_netLogo) ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Irradiancia',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SegmentedButton<EscenarioIrradiancia>(
+                            segments: [
+                              for (final e in EscenarioIrradiancia.values)
+                                ButtonSegment(
+                                  value: e,
+                                  label: Text(e.etiqueta),
+                                ),
+                            ],
+                            selected: {_escenario},
+                            onSelectionChanged: (s) => setState(() {
+                              _escenario = s.first;
+                              if (!_zonasPara(_escenario).contains(_zona)) {
+                                _zona = ZonaClimatica.mixta;
+                              }
+                            }),
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<ZonaClimatica>(
+                            key: ValueKey(_escenario),
+                            initialValue: _zona,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Zona climática',
+                              helperText:
+                                  'Cambia la lluvia, las nubes y el polvo.',
+                            ),
+                            items: [
+                              for (final z in _zonasPara(_escenario))
+                                DropdownMenuItem(
+                                  value: z,
+                                  child: Text(z.etiqueta),
+                                ),
+                            ],
+                            onChanged: (z) => setState(() => _zona = z!),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

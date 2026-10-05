@@ -123,9 +123,9 @@ class _ResultadosSimulacionScreenState
               const SizedBox(height: 8),
               Text(
                 '${Formato.numero(p.capacidadBateriaKwh, 1)} kWh · '
-                '${Formato.numero(p.potenciaPanelKw, 1)} kWp · irradiancia '
-                '${p.escenario.etiqueta.toLowerCase()} · zona '
-                '${p.zona.etiqueta.toLowerCase()} · política '
+                '${Formato.numero(p.potenciaPanelKw, 1)} kWp · '
+                '${textoEntorno(escenario: p.escenario, zona: p.zona, irradianciaMaximaLugar: p.irradianciaMaximaLugar, temperaturaMediaLugar: p.temperaturaMediaLugar)}'
+                ' · política '
                 '${p.politica.etiqueta.toLowerCase()}',
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,

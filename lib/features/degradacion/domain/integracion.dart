@@ -22,48 +22,113 @@ class OrigenCalculo {
   final String? calculoId;
 }
 
-/// Año de referencia (con la semilla 1) para medir el modelo sin azar.
+/// Años de referencia (con la semilla 1) para medir el modelo sin azar: 10
+/// años (lo mismo que se simula) promedian las variaciones de lluvia y polvo
+/// de un año a otro, que en el modelo van de × 0,6 a × 1,6.
 const _semillaReferencia = 1;
+const _aniosReferencia = 10;
 
-final _consumoModelo = <EscenarioIrradiancia, double>{};
-final _hspModelo = <EscenarioIrradiancia, double>{};
+final _referencias =
+    <
+      (EscenarioIrradiancia, ZonaClimatica, double?, double?),
+      ResultadoSimulacion
+    >{};
 
-ResultadoSimulacion _anioReferencia(EscenarioIrradiancia e) => simular(
-  ParametrosSimulacion(escenario: e, anios: 1),
-  semilla: _semillaReferencia,
-);
-
-/// Consumo medio diario (kWh) del perfil de NetLogo con factor 1. Depende del
-/// escenario porque el consumo sube 3 % por °C sobre 24.
-double consumoDiarioModelo(EscenarioIrradiancia e) =>
-    _consumoModelo.putIfAbsent(e, () => _anioReferencia(e).consumoKwh / 365);
-
-/// Horas solares pico medias que produce el entorno del modelo.
-double hspModelo(EscenarioIrradiancia e) => _hspModelo.putIfAbsent(e, () {
-  final dias = _anioReferencia(e).dias;
-  final total = dias.fold<double>(0, (s, d) => s + d.irradianciaMedia * 24);
-  return total / dias.length / 1000;
-});
-
-/// Escenario del modelo cuyas HSP están más cerca de las del lugar.
-EscenarioIrradiancia escenarioParaHsp(double hsp) =>
-    EscenarioIrradiancia.values.reduce(
-      (a, b) =>
-          (hspModelo(a) - hsp).abs() <= (hspModelo(b) - hsp).abs() ? a : b,
+/// Corrida de referencia con el entorno (escenario, zona, irradiancia y
+/// temperatura) de [p], el perfil de consumo de NetLogo y la semilla fija.
+ResultadoSimulacion _referencia(ParametrosSimulacion p) =>
+    _referencias.putIfAbsent(
+      (p.escenario, p.zona, p.irradianciaMaximaLugar, p.temperaturaMediaLugar),
+      () => simular(
+        ParametrosSimulacion(
+          escenario: p.escenario,
+          zona: p.zona,
+          irradianciaMaximaLugar: p.irradianciaMaximaLugar,
+          temperaturaMediaLugar: p.temperaturaMediaLugar,
+          anios: _aniosReferencia,
+        ),
+        semilla: _semillaReferencia,
+      ),
     );
 
-/// Factor que lleva el consumo del modelo al consumo calculado.
-double factorConsumoPara(double energiaDiaKwh, EscenarioIrradiancia e) =>
-    energiaDiaKwh / consumoDiarioModelo(e);
+/// Consumo medio diario (kWh) del perfil de NetLogo con factor 1 en ese
+/// entorno: depende de la temperatura (sube 3 % por °C sobre 24).
+double consumoDiarioModelo(ParametrosSimulacion entorno) =>
+    _referencia(entorno).consumoKwh / (365 * _aniosReferencia);
 
-/// Parámetros de la simulación a partir del sistema dimensionado.
-ParametrosSimulacion parametrosDesdeCalculo(OrigenCalculo o) {
-  final escenario = escenarioParaHsp(o.entradas.hsp);
+/// Horas solares pico medias que produce el modelo en ese entorno.
+double hspModelo(ParametrosSimulacion entorno) {
+  final dias = _referencia(entorno).dias;
+  final total = dias.fold<double>(0, (s, d) => s + d.irradianciaMedia * 24);
+  return total / dias.length / 1000;
+}
+
+/// HSP de una configuración de NetLogo (escenario y zona).
+double hspEscenario(
+  EscenarioIrradiancia e, [
+  ZonaClimatica z = ZonaClimatica.mixta,
+]) => hspModelo(ParametrosSimulacion(escenario: e, zona: z));
+
+/// Escenario cuya forma de día (y lluvia, nubes y polvo de la zona) se usa
+/// para un lugar; su irradiancia máxima y su temperatura se reemplazan por
+/// las del lugar.
+const escenarioBase = EscenarioIrradiancia.alta;
+
+/// Tope físico de la irradiancia máxima (W/m²): más que eso no llega al
+/// suelo. Si un lugar lo necesita, su zona está mal asignada.
+const irradianciaMaximaTope = 1100.0;
+
+/// Irradiancia máxima con la que el modelo, en la zona del lugar, produce
+/// sus HSP reales. La irradiancia del modelo es proporcional a la máxima y
+/// el azar del clima no depende de ella, así que basta una proporción (no
+/// hace falta buscar con varias corridas).
+double irradianciaMaximaPara(double hsp, ZonaClimatica zona) =>
+    escenarioBase.irradianciaMaxima * hsp / hspEscenario(escenarioBase, zona);
+
+/// Factor que lleva el consumo del modelo (en ese entorno) al calculado.
+double factorConsumoPara(double energiaDiaKwh, ParametrosSimulacion entorno) =>
+    energiaDiaKwh / consumoDiarioModelo(entorno);
+
+/// Zona climática del modelo según el clima del lugar (NASA POWER), por
+/// orden: lluviosa (≥ 2.500 mm/año), polvorienta (seca, < 1.000 mm/año, y
+/// despejada, nubosidad < 60 %), muy soleada (nubosidad < 60 %), muy
+/// nublada (≥ 1.600 mm/año o nubosidad ≥ 80 %) y, si no, mixta. Sin datos
+/// del clima (HSP a mano), mixta.
+ZonaClimatica zonaParaClima(ClimaLugar? clima) {
+  if (clima == null) return ZonaClimatica.mixta;
+  final lluvia = clima.lluviaMmAnio;
+  final nubes = clima.nubosidadPct;
+  if (lluvia >= 2500) return ZonaClimatica.lluviosa;
+  if (nubes < 60) {
+    return lluvia < 1000 ? ZonaClimatica.polvorienta : ZonaClimatica.muySoleada;
+  }
+  if (lluvia >= 1600 || nubes >= 80) return ZonaClimatica.muyNublada;
+  return ZonaClimatica.mixta;
+}
+
+/// Entorno de la simulación para un lugar (Etapa 12): zona según su clima,
+/// irradiancia máxima que da sus HSP en esa zona y su temperatura media (sin
+/// datos del clima, la del escenario base). Solo cambian las entradas de
+/// NetLogo, no sus ecuaciones.
+ParametrosSimulacion entornoDelLugar({required double hsp, ClimaLugar? clima}) {
+  final zona = zonaParaClima(clima);
   return ParametrosSimulacion(
+    escenario: escenarioBase,
+    zona: zona,
+    irradianciaMaximaLugar: irradianciaMaximaPara(hsp, zona),
+    temperaturaMediaLugar: clima?.temperaturaC,
+  );
+}
+
+/// Parámetros de la simulación a partir del sistema dimensionado: el
+/// entorno del lugar del cálculo, la batería y los paneles dimensionados y
+/// el consumo ajustado al de la casa.
+ParametrosSimulacion parametrosDesdeCalculo(OrigenCalculo o) {
+  final entorno = entornoDelLugar(hsp: o.entradas.hsp, clima: o.entradas.clima);
+  return entorno.copiarCon(
     capacidadBateriaKwh: o.resultado.bateriaKwh,
     potenciaPanelKw: o.resultado.potenciaInstaladaKw,
-    escenario: escenario,
-    factorConsumo: factorConsumoPara(o.resultado.energiaDiaKwh, escenario),
+    factorConsumo: factorConsumoPara(o.resultado.energiaDiaKwh, entorno),
   );
 }
 

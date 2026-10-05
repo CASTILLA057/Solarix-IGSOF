@@ -47,9 +47,8 @@ class DetalleSimulacionScreen extends StatelessWidget {
               Text(
                 '${fechaCorta(s.creadoEn)} · '
                 '${Formato.numero(s.capacidadKwh, 1)} kWh · '
-                '${Formato.numero(s.potenciaKw, 1)} kWp · irradiancia '
-                '${s.escenario.etiqueta.toLowerCase()} · zona '
-                '${s.zona.etiqueta.toLowerCase()}',
+                '${Formato.numero(s.potenciaKw, 1)} kWp · '
+                '${textoEntorno(escenario: s.escenario, zona: s.zona, irradianciaMaximaLugar: s.irradianciaMaximaLugar, temperaturaMediaLugar: s.temperaturaMediaLugar)}',
                 style: tema.textTheme.bodySmall,
               ),
               tarjeta(
