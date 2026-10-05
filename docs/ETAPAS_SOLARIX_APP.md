@@ -255,9 +255,10 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [ ] Alertas de uso de Supabase y de Brevo a un correo que se revise
 
 **Protección de datos (Ley 1581 de 2012)**
-- [ ] Casilla de autorización de tratamiento de datos en el registro, con enlace a la política
-- [ ] Página corta con la política de tratamiento de datos
-- [ ] Botón "Eliminar mi cuenta" en Perfil (borra el usuario de Auth; `on delete cascade` borra sus filas)
+- [x] Casilla de autorización de tratamiento de datos en el registro, con enlace a la política
+- [x] Página corta con la política de tratamiento de datos
+- [x] Botón "Eliminar mi cuenta" en Perfil (borra el usuario de Auth; `on delete cascade` borra sus filas)
+- [x] Prueba manual del bloque en Android con el Supabase real (verificada por el autor)
 
 **Cierre**
 - [ ] Pruebas de cada arreglo (fórmulas, políticas RLS y pantallas nuevas)

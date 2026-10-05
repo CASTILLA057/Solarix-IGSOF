@@ -496,3 +496,20 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
 - `HECHO` Pruebas nuevas: rutas sin cuenta (lo permitido, lo que sigue pidiendo sesión y que sin elegir "Probar sin cuenta" todo pide sesión) y el recorrido sin cuenta: calcular, simular, no guardar, volver sin preguntar y el historial pidiendo cuenta. 177 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
 - `HECHO` El autor subió la copia de `solarix.jks` y `key.properties` a su Google Drive privado.
 - `HECHO` **Bloque completo.** Subido a GitHub en commits separados por tema.
+
+## 2026-10-05 — Etapa 12 (arreglos): protección de datos (Ley 1581 de 2012)
+
+- `HECHO` **Política de tratamiento de datos** (`politica_datos.dart` y la pantalla `PoliticaDatosScreen`, ruta pública `/politica-datos`, con o sin sesión). Contenido, según la Ley 1581 de 2012 y el Decreto 1377 de 2013:
+  - Responsable: Santiago Castilla, proyecto académico de la UFPSO; contacto solarixapp@gmail.com.
+  - Datos que se recogen: con cuenta, sin cuenta y "Mi ubicación", cuyas coordenadas solo se envían a NASA POWER y no se guardan.
+  - Finalidades.
+  - Encargados y transferencia internacional: Supabase en Estados Unidos y Brevo en la Unión Europea.
+  - Derechos del titular y cómo ejercerlos: en la app o por correo, con plazos de 10 días hábiles para consultas y 15 para reclamos.
+  - Seguridad, conservación y vigencia (versión `2026-10-05`).
+- `HECHO` **Casilla de autorización obligatoria** en el registro, con el enlace "Leer la política de tratamiento de datos". Sin marcarla no se crea la cuenta. Como prueba de la autorización, la versión aceptada y la fecha se guardan con la cuenta, en los metadatos del usuario en Supabase Auth (`politica_datos`, `politica_aceptada_en`).
+- `HECHO` **"Eliminar mi cuenta"** en Mi perfil, junto al enlace a la política. Un diálogo explica que se borra todo y que no se puede deshacer; el botón se activa solo al escribir ELIMINAR. Después se cierra la sesión local, se vuelve a la bienvenida y se muestra "Tu cuenta y todos tus datos se eliminaron".
+- `HECHO` **Migración `20261005000000_eliminar_cuenta.sql`**, aplicada a `solarix` con el visto bueno del autor (antes, un `--dry-run` confirmó que solo se aplicaba ese archivo): función `public.eliminar_mi_cuenta()` (`security definer`, `search_path` vacío) que borra de `auth.users` solo a quien la llama. El `on delete cascade` ya existente borra su perfil, sus cálculos y sus simulaciones. Solo la puede ejecutar `authenticated`. Verificado: `migration list` la muestra aplicada, y llamada sin sesión con la llave pública responde "permission denied for function eliminar_mi_cuenta" (HTTP 401).
+- `DECISIÓN` La app no puede borrar usuarios con la llave pública, y no debe poder hacerlo: por eso el borrado vive en el servidor y solo afecta a quien lo pide.
+- `HECHO` Pruebas nuevas: la política se lee con o sin sesión y dice lo que exige la ley; el registro enlaza la política y no deja crear la cuenta sin la casilla; "Eliminar mi cuenta" solo se activa con ELIMINAR, al cancelar no borra y al confirmar borra, cierra la sesión y vuelve a la bienvenida. 182 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` Prueba manual del autor con el Supabase real: crear una cuenta (sin la casilla no deja), guardar un cálculo y eliminar la cuenta. Funciona.
+- `HECHO` **Bloque completo.** Subido a GitHub en commits separados por tema.
