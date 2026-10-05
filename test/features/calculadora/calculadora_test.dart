@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/core/formato.dart';
-import 'package:solarix/features/auth/domain/perfil.dart';
 import 'package:solarix/features/calculadora/data/recurso_solar.dart';
 import 'package:solarix/features/calculadora/domain/calculadora.dart';
 import 'package:solarix/features/calculadora/domain/catalogos.dart';

@@ -25,7 +25,7 @@ class SupabasePerfilRepository implements PerfilRepository {
   Future<Perfil> obtener(String usuarioId) => ejecutarRemoto(() async {
     final fila = await _db
         .from('perfiles')
-        .select('id, nombre, ciudad, zona_irradiancia')
+        .select('id, nombre, ciudad')
         .eq('id', usuarioId)
         .maybeSingle();
     // El trigger crea la fila al registrarse; si faltara, perfil vacío.

@@ -7,6 +7,7 @@ import '../../../core/router/rutas.dart';
 import '../../../core/theme/tema_providers.dart';
 import '../../../core/widgets/estados.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../calculadora/domain/catalogos.dart';
 import '../application/auth_providers.dart';
 import '../domain/perfil.dart';
 import '../domain/validadores.dart';
@@ -49,15 +50,16 @@ class _FormularioPerfil extends ConsumerStatefulWidget {
 class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
   final _form = GlobalKey<FormState>();
   late final _nombre = TextEditingController(text: widget.perfil.nombre);
-  late final _ciudad = TextEditingController(text: widget.perfil.ciudad);
-  late ZonaIrradiancia? _zona = widget.perfil.zonaIrradiancia;
+
+  /// Ciudad de la lista: lugar por defecto de la calculadora y de la
+  /// simulación.
+  late Ciudad? _ciudad = ciudadPorNombre(widget.perfil.ciudad);
   bool _guardando = false;
   String? _error;
 
   @override
   void dispose() {
     _nombre.dispose();
-    _ciudad.dispose();
     super.dispose();
   }
 
@@ -68,15 +70,13 @@ class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
       _error = null;
     });
     try {
-      final ciudad = _ciudad.text.trim();
       await ref
           .read(perfilRepositoryProvider)
           .guardar(
             Perfil(
               id: widget.perfil.id,
               nombre: _nombre.text.trim(),
-              ciudad: ciudad.isEmpty ? null : ciudad,
-              zonaIrradiancia: _zona,
+              ciudad: _ciudad?.nombre,
             ),
           );
       if (!mounted) return;
@@ -180,27 +180,21 @@ class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _ciudad,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Ciudad (opcional)',
-                    prefixIcon: Icon(Icons.location_city_outlined),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<ZonaIrradiancia>(
-                  initialValue: _zona,
+                DropdownButtonFormField<Ciudad?>(
+                  initialValue: _ciudad,
                   isExpanded: true,
                   decoration: const InputDecoration(
-                    labelText: 'Irradiancia de tu zona (por defecto)',
-                    prefixIcon: Icon(Icons.wb_sunny_outlined),
+                    labelText: 'Ciudad (opcional)',
+                    helperText:
+                        'Lugar por defecto en la calculadora y la simulación.',
+                    prefixIcon: Icon(Icons.location_city_outlined),
                   ),
                   items: [
-                    for (final zona in ZonaIrradiancia.values)
-                      DropdownMenuItem(value: zona, child: Text(zona.etiqueta)),
+                    const DropdownMenuItem(child: Text('Sin ciudad')),
+                    for (final c in ciudadesBase)
+                      DropdownMenuItem(value: c, child: Text(c.etiqueta)),
                   ],
-                  onChanged: (zona) => setState(() => _zona = zona),
+                  onChanged: (c) => setState(() => _ciudad = c),
                 ),
                 const SizedBox(height: 24),
                 if (_error != null) ...[

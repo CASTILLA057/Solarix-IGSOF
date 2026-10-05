@@ -134,14 +134,9 @@ void main() {
       'id': 'u-1',
       'nombre': 'Ana',
       'ciudad': 'Ocaña',
-      'zona_irradiancia': 'media',
     });
-    expect(perfil.zonaIrradiancia, ZonaIrradiancia.media);
-    expect(perfil.aMapaEditable(), {
-      'nombre': 'Ana',
-      'ciudad': 'Ocaña',
-      'zona_irradiancia': 'media',
-    });
-    expect(ZonaIrradiancia.desdeTexto('otra'), isNull);
+    expect(perfil.ciudad, 'Ocaña');
+    // Sin zona_irradiancia: la columna se quitó en la Etapa 12.
+    expect(perfil.aMapaEditable(), {'nombre': 'Ana', 'ciudad': 'Ocaña'});
   });
 }

@@ -6,6 +6,7 @@ import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
 import '../domain/calculadora.dart';
@@ -48,6 +49,10 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   // Paso 3: ubicación
   _FuenteHsp _fuente = _FuenteHsp.ciudad;
   Ciudad? _ciudad;
+
+  /// Cambia cuando llega la ciudad del perfil, para que la lista la muestre.
+  int _versionCiudad = 0;
+  bool _ciudadElegida = false;
   double? _hspUbicacion;
   ClimaLugar? _climaUbicacion;
   bool _buscandoUbicacion = false;
@@ -102,6 +107,22 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
     'instalacion_porcentaje': ('Instalación, RETIE y trámites', '% de equipos'),
     'instalacion_minima': ('Instalación mínima', 'COP'),
   };
+
+  @override
+  void initState() {
+    super.initState();
+    // Lugar por defecto: la ciudad del perfil, si el usuario aún no eligió.
+    if (ref.read(haySesionProvider)) {
+      ref.listenManual(perfilProvider, (_, perfil) {
+        final ciudad = ciudadPorNombre(perfil.value?.ciudad);
+        if (ciudad == null || _ciudadElegida || _ciudad != null) return;
+        setState(() {
+          _ciudad = ciudad;
+          _versionCiudad++;
+        });
+      }, fireImmediately: true);
+    }
+  }
 
   @override
   void dispose() {
@@ -472,7 +493,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
           duration: const Duration(milliseconds: 250),
           child: switch (_fuente) {
             _FuenteHsp.ciudad => DropdownButtonFormField<Ciudad>(
-              key: const ValueKey('ciudad'),
+              key: ValueKey('ciudad-$_versionCiudad'),
               initialValue: _ciudad,
               isExpanded: true,
               decoration: const InputDecoration(
@@ -483,7 +504,10 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
                 for (final c in ciudades)
                   DropdownMenuItem(value: c, child: Text(c.etiqueta)),
               ],
-              onChanged: (c) => setState(() => _ciudad = c),
+              onChanged: (c) => setState(() {
+                _ciudad = c;
+                _ciudadElegida = true;
+              }),
             ),
             _FuenteHsp.ubicacion => Column(
               key: const ValueKey('ubicacion'),

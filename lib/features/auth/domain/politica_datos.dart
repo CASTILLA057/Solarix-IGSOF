@@ -18,8 +18,8 @@ abstract final class PoliticaDatos {
     ),
     (
       'Qué datos se recogen',
-      'Con cuenta: tu correo, tu nombre, la ciudad y la zona que escribas en '
-          'tu perfil, y los cálculos y simulaciones que guardes (consumo, '
+      'Con cuenta: tu correo, tu nombre, la ciudad que elijas en tu '
+          'perfil, y los cálculos y simulaciones que guardes (consumo, '
           'equipos, lugar, clima, resultados). Tu contraseña no se guarda: '
           'Supabase guarda solo una huella cifrada que no se puede revertir.\n'
           'Sin cuenta ("Probar sin cuenta") no se guarda ningún dato personal.\n'

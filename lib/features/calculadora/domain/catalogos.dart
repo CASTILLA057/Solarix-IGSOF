@@ -1,4 +1,3 @@
-import '../../auth/domain/perfil.dart';
 import 'modelos.dart';
 
 /// Equipos comunes para agregar con un toque. Potencias típicas; el usuario
@@ -33,15 +32,20 @@ const equiposBase = <Equipo>[
   Equipo(nombre: 'Plancha', potenciaW: 1000, horasDia: 0.5),
 ];
 
-/// Ciudad con su recurso solar (tabla `ciudades`).
+/// Nivel de irradiancia: las tres categorías del modelo de NetLogo.
+enum ZonaIrradiancia {
+  baja('Baja (selva / nublado)'),
+  media('Media (zona andina)'),
+  alta('Alta (costa / llanos)');
+
+  const ZonaIrradiancia(this.etiqueta);
+
+  final String etiqueta;
+}
+
+/// Ciudad de la lista con su recurso solar.
 class Ciudad {
   const Ciudad(this.nombre, this.departamento, this.hsp);
-
-  factory Ciudad.desdeMapa(Map<String, dynamic> m) => Ciudad(
-    m['nombre'] as String,
-    m['departamento'] as String,
-    (m['hsp'] as num).toDouble(),
-  );
 
   final String nombre;
   final String departamento;
@@ -68,7 +72,7 @@ double hspParaZona(ZonaIrradiancia zona) => switch (zona) {
   ZonaIrradiancia.baja => 3.5,
 };
 
-/// Respaldo sin internet: los mismos valores de la migración `ciudades`.
+/// Ciudades de la lista (la única fuente desde la Etapa 12).
 /// HSP = promedio anual de radiación global horizontal de NASA POWER
 /// (`ALLSKY_SFC_SW_DWN`), consultado el 2026-10-01 en las coordenadas de
 /// cada ciudad y redondeado a un decimal. Resolución de unos 50 km: ciudades
@@ -113,8 +117,7 @@ const ciudadesBase = <Ciudad>[
 /// La temperatura se corrige por altitud, porque la celda de NASA (≈ 50 km)
 /// promedia valle y montaña: `T = T2M + 0,0065 · (altitud de la celda −
 /// altitud de la ciudad)` (6,5 °C por cada 1.000 m). Sin corregir, Cali
-/// daba 16 °C y Bogotá 19 °C. Altitudes en `BITACORA.md`. Va en Dart y no
-/// en la tabla `ciudades` para no cambiar la base de datos.
+/// daba 16 °C y Bogotá 19 °C. Altitudes en `BITACORA.md`.
 const _climaCiudades = <String, ClimaLugar>{
   'Arauca': ClimaLugar(
     lluviaMmDia: 4.15,
@@ -256,3 +259,15 @@ const _climaCiudades = <String, ClimaLugar>{
 
 /// Clima de una ciudad de la lista, o `null` si no está.
 ClimaLugar? climaDeCiudad(String nombre) => _climaCiudades[nombre];
+
+/// Ciudad de la lista con ese nombre (la guardada en el perfil), o `null`.
+/// Acepta perfiles anteriores a la lista, con texto libre como
+/// "Ocaña, Norte de Santander".
+Ciudad? ciudadPorNombre(String? nombre) {
+  final texto = nombre?.trim().toLowerCase();
+  if (texto == null || texto.isEmpty) return null;
+  for (final c in ciudadesBase) {
+    if (texto.startsWith(c.nombre.toLowerCase())) return c;
+  }
+  return null;
+}

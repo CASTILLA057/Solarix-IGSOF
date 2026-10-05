@@ -6,6 +6,7 @@ import 'package:solarix/core/errors/error_app.dart';
 import 'package:solarix/features/auth/application/auth_providers.dart';
 import 'package:solarix/core/errors/mensajes_error.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
+import 'package:solarix/features/calculadora/domain/catalogos.dart';
 
 import '../../helpers/fakes.dart';
 
@@ -280,15 +281,14 @@ void main() {
     expect(find.text('Ana'), findsOneWidget);
 
     await escribir(tester, 'Nombre', 'Ana Pérez');
-    await escribir(tester, 'Ciudad (opcional)', 'Ocaña');
-    await tocar(tester, find.byType(DropdownButtonFormField<ZonaIrradiancia>));
-    await tocar(tester, find.text(ZonaIrradiancia.media.etiqueta).last);
+    // La ciudad se elige de la lista de la calculadora.
+    await tocar(tester, find.byType(DropdownButtonFormField<Ciudad?>));
+    await tocar(tester, find.text('Ocaña (Norte de Santander)').last);
     await tocar(tester, boton('Guardar cambios'));
 
     final guardado = perfiles.guardados.single;
     expect(guardado.nombre, 'Ana Pérez');
     expect(guardado.ciudad, 'Ocaña');
-    expect(guardado.zonaIrradiancia, ZonaIrradiancia.media);
 
     await tocar(tester, find.widgetWithText(OutlinedButton, 'Cerrar sesión'));
     await tocar(tester, boton('Cerrar sesión'));

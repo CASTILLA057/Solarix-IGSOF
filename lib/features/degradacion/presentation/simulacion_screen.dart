@@ -64,6 +64,7 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
   /// cálculo, la ciudad del perfil (si está en la lista) o Ocaña.
   late String _lugar = widget.origen != null ? _delCalculo : _ciudadInicial();
   static const _delCalculo = '__calculo__';
+  bool _lugarElegido = false;
 
   /// "Avanzado": usar una configuración de NetLogo (escenario y zona) tal
   /// cual, validada contra el modelo original.
@@ -80,6 +81,20 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
     var t = v.toStringAsFixed(7);
     t = t.replaceFirst(RegExp(r'\.?0+$'), '');
     return t.replaceAll('.', ',');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Si el perfil llega después de abrir la pantalla, su ciudad pasa a ser
+    // el lugar, mientras el usuario no haya elegido otro.
+    if (widget.origen == null && ref.read(haySesionProvider)) {
+      ref.listenManual(perfilProvider, (_, perfil) {
+        final ciudad = ciudadPorNombre(perfil.value?.ciudad);
+        if (ciudad == null || _lugarElegido || ciudad.nombre == _lugar) return;
+        setState(() => _lugar = ciudad.nombre);
+      });
+    }
   }
 
   @override
@@ -168,14 +183,9 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
 
   String _ciudadInicial() {
     final delPerfil = ref.read(haySesionProvider)
-        ? ref.read(perfilProvider).value?.ciudad?.trim()
+        ? ref.read(perfilProvider).value?.ciudad
         : null;
-    final ciudad = ciudadesBase.where(
-      (c) =>
-          delPerfil != null &&
-          delPerfil.toLowerCase().startsWith(c.nombre.toLowerCase()),
-    );
-    return ciudad.isEmpty ? 'Ocaña' : ciudad.first.nombre;
+    return ciudadPorNombre(delPerfil)?.nombre ?? 'Ocaña';
   }
 
   /// HSP y clima del lugar elegido.
@@ -295,6 +305,7 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                   icono: Icons.wb_cloudy_outlined,
                   hijos: [
                     DropdownButtonFormField<String>(
+                      key: ValueKey(_lugarElegido ? 'lugar' : _lugar),
                       initialValue: _lugar,
                       isExpanded: true,
                       decoration: const InputDecoration(
@@ -322,7 +333,10 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                       ],
                       onChanged: _netLogo
                           ? null
-                          : (l) => setState(() => _lugar = l!),
+                          : (l) => setState(() {
+                              _lugar = l!;
+                              _lugarElegido = true;
+                            }),
                     ),
                     Text(
                       _resumenEntorno(_entorno),
