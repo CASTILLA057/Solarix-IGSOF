@@ -77,3 +77,21 @@ La clave `SUPABASE_PUBLISHABLE_KEY` queda visible dentro de la versión web: es 
 ## 4. Antes de una presentación
 
 El plan gratuito de Supabase **pausa el proyecto tras unos 7 días sin uso**. Entra a la app o al panel de Supabase unos días antes para que esté activo. Si está pausado, la app muestra "El servidor de Solarix está en pausa por inactividad".
+
+## 5. Límites y alertas del backend (Etapa 12)
+
+Lo que va en la base y en Auth ya está versionado y aplicado:
+
+- **Migración `20261005000100_seguridad.sql`**:
+  - Máximo 200 cálculos y 200 simulaciones por usuario.
+  - Tamaño máximo de los datos guardados.
+  - Una simulación solo se enlaza a cálculos propios.
+- **`supabase/config.toml`**: inicios de sesión, registros y verificación de códigos, 15 por IP cada 5 minutos. Para cambiarlos, edita el archivo y ejecuta primero `npx supabase config diff --project-ref byopepmwxjdwdyhyrwch` y después `config push`.
+
+Esto se configura a mano en los paneles, porque el CLI no lo maneja:
+
+1. **Correos por hora** (Supabase → Authentication → Rate Limits → envío de correos). Brevo gratis permite 300 correos al día; con **12 por hora** (288 al día) no se agota.
+2. **Avisos de uso de Supabase.** El plan gratuito avisa por correo a los dueños de la organización cuando el uso se acerca al límite (base de datos de 500 MB, usuarios activos y tráfico). En Organization → Settings, revisa que el correo de la organización sea uno que leas. El consumo actual está en Organization → Usage.
+3. **Avisos de Brevo.** En la cuenta de Brevo, revisa que el correo de la cuenta sea uno que leas y activa las notificaciones de la cuenta (créditos o límite de envío) si el panel las ofrece. El consumo diario está en las estadísticas de correos transaccionales.
+
+Los nombres de los menús pueden cambiar con el tiempo; lo importante es que los avisos lleguen a un correo que se revise.

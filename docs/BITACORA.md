@@ -513,3 +513,42 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
 - `HECHO` Pruebas nuevas: la política se lee con o sin sesión y dice lo que exige la ley; el registro enlaza la política y no deja crear la cuenta sin la casilla; "Eliminar mi cuenta" solo se activa con ELIMINAR, al cancelar no borra y al confirmar borra, cierra la sesión y vuelve a la bienvenida. 182 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
 - `HECHO` Prueba manual del autor con el Supabase real: crear una cuenta (sin la casilla no deja), guardar un cálculo y eliminar la cuenta. Funciona.
 - `HECHO` **Bloque completo.** Subido a GitHub en commits separados por tema.
+
+## 2026-10-05 — Etapa 12 (arreglos): seguridad del backend
+
+- `HECHO` **Migración `20261005000100_seguridad.sql`**, aplicada a `solarix` con el visto bueno del autor. Antes, un `--dry-run` confirmó que solo se aplicaba ese archivo; `migration list` la muestra aplicada.
+  - **Tamaño máximo de los `jsonb`** (`pg_column_size`):
+    - `entradas` y `resultados` del cálculo: 64 KB cada uno.
+    - `parametros`: 16 KB.
+    - `resultados` de la simulación: 64 KB.
+    - `serie`: 256 KB.
+    - El peor caso de la app ocupa 8 KB, 8 KB, 0,5 KB, 2 KB y 32 KB (50 equipos, horizonte de 30 años y simulación de 20 años).
+  - **Máximo 200 cálculos y 200 simulaciones por usuario**: un trigger `before insert` (`limitar_filas_por_usuario`) rechaza la fila 201 con el mensaje `limite_filas`.
+  - **`calculo_id` solo hacia cálculos propios**: las políticas de crear y actualizar simulaciones exigen que el cálculo enlazado sea del mismo usuario. Antes se podía enlazar el `id` de un cálculo ajeno, aunque no leerlo.
+  - **Se quitaron `perfiles.zona_irradiancia`** (concepto de la Etapa 1) y **las tablas `precios_referencia` y `ciudades`**, sin uso desde el bloque anterior. Verificado con la llave pública: las tablas responden 404 y la columna 400.
+- `HECHO` **Ciudad del perfil de la lista**: en Mi perfil, la ciudad se elige entre las 28 de la calculadora (o "Sin ciudad") y sale la zona. Esa ciudad es el lugar por defecto de la calculadora y de la simulación sin cálculo, mientras el usuario no elija otro. `ciudadPorNombre` reconoce también el texto libre de perfiles anteriores ("Ocaña, Norte de Santander"). El enum `ZonaIrradiancia` pasó a `catalogos.dart`, porque solo lo usa la calculadora.
+- `HECHO` **Mensajes claros**: el tope de filas dice "Llegaste al máximo de 200 guardados de este tipo. Elimina algunos del historial para guardar más." y los datos demasiado grandes tienen su propio mensaje (`CodigosError.limiteFilas` y `datosMuyGrandes`).
+- `HECHO` **Límites de Auth** en `supabase/config.toml`, subidos con `config push` después de revisar `config diff`:
+  - Inicios de sesión y registros: 30 → 15 por IP cada 5 minutos.
+  - Verificación de códigos: 30 → 15.
+  - Renovación de sesión: se deja en 150.
+  - Un nuevo `config diff` ya no muestra diferencias declaradas.
+- `DECISIÓN` Lo que el CLI no maneja queda en `DESPLIEGUE.md` como pasos de panel:
+  - Correos por hora, con SMTP propio: se propone 12 por hora, 288 al día, debajo de los 300 de Brevo gratis.
+  - Avisos de uso de Supabase y de Brevo.
+  - `anonymous_users` no acepta 0, y el inicio anónimo ya está apagado: no se declara.
+- `HECHO` El autor configuró los avisos de uso de Supabase y de Brevo.
+- `PENDIENTE` Correos por hora en el panel de Supabase (12 por hora), si el autor aún no lo puso.
+- `HECHO` APK nuevo instalado en el celular (el anterior pedía `zona_irradiancia` y ya no podría cargar el perfil).
+- `HECHO` Pruebas nuevas:
+  - Lo más grande que guarda la app cabe con al menos 4 veces de margen en cada límite, leído del SQL de la migración.
+  - Los errores `limite_filas` y de tamaño se traducen.
+  - `ciudadPorNombre`.
+  - El perfil guarda la ciudad elegida de la lista.
+  - La ciudad del perfil llega a la calculadora y al cálculo guardado.
+- `HECHO` 188 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` Revisado en el diff: la configuración remota tiene códigos de 8 dígitos (`otp_length` = 8); la app acepta cualquier longitud.
+- `HECHO` **Revisión en el celular del autor**, con el APK firmado y el Supabase real. El APK anterior era de depuración y tenía otra firma: se desinstaló y el autor volvió a iniciar sesión.
+  - El perfil carga, prueba de que la app ya no pide `zona_irradiancia`. La ciudad escrita antes a mano se reconoció como "Ocaña (Norte de Santander)".
+  - Se cambió la ciudad del perfil a Bogotá: se guarda, y la calculadora y la simulación sin cálculo arrancan en Bogotá (4,6 HSP).
+  - Se guardaron cálculos conectados a la red e híbridos y una simulación enlazada a su cálculo, con la nueva regla de `calculo_id`. El historial los muestra.

@@ -25,7 +25,7 @@
 | Esquema de BD | Migraciones SQL en `supabase/migrations/` | El esquema queda versionado en git junto con el código |
 | Recurso solar (HSP) | Tabla de ciudades + API NASA POWER | La tabla funciona sin internet; "usar mi ubicación" consulta NASA POWER (gratis, por latitud/longitud) |
 | Química de batería | Litio (LiFePO₄) y plomo-ácido | La calculadora ofrece ambas; la simulación de degradación solo aplica a litio (el modelo es de iones de litio) |
-| Precios de equipos | Tabla `precios_referencia` en Supabase + editables | Valores de referencia actualizables sin publicar otra versión; el usuario puede ajustarlos en cada cálculo |
+| Precios de equipos | Tabla `precios_referencia` en Supabase + editables (desde la Etapa 12, solo en Dart; la tabla se quitó) | Valores de referencia actualizables sin publicar otra versión; el usuario puede ajustarlos en cada cálculo |
 | Referencia de validación | `docs/referencia/GUIA_VARIACION.md` | Promedios de 5 corridas de NetLogo por configuración: son los valores esperados para el motor en Dart |
 
 ## Etapa 0 — Preparación
@@ -247,12 +247,12 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Copia de respaldo de la llave de firma (`solarix.jks`) y de `key.properties` fuera de este PC (en el Google Drive privado del autor)
 
 **Seguridad del backend (nueva migración)**
-- [ ] Límite de tamaño en las columnas `jsonb` (`entradas`, `resultados`, `parametros`, `serie`), por ejemplo con `pg_column_size`
-- [ ] Tope de filas por usuario en `calculos_consumo` y `simulaciones_degradacion` (trigger que rechace pasado el límite)
-- [ ] Verificar que `calculo_id` sea del mismo usuario en las políticas de crear y actualizar simulaciones
-- [ ] Quitar `perfiles.zona_irradiancia` (concepto de la Etapa 1 que la app ya no usa) o reemplazarla
-- [ ] Límites de frecuencia de registro y envío de correos en Auth, versionados en `supabase/config.toml` y aplicados en el panel
-- [ ] Alertas de uso de Supabase y de Brevo a un correo que se revise
+- [x] Límite de tamaño en las columnas `jsonb` (`entradas`, `resultados`, `parametros`, `serie`), por ejemplo con `pg_column_size`
+- [x] Tope de filas por usuario en `calculos_consumo` y `simulaciones_degradacion` (trigger que rechace pasado el límite)
+- [x] Verificar que `calculo_id` sea del mismo usuario en las políticas de crear y actualizar simulaciones
+- [x] Quitar `perfiles.zona_irradiancia` (concepto de la Etapa 1 que la app ya no usa) o reemplazarla: se quitó y la ciudad del perfil se elige de la lista y es el lugar por defecto. También se quitaron las tablas `precios_referencia` y `ciudades`, sin uso desde el bloque de servicios gratuitos
+- [x] Límites de frecuencia de registro y envío de correos en Auth, versionados en `supabase/config.toml` y aplicados en el panel (el de correos por hora va en el panel: ver `DESPLIEGUE.md`)
+- [x] Alertas de uso de Supabase y de Brevo a un correo que se revise (instrucciones en `DESPLIEGUE.md`; configuradas por el autor)
 
 **Protección de datos (Ley 1581 de 2012)**
 - [x] Casilla de autorización de tratamiento de datos en el registro, con enlace a la política
