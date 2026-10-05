@@ -5,12 +5,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/errors/error_app.dart';
+import '../domain/modelos.dart';
 
-/// Horas solares pico en la ubicación actual del dispositivo, según la
-/// climatología de NASA POWER (promedio anual de radiación global
-/// horizontal, `ALLSKY_SFC_SW_DWN`, en kWh/m²/día = HSP).
+/// Recurso solar y clima de la ubicación actual del dispositivo, según la
+/// climatología de NASA POWER: promedio anual de radiación global horizontal
+/// (`ALLSKY_SFC_SW_DWN`, kWh/m²/día = HSP), de lluvia (`PRECTOTCORR`), de
+/// nubosidad (`CLOUD_AMT`) y de temperatura (`T2M`).
 abstract interface class RecursoSolarService {
-  Future<double> hspEnUbicacionActual();
+  Future<({double hsp, ClimaLugar? clima})> recursoEnUbicacionActual();
 }
 
 /// Extrae el promedio anual de la respuesta JSON de NASA POWER.
@@ -25,9 +27,44 @@ double hspDesdeRespuestaNasa(String cuerpo) {
   return valor.toDouble();
 }
 
+/// Lluvia, nubosidad y temperatura anuales de la respuesta; `null` si falta
+/// alguna (la HSP sigue sirviendo). Con [altitudLugar] (m), la temperatura
+/// se corrige por la diferencia con la altitud de la celda de NASA
+/// (6,5 °C por cada 1.000 m), como en el catálogo de ciudades.
+ClimaLugar? climaDesdeRespuestaNasa(String cuerpo, {double? altitudLugar}) {
+  final json = jsonDecode(cuerpo) as Map;
+  final parametros = (json['properties'] as Map)['parameter'] as Map;
+  final lluvia = (parametros['PRECTOTCORR'] as Map?)?['ANN'];
+  final nubes = (parametros['CLOUD_AMT'] as Map?)?['ANN'];
+  final temperatura = (parametros['T2M'] as Map?)?['ANN'];
+  if (lluvia is! num ||
+      nubes is! num ||
+      temperatura is! num ||
+      lluvia < 0 ||
+      nubes < 0 ||
+      temperatura < -50) {
+    return null;
+  }
+  final coordenadas = (json['geometry'] as Map?)?['coordinates'] as List?;
+  final altitudCelda = coordenadas != null && coordenadas.length > 2
+      ? coordenadas[2]
+      : null;
+  final correccion = altitudLugar != null && altitudCelda is num
+      ? gradienteTermico * (altitudCelda - altitudLugar)
+      : 0.0;
+  return ClimaLugar(
+    lluviaMmDia: lluvia.toDouble(),
+    nubosidadPct: nubes.toDouble(),
+    temperaturaC: temperatura + correccion,
+  );
+}
+
+/// °C que baja la temperatura por metro de altura.
+const gradienteTermico = 0.0065;
+
 Uri uriNasaPower({required double latitud, required double longitud}) =>
     Uri.https('power.larc.nasa.gov', '/api/temporal/climatology/point', {
-      'parameters': 'ALLSKY_SFC_SW_DWN',
+      'parameters': 'ALLSKY_SFC_SW_DWN,PRECTOTCORR,CLOUD_AMT,T2M',
       'community': 'RE',
       'latitude': latitud.toStringAsFixed(3),
       'longitude': longitud.toStringAsFixed(3),
@@ -44,7 +81,7 @@ class NasaPowerRecursoSolar implements RecursoSolarService {
   static const tiempoMaximo = Duration(seconds: 90);
 
   @override
-  Future<double> hspEnUbicacionActual() async {
+  Future<({double hsp, ClimaLugar? clima})> recursoEnUbicacionActual() async {
     final posicion = await _ubicacion();
     try {
       final respuesta = await _cliente
@@ -60,7 +97,14 @@ class NasaPowerRecursoSolar implements RecursoSolarService {
           'NASA POWER no respondió bien. Elige una ciudad de la lista.',
         );
       }
-      return hspDesdeRespuestaNasa(respuesta.body);
+      return (
+        hsp: hspDesdeRespuestaNasa(respuesta.body),
+        // El GPS da 0 cuando no conoce la altitud: entonces no se corrige.
+        clima: climaDesdeRespuestaNasa(
+          respuesta.body,
+          altitudLugar: posicion.altitude > 0 ? posicion.altitude : null,
+        ),
+      );
     } on ErrorApp {
       rethrow;
     } on TimeoutException {

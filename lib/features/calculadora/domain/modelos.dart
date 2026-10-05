@@ -280,6 +280,43 @@ class Supuestos {
   };
 }
 
+/// Clima del lugar según NASA POWER (climatología anual): lluvia
+/// (`PRECTOTCORR`, mm/día), nubosidad (`CLOUD_AMT`, %) y temperatura media
+/// a 2 m (`T2M`, °C). Sirve para ajustar la simulación al lugar (Etapa 12).
+class ClimaLugar {
+  const ClimaLugar({
+    required this.lluviaMmDia,
+    required this.nubosidadPct,
+    required this.temperaturaC,
+  });
+
+  static ClimaLugar? desdeMapa(Object? m) => switch (m) {
+    {
+      'lluvia_mm_dia': final num l,
+      'nubosidad_pct': final num n,
+      'temperatura_c': final num t,
+    } =>
+      ClimaLugar(
+        lluviaMmDia: l.toDouble(),
+        nubosidadPct: n.toDouble(),
+        temperaturaC: t.toDouble(),
+      ),
+    _ => null,
+  };
+
+  final double lluviaMmDia;
+  final double nubosidadPct;
+  final double temperaturaC;
+
+  double get lluviaMmAnio => lluviaMmDia * 365;
+
+  Map<String, dynamic> aMapa() => {
+    'lluvia_mm_dia': lluviaMmDia,
+    'nubosidad_pct': nubosidadPct,
+    'temperatura_c': temperaturaC,
+  };
+}
+
 /// Todo lo que el usuario ingresa en la calculadora.
 class EntradasCalculo {
   const EntradasCalculo({
@@ -296,6 +333,7 @@ class EntradasCalculo {
     this.quimica = QuimicaBateria.litio,
     this.supuestos = const Supuestos(),
     this.precios = Precios.referencia,
+    this.clima,
   });
 
   final String nombre;
@@ -320,6 +358,10 @@ class EntradasCalculo {
   final Supuestos supuestos;
   final Precios precios;
 
+  /// Clima del lugar (ciudad de la lista o "Mi ubicación"); `null` con HSP
+  /// escritas a mano.
+  final ClimaLugar? clima;
+
   /// Vida calendario de la batería: la editada o la típica de la química.
   double get vidaCalendarioBateria =>
       supuestos.vidaCalendarioBateria ?? quimica.vidaCalendarioAnios.toDouble();
@@ -338,6 +380,7 @@ class EntradasCalculo {
     'quimica': quimica.name,
     'supuestos': supuestos.aMapa(),
     'precios': precios.aMapa(),
+    'clima': clima?.aMapa(),
   };
 }
 

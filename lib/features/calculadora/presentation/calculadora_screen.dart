@@ -49,6 +49,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   _FuenteHsp _fuente = _FuenteHsp.ciudad;
   Ciudad? _ciudad;
   double? _hspUbicacion;
+  ClimaLugar? _climaUbicacion;
   bool _buscandoUbicacion = false;
   String? _errorUbicacion;
   final _hspManual = TextEditingController(text: '4.5');
@@ -141,6 +142,15 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
     _FuenteHsp.manual => Formato.leer(_hspManual.text),
   };
 
+  /// Clima del lugar para elegir la zona de la simulación; sin dato con HSP
+  /// a mano.
+  ClimaLugar? get _clima => switch (_fuente) {
+    _FuenteHsp.ciudad =>
+      _ciudad == null ? null : climaDeCiudad(_ciudad!.nombre),
+    _FuenteHsp.ubicacion => _climaUbicacion,
+    _FuenteHsp.manual => null,
+  };
+
   String get _ubicacion => switch (_fuente) {
     _FuenteHsp.ciudad => _ciudad?.etiqueta ?? '',
     _FuenteHsp.ubicacion => 'Mi ubicación (NASA POWER)',
@@ -210,6 +220,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       gastoActualMensual: Formato.leer(_gastoActual.text) ?? 0,
       hsp: _hsp!,
       ubicacion: _ubicacion,
+      clima: _clima,
       potenciaPanelW: Formato.leer(_potenciaPanel.text)!,
       quimica: _quimica,
       supuestos: Supuestos(
@@ -246,8 +257,15 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       _errorUbicacion = null;
     });
     try {
-      final hsp = await ref.read(recursoSolarProvider).hspEnUbicacionActual();
-      if (mounted) setState(() => _hspUbicacion = hsp);
+      final recurso = await ref
+          .read(recursoSolarProvider)
+          .recursoEnUbicacionActual();
+      if (mounted) {
+        setState(() {
+          _hspUbicacion = recurso.hsp;
+          _climaUbicacion = recurso.clima;
+        });
+      }
     } on ErrorApp catch (e) {
       if (mounted) setState(() => _errorUbicacion = e.mensaje);
     } finally {
