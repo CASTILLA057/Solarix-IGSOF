@@ -59,3 +59,6 @@ supabase/.temp/
 
 # Cuenta de prueba para integration_test/supabase_real_test.dart (solo local)
 prueba.json
+
+# Configuración local de Claude Code (personal de cada computador)
+.claude/settings.local.json
