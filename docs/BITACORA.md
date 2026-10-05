@@ -584,3 +584,106 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
 - `DECISIÓN` Hallazgo principal: con la CREG 174, en un sistema con red cada kWh que guarda la batería vale apenas el Cv frente a mandarlo a la red. Con 200 kWh/mes, 4,5 HSP y $890/kWh, el híbrido da VPN $14,9 M (batería que dura 15 años y entrega el 100 %) a $12,8 M (8 años y 80 %), y el mismo sistema sin batería $18,6 M. En el aislado la degradación sí cambia la decisión (VPN de $8,7 M a −$5,2 M; recuperación de 7,5 a 12,5 años), pero el modelo de NetLogo manda el faltante a "energía comprada a la red", que en una casa sin red no existe.
 - `DECISIÓN` La recuperación en un sistema conectado a la red (3,4–3,6 años) casi no cambia con los supuestos inciertos (bolsa a $120, tarifa +3 %/año, autoconsumo 30 %, tasa 15 %: como mucho 0,2 años). La deciden el precio instalado y la tarifa, y la tarifa es una sola ($890, estrato 4) para todos los estratos.
 - `PENDIENTE` Nuevo bloque "Valor de la batería y tarifa real" en la Etapa 12: comparación del híbrido con el mismo sistema sin batería, "energía que faltó" en el aislado y tarifa según el estrato.
+
+## 2026-10-05 — Etapa 12 (arreglos): valor de la batería — el híbrido sin batería
+
+- `HECHO` **Tarjeta "¿Y sin batería?"** en los resultados del sistema híbrido. `compararSinBateria` corre `calcular` otra vez con el mismo sistema sin batería:
+  - Los mismos paneles, conectados a la red con un inversor de red, sin batería ni controlador.
+  - La tarjeta muestra la inversión, el ahorro del primer mes, la recuperación y el VPN sin batería.
+  - Una nota dice cuánto resta (o suma) la batería al VPN y que, en plata, su valor está en cubrir los cortes.
+- `DECISIÓN` Sin batería, la casa solo usa lo que consume mientras hay sol: el autoconsumo vuelve al típico de un sistema conectado a la red (60 %), o al del usuario si lo bajó más. Se agregaron `Supuestos.copiarCon` y `EntradasCalculo.copiarCon` para cambiar solo el tipo y el autoconsumo.
+- `HECHO` Con el ejemplo de la revisión crítica (200 kWh/mes, 4,5 HSP, $890/kWh): VPN con batería $14,1 M (vida típica de 10 años) y sin batería $18,6 M. La batería resta unos $4,5 M.
+- `HECHO` Pruebas nuevas:
+  - Mismos paneles, sin batería ni controlador, y autoconsumo del 60 %.
+  - La batería resta al VPN.
+  - Se respeta un autoconsumo más bajo del usuario.
+  - Solo aplica al híbrido.
+  - Pantallas: la tarjeta sale en el híbrido y no en el conectado a la red.
+
+  195 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `PENDIENTE` Prueba manual en Chrome y Android (`PRUEBAS.md`, paso 27), junto con los otros dos puntos del bloque.
+
+## 2026-10-05 — Etapa 12 (arreglos): valor de la batería — "energía que faltó" en el aislado
+
+- `HECHO` **Sistema aislado**: lo que el modelo de NetLogo cuenta como energía comprada a la red se muestra como **"Energía que faltó"**, con una nota: no hay red, son horas de corte o se cubren con una planta o con combustible.
+  - Cambia en los resultados de la simulación: la fila de la tabla y la frase de la comparación.
+  - Cambia en el detalle del historial: el resumen y el título de la gráfica acumulada.
+  - Los sistemas con red siguen diciendo "Energía comprada a la red".
+- `DECISIÓN` Las ecuaciones de NetLogo (`submodelos.dart`, `simulador.dart`) no se tocaron: solo cambian la etiqueta y la nota (`etiquetaEnergiaRed`, `notaEnergiaQueFalto` en `etiquetas.dart`).
+- `DECISIÓN` La simulación guardada no sabe de qué tipo de sistema viene. El dato se guarda dentro del impacto financiero (`resultados.financiero.sin_red`), que siempre existe cuando la simulación parte de un cálculo, y una simulación de un sistema aislado siempre parte de uno. Así no cambian el repositorio ni la base. `sin_red` solo se escribe cuando es verdadero, para que los sistemas con red guarden lo mismo que antes. Las simulaciones aisladas guardadas antes de este cambio siguen diciendo "comprada a la red".
+- `HECHO` Prueba nueva: en los resultados y en el detalle, el aislado muestra "Energía que faltó" y la nota, y el híbrido no. El dato `sin_red` se guarda y se lee. 196 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `PENDIENTE` Prueba manual (`PRUEBAS.md`, paso 28), con los otros puntos del bloque.
+
+## 2026-10-05 — Etapa 12 (arreglos): valor de la batería — tarifa según el estrato
+
+- `HECHO` **Normas verificadas antes de programar:**
+  - Subsidio máximo: estrato 1, 60 %, y estrato 2, 50 % (Ley 1117 de 2006, art. 3). Estrato 3, 15 % (Ley 142 de 1994, art. 99.6).
+  - Contribución de solidaridad: 20 % en los estratos 5 y 6 (Ley 142, art. 89).
+  - Consumo de subsistencia: 173 kWh/mes en municipios por debajo de 1.000 m y 130 kWh/mes desde 1.000 m (Resolución UPME 355 de 2004, vigente desde 2007; altura de la cabecera según el IGAC).
+  - Un proyecto de ley de 2026 propone quitar la exención de los industriales, pero no cambia los porcentajes de los hogares.
+  - Fuentes: [Ley 1117 de 2006](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=22656), [Resolución UPME 355 de 2004](https://gestornormativo.creg.gov.co/gestor/entorno/docs/resolucion_upme_0355_2004.htm) y [Ley 632 de 2000](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=4632). El concepto de la [CREG](https://gestornormativo.creg.gov.co/gestor/entorno/docs/concepto_creg_0002494_2014.htm) explica el consumo de subsistencia.
+- `HECHO` **Estrato en la calculadora**, en el paso de consumo (solo sistemas con red):
+  - "Estrato de la vivienda", por defecto el 4, que da lo mismo que antes.
+  - En los estratos 1 a 3 aparece "Consumo de subsistencia": por defecto el de la ciudad elegida según su altura (130 o 173 kWh/mes). Con "Mi ubicación" o las HSP a mano se usa 173 kWh/mes si no se elige otro.
+  - El ⓘ de la tarifa explica que hay que escribir el costo unitario sin subsidio ni contribución (el del estrato 4).
+  - Los resultados muestran el estrato y la factura de energía estimada hoy.
+- `HECHO` **Cálculo:**
+  - `facturaEnergia` aplica el subsidio solo a los primeros kWh (hasta la subsistencia) y la contribución sobre todo el consumo.
+  - `valorEnergiaMes` valora el autoconsumo y la permuta por lo que baja la factura: lo solar quita primero los kWh de arriba.
+  - Con estrato 4 todo da igual que antes, y las pruebas anteriores pasan sin cambios.
+- `DECISIÓN` Se usan los porcentajes máximos de la ley. Por la Ley 1117, el subsidio real de los estratos 1 y 2 depende del operador; el ⓘ dice que el de cada operador aparece en la factura.
+- `DECISIÓN` La altura de las 28 ciudades (ya medida para el clima) pasó a `Ciudad.altitudM`. Cali queda a 1.000 m, así que le tocan 130 kWh/mes (la norma dice "iguales o superiores a 1.000 m").
+- `HECHO` Cuánto cambia (sistema conectado a la red, 200 kWh/mes, 4,5 HSP, $890/kWh):
+
+  | Estrato | Ahorro del mes 1 | Recuperación | VPN |
+  |---|---|---|---|
+  | 1 | $89.016 | 6,9 años | $4,7 M |
+  | 2 | $104.413 | 6,0 años | $7,0 M |
+  | 3 | $158.302 | 4,1 años | $15,1 M |
+  | 4 | $181.398 | 3,6 años | $18,6 M |
+  | 5 y 6 | $216.998 | 3,0 años | $23,9 M |
+
+  La tarifa única de antes sobrestimaba el ahorro de los estratos bajos y lo subestimaba en los altos.
+- `HECHO` Pruebas nuevas:
+  - Factura por estrato: subsidio hasta la subsistencia y contribución.
+  - El ahorro baja en los estratos subsidiados, y la permuta sigue al estrato menos el Cv.
+  - Subsistencia por la altura de la ciudad, incluido el borde de 1.000 m.
+  - El cálculo usa el estrato y lo guarda.
+  - Pantalla: estrato 2 con el perfil en Bogotá da 130 kWh/mes, se muestra en los resultados y se guarda.
+
+  202 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `PENDIENTE` Prueba manual en Chrome y Android de los tres puntos del bloque (`PRUEBAS.md`, pasos 27 a 29).
+
+
+## 2026-10-05 — Etapa 12: revisión de la tarifa por estrato (plan)
+
+- `HECHO` Revisión crítica de la implementación del estrato. El núcleo coincide con el concepto CREG 3023 de 2026: el consumo facturable del autogenerador es el neto después de la permuta, el subsidio se aplica sobre ese neto y lo permutado paga el Cv. Con el código real (200 kWh/mes, 4,5 HSP, $890/kWh, conectado a la red), la recuperación va de 3,0 años (estratos 5 y 6) a 6,9 años (estrato 1 con 173 kWh de subsistencia).
+- `DECISIÓN` Lo que falta está en las entradas: con "Mi ubicación" la subsistencia queda siempre en 173 kWh aunque el GPS da la altitud (en el estrato 1, 173 en vez de 130 cambia la recuperación de 5,6 a 6,9 años); Cali queda en 1.000 m exactos y la regla le da 130 (hay que confirmarlo con EMCALI o la UPME); el subsidio está fijo en el máximo legal, y la regla de la CREG no está citada.
+- `PENDIENTE` Cuatro arreglos y sus pruebas en el bloque "Valor de la batería y tarifa real" de la Etapa 12, antes de la prueba manual y de los tres commits (sin batería, aislado y estrato).
+
+## 2026-10-05 — Etapa 12: arreglos de la tarifa por estrato
+
+- `CORREGIDO` **"Mi ubicación" usaba siempre 173 kWh/mes de consumo de subsistencia.** `RecursoSolarService` ahora devuelve también la altitud del GPS (`altitudM`; `null` cuando el GPS da 0), y la subsistencia sale de ella con `ConsumoSubsistencia.paraAltitudGps`. Sin altitud, o con las HSP a mano, se sigue usando 173, pero el paso "Ubicación" muestra un aviso: si se vive a 1.000 m o más, elegir 130 en el paso "Consumo".
+- `CORREGIDO` **Cali** quedaba en 1.000 m exactos y la regla `>= 1000` le daba 130. La cabecera está a unos 991–995 m: se fija 173 con el nuevo `Ciudad.subsistenciaOficialKwh`. La altura de 1.000 m se deja para la corrección de temperatura, que no cambia. `PENDIENTE` confirmarlo con una factura de EMCALI: la tabla de tarifas de EMCALI en PDF no se pudo leer.
+- `HECHO` **Campo "Subsidio de tu factura"** en los estratos 1 a 3: empieza en el máximo legal (60 / 50 / 15 %) y no deja pasar de él. Se guarda en `entradas.subsidio_estrato` solo si es distinto del máximo; `EntradasCalculo.subsidioAplicado` es el que se usa (0 en los estratos sin subsidio). Los resultados dicen "subsidio de 45 %" cuando se escribió uno.
+- `HECHO` **Regla citada**: el concepto CREG 3023 de 2026 (el consumo facturable del autogenerador es el neto del periodo después de la permuta y el subsidio se aplica sobre ese neto) queda en el comentario de `valorEnergiaMes`, en el ⓘ del estrato y aquí.
+- `HECHO` Pruebas nuevas: subsistencia con y sin altitud del GPS, Cali en 173, subsidio de la factura (factura, cálculo, guardado y que no se use en los estratos sin subsidio), y en pantalla: "Mi ubicación" a 2.600 m da 130, sin altitud da 173 con aviso, y el subsidio escrito llega al cálculo y a los resultados. 207 pruebas pasan; `flutter analyze` sin advertencias.
+- `PENDIENTE` Prueba manual (`PRUEBAS.md`, pasos 27 a 30) y los tres commits separados del bloque.
+
+## 2026-10-05 — Etapa 12: prueba en el celular y tres defectos
+
+- `HECHO` Prueba de los pasos 27 a 30 en el celular del autor, manejado por `adb` (capturas y árbol de accesibilidad), sin guardar nada en su cuenta. Estrato 1 con subsidio de 45 %, Bogotá con estrato 2 y 5, híbrido con "¿Y sin batería?" y aislado con "energía que faltó": las facturas estimadas coinciden con el cálculo a mano ($108.713, $120.150 y $213.600).
+- `PENDIENTE` "Mi ubicación" con la altitud del GPS no se pudo probar: la ubicación del celular estaba apagada (el autor debe activarla). El paso 28 se probó sin guardar, así que falta el detalle en el historial. Falta Chrome.
+- `CORREGIDO` Los desplegables de estrato y consumo de subsistencia cortaban el texto a mitad de frase en un celular de 360 dp ("Estrato 1 · subsidio", "Según el lugar (ciudad o"), porque el ícono ⓘ quita ancho. Ahora el campo cerrado muestra una versión corta en una línea, con "…" si no cabe ("Estrato 1", "Estrato 5 · +20 %", "Según el lugar", "130 kWh/mes"); la lista abierta conserva el texto completo.
+- `CORREGIDO` Con las dos políticas iguales, la simulación decía "cambia la caída del SoH en -0,0 % y la energía que faltó en 0,0 %". Nueva `fraseComparacionPoliticas`: diferencias menores a 0,05 % cuentan como cero; si las dos lo son, lo dice con palabras (la batería casi nunca llega a los límites de la política consciente), y si no, dice "reduce" o "aumenta" sin signo.
+- `CORREGIDO` La nota de "Ahorro y retorno" decía "En el siguiente módulo se calculará con la simulación de degradación" (texto de la Etapa 3). Ahora, con litio, remite al botón "Simular la salud de esta batería"; con plomo-ácido solo da la vida típica.
+- `DECISIÓN` Observado en la prueba: en el aislado de Bogotá (16,5 kWh, zona muy nublada) las dos políticas dan el mismo SoH los 10 años (95,7 %), y la app avisa que pierde 0,43 puntos por año frente a 1,3–1,7 de la literatura. Con esa degradación la vida la limita el tope calendario, así que la simulación tampoco cambia el dinero en ese caso: antes de presentar el aislado como caso central hay que buscar una configuración donde sí lo haga, o decirlo en la diapositiva de límites.
+- `HECHO` Pruebas nuevas: frase de comparación (sin diferencia, con diferencia, una sola nula), estrato corto, campos cerrados cortos en pantalla y nota del ahorro. 211 pruebas pasan; `flutter analyze` sin advertencias.
+
+## 2026-10-05 — Etapa 12: altitud por coordenadas y prueba del GPS
+
+- `CORREGIDO` Probado con la ubicación activada: "Mi ubicación" seguía mostrando el aviso de 173 kWh/mes. La app pide la ubicación aproximada (`ACCESS_COARSE_LOCATION`, precisión baja), que sale de las redes wifi y celulares y no trae altitud, así que el arreglo anterior casi nunca servía. Ahora, si el GPS no da la altitud, se pide por coordenadas al servicio gratuito de elevación de Open-Meteo (`api.open-meteo.com/v1/elevation`, modelo Copernicus de 90 m, sin clave). Si falla, se sigue sin altitud: no impide el cálculo. La misma altitud corrige la temperatura del clima. Se quitó `ConsumoSubsistencia.paraAltitudGps`: el servicio ya devuelve `null` cuando no sabe la altitud.
+- `DECISIÓN` La regla de la UPME usa la altura de la cabecera municipal; con "Mi ubicación" se usa la del punto, que cerca de 1.000 m puede no coincidir (en Cali, Open-Meteo dio 1.009 m en el centro y la cabecera da 173). Queda dicho en el ⓘ del consumo de subsistencia.
+- `CORREGIDO` Con "Mi ubicación" elegida, el ✓ del botón segmentado dejaba su texto diminuto (el arreglo de 320 px achica la letra en vez de cortarla). El selector de lugar ya no muestra el ✓; la opción elegida se ve por el fondo.
+- `HECHO` Prueba en el celular del autor (con la ubicación activada por él y el permiso concedido por él): sin aviso, y los resultados dicen "subsidio hasta 60 % en los primeros 130 kWh/mes" (el punto está a 1.000 m o más), con la factura estimada de $108.580, igual al cálculo a mano. `PRUEBAS.md`, paso 30, verificado en Android.
+- `HECHO` Pruebas nuevas de la URL y la lectura de la altitud de Open-Meteo (con 0 m como dato válido y respuestas sin dato). 213 pruebas pasan; `flutter analyze` sin advertencias.

@@ -266,10 +266,16 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 
 **Valor de la batería y tarifa real (revisión crítica 3, 2026-10-05)**
 *Con la CREG 174, el excedente que se envía a la red se descuenta de la factura a la tarifa menos el Cv, así que en un sistema con red la batería casi no ahorra dinero. Con 200 kWh/mes, 4,5 HSP y $890/kWh: el híbrido da VPN $14,9 M (batería buena) a $12,8 M (batería degradada), y el mismo sistema sin batería $18,6 M. En el aislado la degradación sí cambia la decisión (VPN de $8,7 M a −$5,2 M), pero el modelo manda el faltante a "energía comprada a la red", que en una casa sin red no existe.*
-- [ ] Resultados del híbrido: comparar con el mismo sistema sin batería ("la batería resta $X al VPN; su valor está en cubrir los cortes"), corriendo `calcular` dos veces
-- [ ] Sistema aislado: mostrar "energía comprada a la red" como "energía que faltó" (cortes, planta o combustible), con una nota; solo cambian la etiqueta y su interpretación, no las ecuaciones de NetLogo
-- [ ] Tarifa según el estrato: tarifa efectiva con el subsidio de los estratos 1 a 3 hasta el consumo de subsistencia y la contribución de los estratos 5 y 6 (verificar antes los porcentajes y el consumo de subsistencia vigentes, que depende de la altura). Si no da tiempo, que el ⓘ de la tarifa diga qué valor del kWh usar
-- [ ] Pruebas de los tres puntos y prueba manual en Chrome y Android
+- [x] Resultados del híbrido: comparar con el mismo sistema sin batería ("la batería resta $X al VPN; su valor está en cubrir los cortes"), corriendo `calcular` dos veces (tarjeta "¿Y sin batería?")
+- [x] Sistema aislado: mostrar "energía comprada a la red" como "energía que faltó" (cortes, planta o combustible), con una nota; solo cambian la etiqueta y su interpretación, no las ecuaciones de NetLogo
+- [x] Tarifa según el estrato: tarifa efectiva con el subsidio de los estratos 1 a 3 hasta el consumo de subsistencia y la contribución de los estratos 5 y 6 (verificar antes los porcentajes y el consumo de subsistencia vigentes, que depende de la altura). Si no da tiempo, que el ⓘ de la tarifa diga qué valor del kWh usar
+- [x] Consumo de subsistencia con "Mi ubicación": tomarlo de la altitud (la ubicación aproximada no trae altitud del GPS, así que se pide por coordenadas al servicio de elevación de Open-Meteo); antes: tomarlo de la altitud del GPS (`posicion.altitude`, que ya se lee para la temperatura); sin altitud, aviso visible de que se usó 173 kWh/mes y que se cambie si se vive a 1.000 m o más. Con el estrato 1, 173 en vez de 130 cambia la recuperación de 5,6 a 6,9 años
+- [x] Cali: confirmar su consumo de subsistencia en una factura de EMCALI o en la lista oficial de la UPME y fijarlo a mano en la tabla con un comentario; hoy queda en 1.000 m exactos y la regla `>= 1000` le da 130 (fijado en 173: la cabecera está a unos 995 m; falta confirmarlo con una factura de EMCALI)
+- [x] Campo "Subsidio de tu factura" solo para los estratos 1 a 3, con el máximo legal (60 / 50 / 15 %) por defecto: el operador puede aplicar uno menor
+- [x] Citar el concepto CREG 3023 de 2026 (el consumo facturable del autogenerador es el neto después de la permuta y el subsidio se aplica sobre ese neto) en `valorEnergiaMes`, en el ⓘ del estrato y en `BITACORA.md`
+- [x] Pruebas: "Mi ubicación" a 2.600 m da 130; sin altitud da 173 con aviso; el subsidio editado cambia el ahorro
+- [ ] Pruebas de los tres puntos y prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 27 a 30)
+- [ ] Tres commits separados: sin batería, aislado y estrato
 
 ## Etapa 13 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase
