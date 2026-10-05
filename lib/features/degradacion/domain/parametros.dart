@@ -64,6 +64,8 @@ class ParametrosSimulacion {
     this.pesoCorriente = 2,
     this.pesoVariacionCarga = 1,
     this.factorConsumo = 1,
+    this.irradianciaMaximaLugar,
+    this.temperaturaMediaLugar,
     this.anios = 10,
   });
 
@@ -100,6 +102,21 @@ class ParametrosSimulacion {
   /// Multiplica el consumo de la casa. 1 = perfil de NetLogo (≈ 20 kWh/día);
   /// en la Etapa 6 se ajusta al consumo calculado en la calculadora.
   final double factorConsumo;
+
+  /// Irradiancia máxima (W/m²) y temperatura media (°C) de un lugar
+  /// concreto (Etapa 12). Si son `null` se usan las del escenario de
+  /// NetLogo. Solo cambian las entradas del modelo, no sus ecuaciones.
+  final double? irradianciaMaximaLugar;
+  final double? temperaturaMediaLugar;
+
+  double get irradianciaMaxima =>
+      irradianciaMaximaLugar ?? escenario.irradianciaMaxima;
+  double get temperaturaMedia =>
+      temperaturaMediaLugar ?? escenario.temperaturaMedia;
+
+  /// Es una configuración de NetLogo (sin ajustes de lugar).
+  bool get esDeNetLogo =>
+      irradianciaMaximaLugar == null && temperaturaMediaLugar == null;
 
   /// Horizonte en años (NetLogo: 10 años = 87 600 horas).
   final int anios;
@@ -139,6 +156,8 @@ class ParametrosSimulacion {
     pesoCorriente: pesoCorriente ?? this.pesoCorriente,
     pesoVariacionCarga: pesoVariacionCarga ?? this.pesoVariacionCarga,
     factorConsumo: factorConsumo ?? this.factorConsumo,
+    irradianciaMaximaLugar: irradianciaMaximaLugar,
+    temperaturaMediaLugar: temperaturaMediaLugar,
     anios: anios ?? this.anios,
   );
 
@@ -158,6 +177,8 @@ class ParametrosSimulacion {
     'peso_corriente': pesoCorriente,
     'peso_variacion_carga': pesoVariacionCarga,
     'factor_consumo': factorConsumo,
+    'irradiancia_maxima_lugar': irradianciaMaximaLugar,
+    'temperatura_media_lugar': temperaturaMediaLugar,
     'anios': anios,
   };
 }

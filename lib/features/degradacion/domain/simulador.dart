@@ -189,14 +189,14 @@ class SimuladorSimDeg {
         .toDouble();
     _llueve = _clima == ClimaDia.lluvia && !_tormenta && _azar.uniforme() < 0.6;
     _irradiancia = irradiancia(
-      maxima: p.escenario.irradianciaMaxima,
+      maxima: p.irradianciaMaxima,
       hora: _hora,
       mes: mes,
       nubosidad: _nubosidad,
     );
     _temperatura =
         temperaturaBase(
-          media: p.escenario.temperaturaMedia,
+          media: p.temperaturaMedia,
           desfaseDia: _desfaseTempDia,
           hora: _hora,
           llueve: _llueve,
