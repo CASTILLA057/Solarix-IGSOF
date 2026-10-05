@@ -264,6 +264,13 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Pruebas de cada arreglo (fórmulas, políticas RLS y pantallas nuevas): pruebas de Dart por bloque y `supabase/pruebas/seguridad_rls.sql` contra el Supabase real (18 de 18, todo se deshace)
 - [x] Prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 20 a 26)
 
+**Valor de la batería y tarifa real (revisión crítica 3, 2026-10-05)**
+*Con la CREG 174, el excedente que se envía a la red se descuenta de la factura a la tarifa menos el Cv, así que en un sistema con red la batería casi no ahorra dinero. Con 200 kWh/mes, 4,5 HSP y $890/kWh: el híbrido da VPN $14,9 M (batería buena) a $12,8 M (batería degradada), y el mismo sistema sin batería $18,6 M. En el aislado la degradación sí cambia la decisión (VPN de $8,7 M a −$5,2 M), pero el modelo manda el faltante a "energía comprada a la red", que en una casa sin red no existe.*
+- [ ] Resultados del híbrido: comparar con el mismo sistema sin batería ("la batería resta $X al VPN; su valor está en cubrir los cortes"), corriendo `calcular` dos veces
+- [ ] Sistema aislado: mostrar "energía comprada a la red" como "energía que faltó" (cortes, planta o combustible), con una nota; solo cambian la etiqueta y su interpretación, no las ecuaciones de NetLogo
+- [ ] Tarifa según el estrato: tarifa efectiva con el subsidio de los estratos 1 a 3 hasta el consumo de subsistencia y la contribución de los estratos 5 y 6 (verificar antes los porcentajes y el consumo de subsistencia vigentes, que depende de la altura). Si no da tiempo, que el ⓘ de la tarifa diga qué valor del kWh usar
+- [ ] Pruebas de los tres puntos y prueba manual en Chrome y Android
+
 ## Etapa 13 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase
 - [ ] Manual breve de usuario (puedes reaprovechar texto de los dos Word que ya tienes)

@@ -577,3 +577,10 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
   - Una prueba a 320 px cubre los dos arreglos; sin ellos falla (84 px y 60 px de alto, en vez de una línea).
 - `HECHO` 190 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
 - `HECHO` **Etapa 12 completa.**
+
+## 2026-10-05 — Etapa 12: revisión crítica 3 (plan)
+
+- `HECHO` Tercera revisión crítica del proyecto, ya con la Etapa 12 cerrada. Se midió con las funciones de cálculo (scripts temporales, borrados) cuánto mueven el resultado los supuestos y la batería.
+- `DECISIÓN` Hallazgo principal: con la CREG 174, en un sistema con red cada kWh que guarda la batería vale apenas el Cv frente a mandarlo a la red. Con 200 kWh/mes, 4,5 HSP y $890/kWh, el híbrido da VPN $14,9 M (batería que dura 15 años y entrega el 100 %) a $12,8 M (8 años y 80 %), y el mismo sistema sin batería $18,6 M. En el aislado la degradación sí cambia la decisión (VPN de $8,7 M a −$5,2 M; recuperación de 7,5 a 12,5 años), pero el modelo de NetLogo manda el faltante a "energía comprada a la red", que en una casa sin red no existe.
+- `DECISIÓN` La recuperación en un sistema conectado a la red (3,4–3,6 años) casi no cambia con los supuestos inciertos (bolsa a $120, tarifa +3 %/año, autoconsumo 30 %, tasa 15 %: como mucho 0,2 años). La deciden el precio instalado y la tarifa, y la tarifa es una sola ($890, estrato 4) para todos los estratos.
+- `PENDIENTE` Nuevo bloque "Valor de la batería y tarifa real" en la Etapa 12: comparación del híbrido con el mismo sistema sin batería, "energía que faltó" en el aislado y tarifa según el estrato.
