@@ -240,11 +240,11 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Prueba manual del bloque en Android (revisada en el celular del autor)
 
 **Que la demo no dependa de servicios gratuitos**
-- [ ] Calculadora y simulación sin sesión, con los respaldos locales (`ciudadesBase` y precios en Dart); la cuenta solo para guardar e historial
-- [ ] Una sola fuente de verdad para precios y ciudades: hoy la migración y `modelos.dart`/`catalogos.dart` se sincronizan a mano
-- [ ] Revisar el remitente de los correos: `@gmail.com` enviado por Brevo puede caer en spam por DMARC; probar con una cuenta nueva y, si falla, usar el remitente que Brevo recomiende
-- [ ] Cuenta de demo ya verificada para la sustentación
-- [ ] Copia de respaldo de la llave de firma (`solarix.jks`) y de `key.properties` fuera de este PC
+- [x] Calculadora y simulación sin sesión, con los respaldos locales (`ciudadesBase` y precios en Dart); la cuenta solo para guardar e historial
+- [x] Una sola fuente de verdad para precios y ciudades: hoy la migración y `modelos.dart`/`catalogos.dart` se sincronizan a mano (ahora solo Dart; las tablas quedan sin uso)
+- [x] Revisar el remitente de los correos: `@gmail.com` enviado por Brevo puede caer en spam por DMARC; probar con una cuenta nueva y, si falla, usar el remitente que Brevo recomiende (con Hotmail llega a la bandeja de entrada)
+- [x] Cuenta de demo ya verificada para la sustentación (la de prueba de la Etapa 10; arranca vacía)
+- [x] Copia de respaldo de la llave de firma (`solarix.jks`) y de `key.properties` fuera de este PC (en el Google Drive privado del autor)
 
 **Seguridad del backend (nueva migración)**
 - [ ] Límite de tamaño en las columnas `jsonb` (`entradas`, `resultados`, `parametros`, `serie`), por ejemplo con `pg_column_size`

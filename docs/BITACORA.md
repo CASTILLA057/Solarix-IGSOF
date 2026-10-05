@@ -481,3 +481,18 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
   - Simulación de Bogotá: los resultados y el detalle del historial (Supabase real) dicen "irradiancia máxima 902 W/m² · 13,3 °C · zona muy nublada". Con el frío de Bogotá, en la política consciente limita la vida calendario.
 - `CORREGIDO` Encontrado en esa revisión: en el selector de lugar, "Lugar del cálculo · 5,5" no dejaba ver "HSP" en un celular de 360 px. Ahora dice "Del cálculo · 5,5 HSP", y cualquier opción que no quepa termina en "…".
 - `HECHO` El autor aprobó el bloque y pidió subirlo. Quedaron en su cuenta un cálculo "Prueba clima Riohacha" y una simulación de Bogotá de prueba.
+
+## 2026-10-05 — Etapa 12 (arreglos): que la demo no dependa de servicios gratuitos
+
+- `HECHO` **"Probar sin cuenta"**: la bienvenida tiene un tercer botón que entra en modo invitado (`modoInvitadoProvider`).
+  - La calculadora y la simulación funcionan completas sin sesión; el perfil y el historial siguen pidiendo cuenta (`Rutas.paraInvitados`; `redirigir` recibe `invitado`).
+  - El inicio sin sesión no consulta el historial: muestra "Estás probando Solarix sin cuenta" con "Crear cuenta" e "Iniciar sesión".
+  - En los resultados, en vez de "Guardar" aparece "Crea una cuenta para guardar", y "Volver al inicio" no pregunta, porque no hay nada que guardar.
+  - Al iniciar sesión, el modo invitado se apaga solo.
+- `DECISIÓN` **Precios y ciudades solo en Dart** (`Precios.referencia`, `ciudadesBase`): la app ya no lee las tablas `precios_referencia` y `ciudades`. Funciona igual sin internet, sin sesión o con Supabase pausado (antes, sin sesión, la RLS devolvía las tablas vacías y la app caía en el respaldo de Dart). Cambiar un precio o una ciudad requiere una versión nueva de la app. Se quitaron `obtenerPrecios`, `obtenerCiudades`, `preciosProvider`, `ciudadesProvider` y las pruebas que comparaban la migración con Dart. En Supabase no se tocó nada: las tablas quedan sin uso y se pueden quitar en el bloque de seguridad, con el visto bueno del autor.
+- `HECHO` **Remitente de los correos**: el autor creó una cuenta con un correo de Hotmail y el código llegó a la bandeja de entrada, no a spam. Se deja el remitente actual.
+- `DECISIÓN` **Cuenta de demo**: la cuenta de prueba de la Etapa 10 (credenciales en `prueba.json`, fuera de git), ya verificada. Por decisión del autor arranca vacía.
+- `HECHO` El autor probó el modo invitado en el celular.
+- `HECHO` Pruebas nuevas: rutas sin cuenta (lo permitido, lo que sigue pidiendo sesión y que sin elegir "Probar sin cuenta" todo pide sesión) y el recorrido sin cuenta: calcular, simular, no guardar, volver sin preguntar y el historial pidiendo cuenta. 177 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` El autor subió la copia de `solarix.jks` y `key.properties` a su Google Drive privado.
+- `HECHO` **Bloque completo.** Subido a GitHub en commits separados por tema.
