@@ -43,6 +43,13 @@ ErrorApp errorDesde(Object e, {String accion = 'completar la operación'}) {
     // JWT vencido o inválido en una consulta a las tablas.
     PostgrestException(code: 'PGRST301' || 'PGRST303') =>
       CodigosError.sesionExpirada,
+    // Límites de la migración de seguridad (Etapa 12).
+    PostgrestException(:final message)
+        when message.startsWith(CodigosError.limiteFilas) =>
+      CodigosError.limiteFilas,
+    PostgrestException(code: '23514', :final message)
+        when message.contains('_tamano') =>
+      CodigosError.datosMuyGrandes,
     AuthException(:final code?) => code,
     _ => null,
   };

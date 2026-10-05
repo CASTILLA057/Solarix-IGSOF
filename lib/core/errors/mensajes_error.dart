@@ -8,6 +8,11 @@ abstract final class CodigosError {
   /// El proyecto de Supabase está pausado (plan gratuito tras días sin uso).
   static const pausado = 'proyecto_pausado';
   static const sesionExpirada = 'session_expired';
+
+  /// Límites de la base (Etapa 12): 200 cálculos y 200 simulaciones por
+  /// usuario, y tamaño máximo de los datos guardados.
+  static const limiteFilas = 'limite_filas';
+  static const datosMuyGrandes = 'datos_muy_grandes';
 }
 
 /// Traduce un código de error de Supabase Auth a un mensaje en español.
@@ -31,6 +36,12 @@ String mensajeErrorAuth(String? codigo) => switch (codigo) {
         'o avísale al administrador para que lo reactive.',
   CodigosError.sesionExpirada || 'refresh_token_not_found' =>
     'Tu sesión expiró. Cierra sesión y vuelve a entrar.',
+  CodigosError.limiteFilas =>
+    'Llegaste al máximo de 200 guardados de este tipo. Elimina algunos del '
+        'historial para guardar más.',
+  CodigosError.datosMuyGrandes =>
+    'Los datos son demasiado grandes para guardarlos. Reduce los equipos o '
+        'los años.',
   CodigosError.sinBackend =>
     'La app no tiene configurado Supabase (falta env.json).',
   _ => 'Ocurrió un error inesperado. Intenta de nuevo.',
