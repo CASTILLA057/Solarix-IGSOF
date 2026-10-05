@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/formato.dart';
 import '../../../core/widgets/navegacion.dart';
 import '../../degradacion/presentation/etiquetas.dart';
+import '../../degradacion/presentation/impacto_financiero.dart';
 import '../domain/historial.dart';
 import 'historial_screen.dart';
 import 'widgets/graficas.dart';
@@ -97,6 +98,11 @@ class DetalleSimulacionScreen extends StatelessWidget {
                   politicaAlternativa: s.politicaAlternativa,
                 ),
               ),
+              if (s.impacto case final impacto?)
+                tarjeta(
+                  'Con el sistema que dimensionaste',
+                  TablaImpacto(impacto: impacto),
+                ),
               if (serie.isNotEmpty) ...[
                 tarjeta(
                   'Generación y consumo por mes',

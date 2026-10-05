@@ -5,7 +5,6 @@ import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/widgets/navegacion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
-import '../../calculadora/domain/calculadora.dart';
 import '../../dashboard/application/historial_providers.dart';
 import '../../dashboard/presentation/widgets/graficas.dart';
 import '../application/simulacion_providers.dart';
@@ -14,6 +13,7 @@ import '../domain/integracion.dart';
 import '../domain/parametros.dart';
 import '../domain/simulador.dart';
 import 'etiquetas.dart';
+import 'impacto_financiero.dart';
 
 /// Resultados de la simulación: SoH de la política elegida y comparación
 /// lado a lado con la otra política bajo el mismo clima.
@@ -40,6 +40,18 @@ class _ResultadosSimulacionScreenState
   bool _guardada = false;
   String? _error;
 
+  /// Efecto en la inversión del cálculo de origen (Etapa 12), si lo hay.
+  late final ImpactoFinanciero? _impacto = switch (widget.origen) {
+    null => null,
+    final origen => calcularImpacto(
+      origen: origen,
+      convencional: widget.comparacion.convencional,
+      consciente: widget.comparacion.consciente,
+      referencia: widget.comparacion.referencia,
+      elegida: widget.comparacion.parametros.politica,
+    ),
+  };
+
   /// `true` si quedó guardada.
   Future<bool> _guardar() async {
     setState(() {
@@ -49,7 +61,11 @@ class _ResultadosSimulacionScreenState
     try {
       await ref
           .read(simulacionRepositoryProvider)
-          .guardar(widget.comparacion, calculoId: widget.origen?.calculoId);
+          .guardar(
+            widget.comparacion,
+            calculoId: widget.origen?.calculoId,
+            impacto: _impacto,
+          );
       if (!mounted) return true;
       ref.invalidate(simulacionesGuardadasProvider); // actualiza el dashboard
       setState(() => _guardada = true);
@@ -114,14 +130,11 @@ class _ResultadosSimulacionScreenState
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
-              if (widget.origen case final origen?)
+              if (_impacto case final impacto?)
                 _Tarjeta(
                   titulo: 'Con el sistema que dimensionaste',
                   icono: Icons.savings_outlined,
-                  child: _ImpactoInversion(
-                    origen: origen,
-                    simulacion: c.principal,
-                  ),
+                  child: TablaImpacto(impacto: impacto),
                 ),
               _Tarjeta(
                 titulo: 'Convencional frente a consciente',
@@ -203,98 +216,6 @@ class _Destacado extends StatelessWidget {
   }
 }
 
-/// Vida de la batería según la simulación y su efecto en el retorno de la
-/// inversión calculado en la calculadora (que usaba la vida típica).
-class _ImpactoInversion extends StatelessWidget {
-  const _ImpactoInversion({required this.origen, required this.simulacion});
-
-  final OrigenCalculo origen;
-  final ResultadoSimulacion simulacion;
-
-  @override
-  Widget build(BuildContext context) {
-    final antes = origen.resultado;
-    final vidaTipica = origen.entradas.quimica.vidaUtilAnios;
-    final aniosVida = aniosHastaFinDeVida(simulacion);
-    final vida = vidaBateriaParaFlujo(simulacion);
-    // Sin degradación apreciable: no hay reemplazo dentro del horizonte.
-    final despues = calcular(
-      origen.entradas,
-      vidaBateriaAnios: vida ?? origen.entradas.supuestos.anios + 1,
-    );
-    final horizonte = origen.entradas.supuestos.anios;
-    final filas = <(String, String, String)>[
-      (
-        'Vida de la batería',
-        '$vidaTipica años (típica)',
-        aniosVida == null
-            ? 'Más de $horizonte años'
-            : '${Formato.numero(aniosVida, 1)} años',
-      ),
-      (
-        'Recuperación de la inversión',
-        Formato.anios(antes.paybackAnios, horizonte),
-        Formato.anios(despues.paybackAnios, horizonte),
-      ),
-      ('VPN', Formato.cop(antes.vpn), Formato.cop(despues.vpn)),
-      (
-        'Costo total en $horizonte años',
-        Formato.cop(antes.gastosTotales),
-        Formato.cop(despues.gastosTotales),
-      ),
-    ];
-    final estilo = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          aniosVida == null
-              ? 'Con tu consumo, la batería casi no se degrada en el horizonte '
-                    'del análisis.'
-              : 'Así se vería la salud de tu batería: llega al 80 % en unos '
-                    '${Formato.numero(aniosVida, 1)} años. Así cambia tu '
-                    'retorno de inversión al usar esa vida en lugar de la '
-                    'típica:',
-          style: estilo.bodyMedium,
-        ),
-        const SizedBox(height: 12),
-        Table(
-          columnWidths: const {0: FlexColumnWidth(1.4)},
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          children: [
-            TableRow(
-              children: [
-                const SizedBox.shrink(),
-                Text(
-                  'Calculadora',
-                  textAlign: TextAlign.end,
-                  style: estilo.labelLarge,
-                ),
-                Text(
-                  'Con simulación',
-                  textAlign: TextAlign.end,
-                  style: estilo.labelLarge,
-                ),
-              ],
-            ),
-            for (final (etiqueta, a, b) in filas)
-              TableRow(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Text(etiqueta),
-                  ),
-                  Text(a, textAlign: TextAlign.end),
-                  Text(b, textAlign: TextAlign.end),
-                ],
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class _TablaComparacion extends StatelessWidget {
   const _TablaComparacion({required this.comparacion});
 
@@ -347,11 +268,7 @@ class _TablaComparacion extends StatelessWidget {
               children: [
                 const SizedBox.shrink(),
                 for (final p in Politica.values)
-                  Text(
-                    titulo(p),
-                    textAlign: TextAlign.end,
-                    style: estilo.labelLarge,
-                  ),
+                  EncabezadoTabla(titulo(p), estilo: estilo.labelLarge),
               ],
             ),
             for (final (etiqueta, a, b) in filas)
@@ -398,10 +315,9 @@ class _TablaAnual extends StatelessWidget {
           children: [
             Text('Año', style: Theme.of(context).textTheme.labelLarge),
             for (final p in Politica.values)
-              Text(
+              EncabezadoTabla(
                 p.etiqueta,
-                textAlign: TextAlign.end,
-                style: Theme.of(context).textTheme.labelLarge,
+                estilo: Theme.of(context).textTheme.labelLarge,
               ),
           ],
         ),

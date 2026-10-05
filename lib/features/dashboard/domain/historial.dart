@@ -1,4 +1,5 @@
 import '../../calculadora/domain/modelos.dart';
+import '../../degradacion/domain/integracion.dart';
 import '../../degradacion/domain/parametros.dart';
 
 /// Cálculos y simulaciones guardados (Etapa 7), leídos de las filas de
@@ -107,6 +108,7 @@ class SimulacionGuardada {
     required this.sohFinalAlternativa,
     required this.sohAnualAlternativa,
     required this.serie,
+    this.impacto,
   });
 
   factory SimulacionGuardada.desdeFila(Map<String, dynamic> f) {
@@ -149,6 +151,10 @@ class SimulacionGuardada {
         for (final m in (f['serie'] as List?) ?? [])
           MesGuardado.desdeMapa((m as Map).cast<String, dynamic>()),
       ],
+      impacto: switch (r['financiero']) {
+        final Map m => ImpactoFinanciero.desdeMapa(m.cast<String, dynamic>()),
+        _ => null,
+      },
     );
   }
 
@@ -170,6 +176,10 @@ class SimulacionGuardada {
   final double sohFinalAlternativa;
   final List<double> sohAnualAlternativa;
   final List<MesGuardado> serie;
+
+  /// Efecto en la inversión del cálculo de origen (Etapa 12); `null` en
+  /// simulaciones sin cálculo o guardadas antes de la Etapa 12.
+  final ImpactoFinanciero? impacto;
 }
 
 /// Filtro de fecha del historial.

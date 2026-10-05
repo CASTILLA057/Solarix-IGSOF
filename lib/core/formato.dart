@@ -10,6 +10,12 @@ abstract final class Formato {
 
   static String cop(num valor) => _cop.format(valor);
 
+  /// Pesos abreviados para tablas angostas: `22.421.823` → `$ 22,4 M`.
+  /// Menos de un millón, completo.
+  static String copCorto(num valor) => valor.abs() < 1e6
+      ? cop(valor)
+      : '${valor < 0 ? '-' : ''}\$ ${numero(valor.abs() / 1e6, 1)} M';
+
   /// Número con [decimales] decimales, p. ej. `numero(4.25, 1)` → `4,3`.
   static String numero(num valor, [int decimales = 0]) =>
       NumberFormat.decimalPatternDigits(
