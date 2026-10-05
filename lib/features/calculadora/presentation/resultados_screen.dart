@@ -6,6 +6,7 @@ import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../dashboard/application/historial_providers.dart';
 import '../../degradacion/domain/integracion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
@@ -74,9 +75,11 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
     }
   }
 
-  /// Antes de ir al inicio: si no está guardado, pregunta.
+  /// Antes de ir al inicio: si no está guardado, pregunta (sin sesión no
+  /// se puede guardar, así que no pregunta).
   Future<bool> _puedeSalir() async =>
       _guardado ||
+      !ref.read(haySesionProvider) ||
       await confirmarSalidaSinGuardar(
         context,
         que: 'este cálculo',
@@ -205,11 +208,14 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                 MensajeError(_error!),
                 const SizedBox(height: 12),
               ],
-              BotonPrincipal(
-                texto: _guardado ? 'Cálculo guardado' : 'Guardar cálculo',
-                cargando: _guardando,
-                onPressed: _guardado ? () {} : _guardar,
-              ),
+              if (ref.watch(haySesionProvider))
+                BotonPrincipal(
+                  texto: _guardado ? 'Cálculo guardado' : 'Guardar cálculo',
+                  cargando: _guardando,
+                  onPressed: _guardado ? () {} : _guardar,
+                )
+              else
+                const AvisoSinCuenta(que: 'este cálculo'),
               if (_puedeSimular) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -220,7 +226,7 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                   icon: const Icon(Icons.battery_charging_full_outlined),
                   label: const Text('Simular la salud de esta batería'),
                 ),
-                if (!_guardado)
+                if (!_guardado && ref.watch(haySesionProvider))
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(

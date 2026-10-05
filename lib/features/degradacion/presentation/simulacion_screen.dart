@@ -167,7 +167,9 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
   }
 
   String _ciudadInicial() {
-    final delPerfil = ref.read(perfilProvider).value?.ciudad?.trim();
+    final delPerfil = ref.read(haySesionProvider)
+        ? ref.read(perfilProvider).value?.ciudad?.trim()
+        : null;
     final ciudad = ciudadesBase.where(
       (c) =>
           delPerfil != null &&

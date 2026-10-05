@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../dashboard/application/historial_providers.dart';
 import '../../dashboard/presentation/widgets/graficas.dart';
@@ -80,9 +81,11 @@ class _ResultadosSimulacionScreenState
     }
   }
 
-  /// Antes de ir al inicio: si no está guardada, pregunta.
+  /// Antes de ir al inicio: si no está guardada, pregunta (sin sesión no
+  /// se puede guardar, así que no pregunta).
   Future<bool> _puedeSalir() async =>
       _guardada ||
+      !ref.read(haySesionProvider) ||
       await confirmarSalidaSinGuardar(
         context,
         que: 'esta simulación',
@@ -151,11 +154,16 @@ class _ResultadosSimulacionScreenState
                 MensajeError(_error!),
                 const SizedBox(height: 12),
               ],
-              BotonPrincipal(
-                texto: _guardada ? 'Simulación guardada' : 'Guardar simulación',
-                cargando: _guardando,
-                onPressed: _guardada ? () {} : _guardar,
-              ),
+              if (ref.watch(haySesionProvider))
+                BotonPrincipal(
+                  texto: _guardada
+                      ? 'Simulación guardada'
+                      : 'Guardar simulación',
+                  cargando: _guardando,
+                  onPressed: _guardada ? () {} : _guardar,
+                )
+              else
+                const AvisoSinCuenta(que: 'esta simulación'),
               const SizedBox(height: 4),
               BotonVolverAlInicio(antesDeSalir: _puedeSalir),
               const SizedBox(height: 24),

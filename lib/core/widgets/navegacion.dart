@@ -83,3 +83,31 @@ Future<bool> confirmarSalidaSinGuardar(
     _Salida.guardar => await guardar(),
   };
 }
+
+/// Sin sesión (probando sin cuenta): en vez de "Guardar", invita a crear
+/// una cuenta. Los resultados no se guardan.
+class AvisoSinCuenta extends StatelessWidget {
+  const AvisoSinCuenta({super.key, required this.que});
+
+  /// "este cálculo", "esta simulación".
+  final String que;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      OutlinedButton.icon(
+        onPressed: () => context.go(Rutas.registro),
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+        icon: const Icon(Icons.person_add_alt_1_outlined),
+        label: const Text('Crea una cuenta para guardar'),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Estás probando sin cuenta: $que no se guarda.',
+        style: Theme.of(context).textTheme.bodySmall,
+        textAlign: TextAlign.center,
+      ),
+    ],
+  );
+}

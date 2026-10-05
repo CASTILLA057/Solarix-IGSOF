@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_theme.dart';
+import '../application/auth_providers.dart';
 
 /// Primera pantalla sin sesión: presenta Solarix y lleva a iniciar sesión o
 /// a crear una cuenta. El contenido aparece con un fundido suave.
-class BienvenidaScreen extends StatelessWidget {
+class BienvenidaScreen extends ConsumerWidget {
   const BienvenidaScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
     final solar = ColoresSolarix.of(context).solar;
     return Scaffold(
@@ -80,6 +82,18 @@ class BienvenidaScreen extends StatelessWidget {
                         minimumSize: const Size.fromHeight(48),
                       ),
                       child: const Text('Crear cuenta'),
+                    ),
+                    const SizedBox(height: 4),
+                    // La cuenta solo hace falta para guardar (Etapa 12).
+                    TextButton(
+                      onPressed: () {
+                        ref.read(modoInvitadoProvider.notifier).entrar();
+                        context.go(Rutas.inicio);
+                      },
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      child: const Text('Probar sin cuenta'),
                     ),
                   ],
                 ),

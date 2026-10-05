@@ -6,6 +6,7 @@ import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/estados.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../application/historial_providers.dart';
 import 'historial_screen.dart';
@@ -19,22 +20,33 @@ class InicioScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
-    final calculos = ref.watch(calculosGuardadosProvider);
-    final simulaciones = ref.watch(simulacionesGuardadasProvider);
+    // Sin sesión (probando sin cuenta) no hay historial que consultar.
+    final haySesion = ref.watch(haySesionProvider);
+    final calculos = haySesion ? ref.watch(calculosGuardadosProvider) : null;
+    final simulaciones = haySesion
+        ? ref.watch(simulacionesGuardadasProvider)
+        : null;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Solarix'),
         actions: [
-          IconButton(
-            tooltip: 'Historial',
-            icon: const Icon(Icons.history),
-            onPressed: () => context.go(Rutas.historial),
-          ),
-          IconButton(
-            tooltip: 'Mi perfil',
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed: () => context.go(Rutas.perfil),
-          ),
+          if (!haySesion)
+            TextButton(
+              onPressed: () => context.go(Rutas.login),
+              child: const Text('Iniciar sesión'),
+            )
+          else ...[
+            IconButton(
+              tooltip: 'Historial',
+              icon: const Icon(Icons.history),
+              onPressed: () => context.go(Rutas.historial),
+            ),
+            IconButton(
+              tooltip: 'Mi perfil',
+              icon: const Icon(Icons.account_circle_outlined),
+              onPressed: () => context.go(Rutas.perfil),
+            ),
+          ],
         ],
       ),
       body: RefreshIndicator(
@@ -83,94 +95,103 @@ class InicioScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                Card(
-                  margin: const EdgeInsets.only(top: 16),
-                  child: _Resumen(
-                    valor: calculos,
-                    que: 'tus cálculos',
-                    alReintentar: () =>
-                        ref.invalidate(calculosGuardadosProvider),
-                    contenido: (calculo) => calculo == null
-                        ? const ListTile(
-                            leading: Icon(Icons.calculate_outlined),
-                            title: Text('Aún no tienes cálculos guardados'),
-                            subtitle: Text(
-                              'Calcula tu sistema y guárdalo para verlo aquí.',
+                if (!haySesion)
+                  const _InvitacionCuenta()
+                else ...[
+                  Card(
+                    margin: const EdgeInsets.only(top: 16),
+                    child: _Resumen(
+                      valor: calculos!,
+                      que: 'tus cálculos',
+                      alReintentar: () =>
+                          ref.invalidate(calculosGuardadosProvider),
+                      contenido: (calculo) => calculo == null
+                          ? const ListTile(
+                              leading: Icon(Icons.calculate_outlined),
+                              title: Text('Aún no tienes cálculos guardados'),
+                              subtitle: Text(
+                                'Calcula tu sistema y guárdalo para verlo aquí.',
+                              ),
+                            )
+                          : ListTile(
+                              leading: const Icon(Icons.calculate_outlined),
+                              title: Text('Último cálculo: ${calculo.titulo}'),
+                              subtitle: Text(
+                                '${fechaCorta(calculo.creadoEn)} · '
+                                '${calculo.numeroPaneles} paneles '
+                                '(${Formato.numero(calculo.potenciaKw, 2)} kWp) · '
+                                '${Formato.cop(calculo.costoTotal)} · recupera en '
+                                '${Formato.anios(calculo.paybackAnios, 20).toLowerCase()}',
+                              ),
+                              onTap: () => context.go(Rutas.historial),
                             ),
-                          )
-                        : ListTile(
-                            leading: const Icon(Icons.calculate_outlined),
-                            title: Text('Último cálculo: ${calculo.titulo}'),
-                            subtitle: Text(
-                              '${fechaCorta(calculo.creadoEn)} · '
-                              '${calculo.numeroPaneles} paneles '
-                              '(${Formato.numero(calculo.potenciaKw, 2)} kWp) · '
-                              '${Formato.cop(calculo.costoTotal)} · recupera en '
-                              '${Formato.anios(calculo.paybackAnios, 20).toLowerCase()}',
-                            ),
-                            onTap: () => context.go(Rutas.historial),
-                          ),
+                    ),
                   ),
-                ),
-                Card(
-                  margin: const EdgeInsets.only(top: 12),
-                  child: _Resumen(
-                    valor: simulaciones,
-                    que: 'tus simulaciones',
-                    alReintentar: () =>
-                        ref.invalidate(simulacionesGuardadasProvider),
-                    contenido: (simulacion) => simulacion == null
-                        ? const ListTile(
-                            leading: Icon(Icons.battery_charging_full_outlined),
-                            title: Text('Aún no tienes simulaciones guardadas'),
-                            subtitle: Text(
-                              'Simula la batería y guárdala para ver su salud '
-                              'aquí.',
-                            ),
-                          )
-                        : InkWell(
-                            onTap: () => context.push(
-                              Rutas.detalleSimulacion,
-                              extra: simulacion,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    'Última simulación: SoH '
-                                    '${Formato.numero(simulacion.sohFinal, 1)} % '
-                                    '(${simulacion.politica.etiqueta.toLowerCase()})',
-                                    style: tema.textTheme.titleSmall,
-                                  ),
-                                  Text(
-                                    fechaCorta(simulacion.creadoEn),
-                                    style: tema.textTheme.bodySmall,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  GraficaSoh(
-                                    sohMensual: [
-                                      for (final m in simulacion.serie) m.soh,
-                                    ],
-                                    politica: simulacion.politica,
-                                    alternativaAnual:
-                                        simulacion.sohAnualAlternativa,
-                                    politicaAlternativa:
-                                        simulacion.politicaAlternativa,
-                                  ),
-                                ],
+                  Card(
+                    margin: const EdgeInsets.only(top: 12),
+                    child: _Resumen(
+                      valor: simulaciones!,
+                      que: 'tus simulaciones',
+                      alReintentar: () =>
+                          ref.invalidate(simulacionesGuardadasProvider),
+                      contenido: (simulacion) => simulacion == null
+                          ? const ListTile(
+                              leading: Icon(
+                                Icons.battery_charging_full_outlined,
+                              ),
+                              title: Text(
+                                'Aún no tienes simulaciones guardadas',
+                              ),
+                              subtitle: Text(
+                                'Simula la batería y guárdala para ver su salud '
+                                'aquí.',
+                              ),
+                            )
+                          : InkWell(
+                              onTap: () => context.push(
+                                Rutas.detalleSimulacion,
+                                extra: simulacion,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      'Última simulación: SoH '
+                                      '${Formato.numero(simulacion.sohFinal, 1)} % '
+                                      '(${simulacion.politica.etiqueta.toLowerCase()})',
+                                      style: tema.textTheme.titleSmall,
+                                    ),
+                                    Text(
+                                      fechaCorta(simulacion.creadoEn),
+                                      style: tema.textTheme.bodySmall,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    GraficaSoh(
+                                      sohMensual: [
+                                        for (final m in simulacion.serie) m.soh,
+                                      ],
+                                      politica: simulacion.politica,
+                                      alternativaAnual:
+                                          simulacion.sohAnualAlternativa,
+                                      politicaAlternativa:
+                                          simulacion.politicaAlternativa,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: () => context.go(Rutas.historial),
-                  icon: const Icon(Icons.history),
-                  label: const Text('Ver todo el historial'),
-                ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () => context.go(Rutas.historial),
+                    icon: const Icon(Icons.history),
+                    label: const Text('Ver todo el historial'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -225,4 +246,52 @@ class _Resumen<T> extends StatelessWidget {
     ),
     data: (lista) => contenido(lista.firstOrNull),
   );
+}
+
+/// Inicio sin sesión (Etapa 12): todo se puede calcular y simular; la cuenta
+/// solo hace falta para guardar.
+class _InvitacionCuenta extends StatelessWidget {
+  const _InvitacionCuenta();
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(top: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Estás probando Solarix sin cuenta',
+              style: tema.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Calcula y simula todo lo que quieras. Para guardar tus '
+              'cálculos y simulaciones y verlos en el historial, crea una '
+              'cuenta.',
+              style: tema.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: () => context.go(Rutas.registro),
+                  child: const Text('Crear cuenta'),
+                ),
+                TextButton(
+                  onPressed: () => context.go(Rutas.login),
+                  child: const Text('Iniciar sesión'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -24,13 +24,30 @@ abstract final class Rutas {
   /// validar el código Supabase abre la sesión antes de cambiar la contraseña.
   static const publicas = {...soloSinSesion, recuperar};
 
+  /// Pantallas para quien prueba sin cuenta (Etapa 12): calcular y simular.
+  /// El perfil y el historial siguen pidiendo sesión.
+  static const paraInvitados = {
+    inicio,
+    calculadora,
+    resultados,
+    simulacion,
+    resultadosSimulacion,
+  };
+
   static String verificarCon(String email) =>
       Uri(path: verificar, queryParameters: {'email': email}).toString();
 }
 
-/// Decide a dónde redirigir según haya o no sesión. `null` = no redirigir.
-String? redirigir({required bool autenticado, required String ubicacion}) {
-  if (!autenticado && !Rutas.publicas.contains(ubicacion)) {
+/// Decide a dónde redirigir según haya o no sesión (y si se está probando
+/// sin cuenta). `null` = no redirigir.
+String? redirigir({
+  required bool autenticado,
+  required String ubicacion,
+  bool invitado = false,
+}) {
+  if (!autenticado &&
+      !Rutas.publicas.contains(ubicacion) &&
+      !(invitado && Rutas.paraInvitados.contains(ubicacion))) {
     return Rutas.bienvenida;
   }
   if (autenticado && Rutas.soloSinSesion.contains(ubicacion)) {

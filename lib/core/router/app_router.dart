@@ -35,6 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) => redirigir(
       autenticado: auth.usuarioActual != null,
       ubicacion: state.matchedLocation,
+      invitado: ref.read(modoInvitadoProvider),
     ),
     routes: [
       GoRoute(
@@ -138,6 +139,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // Entrar o salir del modo invitado también cambia qué se puede abrir; al
+  // iniciar sesión el modo invitado se apaga.
+  ref.listen(modoInvitadoProvider, (_, _) => refresco.avisar());
+  ref.listen(sesionProvider, (_, sesion) {
+    if (sesion.value != null) ref.read(modoInvitadoProvider.notifier).salir();
+  });
   ref.onDispose(() {
     router.dispose();
     refresco.dispose();
@@ -155,6 +162,8 @@ class _RefrescoSesion extends ChangeNotifier {
   }
 
   late final StreamSubscription<Object?> _suscripcion;
+
+  void avisar() => notifyListeners();
 
   @override
   void dispose() {

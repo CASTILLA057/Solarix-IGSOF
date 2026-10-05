@@ -29,3 +29,27 @@ final perfilProvider = FutureProvider.autoDispose<Perfil>((ref) async {
   if (usuario == null) throw StateError('No hay sesión activa.');
   return ref.watch(perfilRepositoryProvider).obtener(usuario.id);
 });
+
+/// Hay sesión activa (con el valor inicial del repositorio mientras el flujo
+/// de sesión arranca, para no mostrar por un instante la vista de invitado).
+final haySesionProvider = Provider<bool>(
+  (ref) =>
+      (ref.watch(sesionProvider).value ??
+          ref.watch(authRepositoryProvider).usuarioActual) !=
+      null,
+);
+
+/// "Probar sin cuenta" (Etapa 12): calculadora y simulación sin sesión; la
+/// cuenta solo hace falta para guardar y ver el historial. Se apaga al
+/// iniciar sesión.
+final modoInvitadoProvider = NotifierProvider<ModoInvitado, bool>(
+  ModoInvitado.new,
+);
+
+class ModoInvitado extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void entrar() => state = true;
+  void salir() => state = false;
+}
