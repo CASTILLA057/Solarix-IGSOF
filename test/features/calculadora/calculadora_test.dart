@@ -594,7 +594,33 @@ void main() {
       expect(uri.host, 'power.larc.nasa.gov');
       expect(uri.queryParameters['latitude'], '8.240');
       expect(uri.queryParameters['longitude'], '-73.350');
-      expect(uri.queryParameters['parameters'], 'ALLSKY_SFC_SW_DWN');
+      expect(
+        uri.queryParameters['parameters'],
+        'ALLSKY_SFC_SW_DWN,PRECTOTCORR,CLOUD_AMT,T2M',
+      );
+    });
+    test('lee la lluvia y la nubosidad (y tolera que falten)', () {
+      const cuerpo =
+          '{"properties":{"parameter":{"ALLSKY_SFC_SW_DWN":{"ANN":5.03},'
+          '"PRECTOTCORR":{"ANN":2.77},"CLOUD_AMT":{"ANN":71.23},'
+          '"T2M":{"ANN":20.5}}},"geometry":{"coordinates":[-73.3,8.2,1450.17]}}';
+      final clima = climaDesdeRespuestaNasa(cuerpo)!;
+      expect(clima.lluviaMmDia, 2.77);
+      expect(clima.nubosidadPct, 71.23);
+      // Sin altitud del lugar, la de NASA; con ella, corregida por altitud
+      // (Ocaña, a 1.202 m, en una celda de 1.450 m: ≈ 1,6 °C más).
+      expect(clima.temperaturaC, 20.5);
+      expect(
+        climaDesdeRespuestaNasa(cuerpo, altitudLugar: 1202)!.temperaturaC,
+        closeTo(20.5 + 0.0065 * (1450.17 - 1202), 1e-9),
+      );
+      expect(clima.lluviaMmAnio, closeTo(1011, 1));
+      expect(
+        climaDesdeRespuestaNasa(
+          '{"properties":{"parameter":{"ALLSKY_SFC_SW_DWN":{"ANN":5.03}}}}',
+        ),
+        isNull,
+      );
     });
   });
 

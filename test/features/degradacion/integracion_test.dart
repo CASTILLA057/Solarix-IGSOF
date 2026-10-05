@@ -30,14 +30,15 @@ const hibrida = EntradasCalculo(
 
 void main() {
   group('Del cálculo a los parámetros de la simulación', () {
-    test('elige el escenario del modelo más cercano a las HSP', () {
-      // El escenario "alto" del modelo da ≈ 5 HSP, el "medio" ≈ 3,5 y el
-      // "bajo" casi nada (50 W/m² de máximo).
-      expect(hspModelo(EscenarioIrradiancia.alta), closeTo(5, 0.8));
-      expect(hspModelo(EscenarioIrradiancia.baja), lessThan(1));
-      expect(escenarioParaHsp(5.5), EscenarioIrradiancia.alta);
-      expect(escenarioParaHsp(3.5), EscenarioIrradiancia.media);
-      expect(escenarioParaHsp(0.3), EscenarioIrradiancia.baja);
+    test('HSP de los escenarios de NetLogo', () {
+      // El escenario "alto" da ≈ 4,6 HSP en la zona mixta, el "medio" ≈ 3,2
+      // y el "bajo" casi nada (50 W/m² de máximo).
+      expect(hspEscenario(EscenarioIrradiancia.alta), closeTo(4.6, 0.5));
+      expect(
+        hspEscenario(EscenarioIrradiancia.media),
+        lessThan(hspEscenario(EscenarioIrradiancia.alta)),
+      );
+      expect(hspEscenario(EscenarioIrradiancia.baja), lessThan(1));
     });
 
     test('ajusta el consumo del modelo al consumo calculado', () {
@@ -130,6 +131,133 @@ void main() {
       expect(primerReemplazo(tipica), 10);
       expect(primerReemplazo(simulada), 13);
       expect(simulada.vpn, greaterThan(tipica.vpn));
+    });
+  });
+
+  group('Etapa 12: clima por ciudad', () {
+    ClimaLugar clima(double mmAnio, double nubes, [double temperatura = 25]) =>
+        ClimaLugar(
+          lluviaMmDia: mmAnio / 365,
+          nubosidadPct: nubes,
+          temperaturaC: temperatura,
+        );
+
+    test('la zona sale de la lluvia y las nubes del lugar', () {
+      expect(zonaParaClima(null), ZonaClimatica.mixta);
+      expect(zonaParaClima(clima(4400, 89)), ZonaClimatica.lluviosa);
+      expect(zonaParaClima(clima(2500, 50)), ZonaClimatica.lluviosa);
+      expect(zonaParaClima(clima(930, 57)), ZonaClimatica.polvorienta);
+      expect(zonaParaClima(clima(1120, 57)), ZonaClimatica.muySoleada);
+      expect(zonaParaClima(clima(1620, 78)), ZonaClimatica.muyNublada);
+      expect(zonaParaClima(clima(1020, 84)), ZonaClimatica.muyNublada);
+      expect(zonaParaClima(clima(1010, 71)), ZonaClimatica.mixta);
+      expect(zonaParaClima(clima(1599, 79.9)), ZonaClimatica.mixta);
+    });
+
+    test('las ciudades de la lista tienen su clima y su zona', () {
+      for (final c in ciudadesBase) {
+        final cl = climaDeCiudad(c.nombre);
+        expect(cl, isNotNull, reason: c.nombre);
+        // Temperatura corregida por altitud: de páramo a costa.
+        expect(cl!.temperaturaC, inInclusiveRange(10, 30), reason: c.nombre);
+      }
+      ZonaClimatica zona(String ciudad) => zonaParaClima(climaDeCiudad(ciudad));
+      expect(zona('Riohacha'), ZonaClimatica.polvorienta);
+      expect(zona('Barranquilla'), ZonaClimatica.muySoleada);
+      expect(zona('Quibdó'), ZonaClimatica.lluviosa);
+      expect(zona('Bogotá'), ZonaClimatica.muyNublada);
+      expect(zona('Ocaña'), ZonaClimatica.mixta);
+      // Bogotá (2.640 m) es más fría que Cali (1.000 m) y que la costa.
+      expect(
+        climaDeCiudad('Bogotá')!.temperaturaC,
+        lessThan(climaDeCiudad('Cali')!.temperaturaC),
+      );
+      expect(climaDeCiudad('No existe'), isNull);
+    });
+
+    test('la zona cambia el sol del modelo (las nubes)', () {
+      const alta = EscenarioIrradiancia.alta;
+      expect(
+        hspEscenario(alta, ZonaClimatica.muySoleada),
+        greaterThan(hspEscenario(alta)),
+      );
+      expect(
+        hspEscenario(alta, ZonaClimatica.muyNublada),
+        lessThan(hspEscenario(alta)),
+      );
+    });
+
+    test('todas las ciudades: sin pasar el tope y a ±5 % de sus HSP', () {
+      for (final c in ciudadesBase) {
+        final entorno = entornoDelLugar(
+          hsp: c.hsp,
+          clima: climaDeCiudad(c.nombre),
+        );
+        expect(
+          entorno.irradianciaMaxima,
+          lessThan(irradianciaMaximaTope),
+          reason: '${c.nombre}: si llega al tope, su zona está mal asignada',
+        );
+        // Medido con otra semilla (otro clima) que la que se usó para
+        // ajustar la irradiancia, en los 10 años que se simulan.
+        final r = simular(entorno, semilla: 11);
+        final hsp =
+            r.dias.fold<double>(0, (s, d) => s + d.irradianciaMedia * 24) /
+            r.dias.length /
+            1000;
+        expect(
+          (hsp - c.hsp).abs() / c.hsp,
+          lessThan(0.05),
+          reason: '${c.nombre}: ${hsp.toStringAsFixed(2)} HSP',
+        );
+      }
+    });
+
+    test('el entorno del lugar cambia solo las entradas de NetLogo', () {
+      final ocana = climaDeCiudad('Ocaña')!;
+      final e = entornoDelLugar(hsp: 5.0, clima: ocana);
+      expect(e.escenario, escenarioBase);
+      expect(e.zona, ZonaClimatica.mixta);
+      expect(e.temperaturaMedia, ocana.temperaturaC);
+      expect(hspModelo(e), closeTo(5.0, 1e-9));
+      expect(e.esDeNetLogo, isFalse);
+      expect(e.aMapa()['irradiancia_maxima_lugar'], e.irradianciaMaxima);
+      expect(e.aMapa()['temperatura_media_lugar'], ocana.temperaturaC);
+      // Sin clima (HSP a mano): zona mixta y temperatura del escenario.
+      final aMano = entornoDelLugar(hsp: 5.0);
+      expect(aMano.zona, ZonaClimatica.mixta);
+      expect(aMano.temperaturaMedia, escenarioBase.temperaturaMedia);
+      // Una configuración de NetLogo queda intacta.
+      const netLogo = ParametrosSimulacion();
+      expect(netLogo.esDeNetLogo, isTrue);
+      expect(netLogo.irradianciaMaxima, 800);
+      expect(netLogo.temperaturaMedia, 27);
+    });
+
+    test('del cálculo: lugar, consumo a la temperatura del lugar', () {
+      final riohacha = EntradasCalculo(
+        tipo: TipoSistema.hibrido,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 300,
+        hsp: 5.5,
+        clima: climaDeCiudad('Riohacha'),
+      );
+      final p = parametrosDesdeCalculo(
+        OrigenCalculo(entradas: riohacha, resultado: calcular(riohacha)),
+      );
+      expect(p.zona, ZonaClimatica.polvorienta);
+      expect(p.temperaturaMedia, climaDeCiudad('Riohacha')!.temperaturaC);
+      expect(hspModelo(p), closeTo(5.5, 1e-9));
+      // La casa simulada consume lo calculado (≈ 10 kWh/día).
+      final r = simular(p.copiarCon(anios: 1), semilla: 9);
+      expect(r.consumoKwh / 365, closeTo(10, 0.5));
+      // El clima se guarda con las entradas del cálculo.
+      expect(riohacha.aMapa()['clima'], climaDeCiudad('Riohacha')!.aMapa());
+      expect(hibrida.aMapa()['clima'], isNull);
+      expect(
+        ClimaLugar.desdeMapa(riohacha.aMapa()['clima'])!.temperaturaC,
+        climaDeCiudad('Riohacha')!.temperaturaC,
+      );
     });
   });
 
@@ -336,6 +464,11 @@ void main() {
     // Simulación con los valores del cálculo.
     await tocar(find.text('Simular la salud de esta batería'));
     expect(find.text('Valores de tu cálculo'), findsOneWidget);
+    // HSP escritas a mano: sin datos del clima, zona mixta.
+    expect(
+      find.textContaining('Sin datos del clima del lugar'),
+      findsOneWidget,
+    );
     await tocar(boton('Simular'));
 
     expect(find.text('Con el sistema que dimensionaste'), findsOneWidget);
@@ -345,6 +478,60 @@ void main() {
     expect(simulaciones.calculosVinculados, ['calc-1']);
     // Con el cálculo de origen, se guarda también su impacto en la inversión.
     expect(simulaciones.impactos.single, isNotNull);
+  });
+
+  testWidgets('con una ciudad, la simulación usa la zona de su clima', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final calculos = _FakeCalculos();
+    final simulaciones = _FakeSimulaciones();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            FakeAuthRepository(usuario: FakeAuthRepository.usuarioPrueba),
+          ),
+          calculadoraRepositoryProvider.overrideWithValue(calculos),
+          simulacionRepositoryProvider.overrideWithValue(simulaciones),
+          ejecutorSimulacionProvider.overrideWithValue(
+            (s) async => simularComparacion((
+              parametros: s.parametros.copiarCon(anios: 2),
+              semilla: 1,
+            )),
+          ),
+        ],
+        child: const SolarixApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> tocar(Finder f) async {
+      await tester.ensureVisible(f);
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    Finder boton(String t) => find.widgetWithText(FilledButton, t);
+
+    // Calculadora: sistema híbrido con batería de litio.
+    await tocar(find.text('Calcular mi sistema solar'));
+    await tocar(find.text('Híbrido'));
+    await tocar(boton('Siguiente'));
+    await tocar(boton('Siguiente'));
+    await tocar(find.byType(DropdownButtonFormField<Ciudad>));
+    await tocar(find.textContaining('Barranquilla').last);
+    await tocar(boton('Siguiente'));
+    await tocar(boton('Calcular'));
+    await tocar(boton('Guardar cálculo'));
+
+    // Simulación: zona según el clima de Barranquilla (despejada).
+    await tocar(find.text('Simular la salud de esta batería'));
+    expect(find.textContaining('Del cálculo'), findsOneWidget);
+    expect(find.textContaining('Zona muy soleada'), findsOneWidget);
+    expect(find.textContaining('Zona según la lluvia'), findsOneWidget);
   });
 }
 
