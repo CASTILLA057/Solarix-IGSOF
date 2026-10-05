@@ -5,19 +5,12 @@ import 'package:solarix/app.dart';
 import 'package:solarix/features/auth/application/auth_providers.dart';
 import 'package:solarix/features/calculadora/application/calculadora_providers.dart';
 import 'package:solarix/features/calculadora/data/calculadora_repository.dart';
-import 'package:solarix/features/calculadora/domain/catalogos.dart';
 import 'package:solarix/features/calculadora/domain/modelos.dart';
 
 import '../../helpers/fakes.dart';
 
 class FakeCalculadoraRepository implements CalculadoraRepository {
   final guardados = <(EntradasCalculo, ResultadoCalculo)>[];
-
-  @override
-  Future<Precios> obtenerPrecios() async => Precios.referencia;
-
-  @override
-  Future<List<Ciudad>> obtenerCiudades() async => ciudadesBase;
 
   @override
   Future<String> guardarCalculo(

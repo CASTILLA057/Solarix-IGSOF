@@ -1,5 +1,4 @@
 import 'package:solarix/features/calculadora/data/calculadora_repository.dart';
-import 'package:solarix/features/calculadora/domain/catalogos.dart';
 import 'package:solarix/features/calculadora/domain/modelos.dart';
 import 'package:solarix/features/dashboard/data/historial_repository.dart';
 import 'package:solarix/features/dashboard/domain/historial.dart';
@@ -26,12 +25,6 @@ class BackendEnMemoria
   /// Cada fila es un minuto más reciente que la anterior.
   String _ahora() =>
       (_reloj = _reloj.add(const Duration(minutes: 1))).toIso8601String();
-
-  @override
-  Future<Precios> obtenerPrecios() async => Precios.referencia;
-
-  @override
-  Future<List<Ciudad>> obtenerCiudades() async => ciudadesBase;
 
   @override
   Future<String> guardarCalculo(

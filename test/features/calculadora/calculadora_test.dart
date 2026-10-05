@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/core/formato.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
@@ -532,31 +530,6 @@ void main() {
     final p = Precios.desdeFilas({'panel_por_wp': 1000});
     expect(p.panelPorWp, 1000);
     expect(p.bateriaLitioPorKwh, Precios.referencia.bateriaLitioPorKwh);
-  });
-
-  group('La migración coincide con los valores locales', () {
-    final sql = File('supabase/migrations/20261001000100_calculadora.sql')
-        .readAsStringSync();
-
-    test('precios de referencia', () {
-      final filas = {
-        for (final m in RegExp(r"\('(\w+)',\s+([\d.]+),").allMatches(sql))
-          m.group(1)!: double.parse(m.group(2)!),
-      };
-      expect(filas, Precios.referencia.aMapa());
-    });
-
-    test('ciudades y HSP', () {
-      final filas = [
-        for (final m in RegExp(
-          r"\('([^']+)',\s+'([^']+)',\s+([\d.]+)\)",
-        ).allMatches(sql))
-          '${m.group(1)}|${m.group(2)}|${double.parse(m.group(3)!)}',
-      ];
-      expect(filas, [
-        for (final c in ciudadesBase) '${c.nombre}|${c.departamento}|${c.hsp}',
-      ]);
-    });
   });
 
   group('Ciudades y zonas', () {

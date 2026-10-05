@@ -76,8 +76,17 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   final _mantenimiento = TextEditingController(text: '1');
   bool _exclusionIva = false;
   final _tarifaRenta = TextEditingController(text: '0');
-  final _precios = <String, TextEditingController>{};
-  bool _preciosCargados = false;
+
+  /// Precios de referencia (en Dart, Etapa 12), editables.
+  final _precios = <String, TextEditingController>{
+    for (final MapEntry(key: clave, value: valor)
+        in Precios.referencia.aMapa().entries)
+      clave: TextEditingController(
+        text: clave == 'instalacion_porcentaje'
+            ? Formato.numero((valor as double) * 100)
+            : Formato.numero(valor as double),
+      ),
+  };
 
   static const _etiquetasPrecios = {
     'panel_por_wp': ('Panel', 'COP/Wp'),
@@ -121,19 +130,6 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       c.dispose();
     }
     super.dispose();
-  }
-
-  void _cargarPrecios(Precios p) {
-    if (_preciosCargados) return;
-    _preciosCargados = true;
-    p.aMapa().forEach((clave, valor) {
-      final v = valor as double;
-      _precios[clave] = TextEditingController(
-        text: clave == 'instalacion_porcentaje'
-            ? Formato.numero(v * 100)
-            : Formato.numero(v),
-      );
-    });
   }
 
   double? get _hsp => switch (_fuente) {
@@ -275,8 +271,6 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final precios = ref.watch(preciosProvider);
-    precios.whenData(_cargarPrecios);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calculadora solar'),
@@ -360,12 +354,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
               Step(
                 title: const Text('Equipos y costos'),
                 isActive: _paso >= 3,
-                content: Form(
-                  key: _formularios[3],
-                  child: precios.isLoading && !_preciosCargados
-                      ? const Center(child: CircularProgressIndicator())
-                      : _pasoEquipos(),
-                ),
+                content: Form(key: _formularios[3], child: _pasoEquipos()),
               ),
             ],
           ),
@@ -461,7 +450,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   );
 
   Widget _pasoUbicacion() {
-    final ciudades = ref.watch(ciudadesProvider).value ?? ciudadesBase;
+    const ciudades = ciudadesBase;
     final hsp = _hsp;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

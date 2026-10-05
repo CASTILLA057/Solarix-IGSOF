@@ -537,12 +537,6 @@ void main() {
 
 class _FakeCalculos implements CalculadoraRepository {
   @override
-  Future<Precios> obtenerPrecios() async => Precios.referencia;
-
-  @override
-  Future<List<Ciudad>> obtenerCiudades() async => ciudadesBase;
-
-  @override
   Future<String> guardarCalculo(
     EntradasCalculo entradas,
     ResultadoCalculo resultado,
