@@ -1,7 +1,50 @@
+import '../domain/modelos.dart';
+
 /// Qué es cada supuesto de la calculadora, de dónde sale su valor por
 /// defecto y cuándo conviene cambiarlo (Etapa 12). Se muestran con el ícono
 /// de información de cada campo.
 abstract final class Explicacion {
+  static const tarifa =
+      'Escribe el costo unitario (CU) del kWh: lo que vale el kWh antes del '
+      'subsidio o la contribución, el mismo que paga el estrato 4. En la '
+      'factura aparece como costo unitario o valor del kWh; en los estratos 1 '
+      'a 3 la factura muestra aparte el subsidio, y en el 5 y el 6 la '
+      'contribución. El estrato que eliges abajo se encarga del resto.';
+
+  static const estrato =
+      'Los estratos 1, 2 y 3 reciben un subsidio sobre los primeros kWh del '
+      'mes (el consumo de subsistencia): hasta 60 % el 1 y hasta 50 % el 2 '
+      '(Ley 1117 de 2006), y hasta 15 % el 3 (Ley 142 de 1994, art. 99). Los '
+      'estratos 5 y 6 pagan una contribución de 20 % sobre todo el consumo '
+      '(Ley 142, art. 89). El 4 paga el costo del servicio.\n\n'
+      'Con paneles, tu factura se calcula sobre el consumo neto del mes, '
+      'después de descontar lo que envías a la red, y el subsidio se aplica '
+      'sobre ese neto (concepto CREG 3023 de 2026). Por eso la energía solar '
+      'quita primero los kWh de arriba: en los estratos 1 a 3, cada kWh que '
+      'generas vale la tarifa completa hasta bajar al consumo de '
+      'subsistencia, y desde ahí vale la tarifa con subsidio. Los paneles '
+      'ahorran menos en los estratos bajos y más en el 5 y el 6.\n\n'
+      'Por defecto se usa el subsidio máximo de la ley; si tu factura muestra '
+      'otro, escríbelo en "Subsidio de tu factura".';
+
+  static const subsidioFactura =
+      'El operador puede aplicar un subsidio menor que el máximo de la ley: '
+      'en los estratos 1 y 2 la tarifa con subsidio se ajusta con su propia '
+      'fórmula. En la factura aparece como "subsidio" junto al consumo de '
+      'subsistencia. Con menos subsidio, cada kWh que dejas de comprar vale '
+      'más y los paneles ahorran más.';
+
+  static const subsistencia =
+      'Energía con subsidio en los estratos 1 a 3: 173 kWh/mes en '
+      'municipios por debajo de 1.000 m de altura y 130 kWh/mes desde '
+      '1.000 m (Resolución UPME 355 de 2004), según la altura de la cabecera '
+      'municipal. Con una ciudad de la lista se toma la de su municipio. Con '
+      '"Mi ubicación" se usa la altura de tu punto (del GPS o del mapa de '
+      'elevación de Open-Meteo), que cerca de 1.000 m puede no coincidir con '
+      'la de la cabecera: en Cali, por ejemplo, la cabecera da 173. Si no hay '
+      'altura, o con las HSP a mano, se usa 173: elige 130 si vives a 1.000 m '
+      'o más.';
+
   static const rendimiento =
       'Parte de la energía del panel que llega a la casa, después de las '
       'pérdidas por calor, cableado, suciedad e inversor.\n\n'
@@ -99,3 +142,29 @@ abstract final class Explicacion {
       '2050 (sección 690) para la corriente de los paneles; en el inversor, '
       'un margen de diseño para el uso simultáneo de equipos.';
 }
+
+/// El estrato en una línea: "Estrato 2 · subsidio hasta 50 %".
+String textoEstrato(Estrato e) {
+  String pct(double f) => '${(f * 100).round()} %';
+  if (e.subsidio > 0) {
+    return '${e.etiqueta} · subsidio hasta ${pct(e.subsidio)}';
+  }
+  if (e.contribucion > 0) {
+    return '${e.etiqueta} · contribución de ${pct(e.contribucion)}';
+  }
+  return '${e.etiqueta} · sin subsidio ni contribución';
+}
+
+/// El estrato para el campo cerrado de la lista: "Estrato 2" (el subsidio
+/// va en su propio campo), "Estrato 5 · +20 %".
+String textoEstratoCorto(Estrato e) => e.contribucion > 0
+    ? '${e.etiqueta} · +${(e.contribucion * 100).round()} %'
+    : e.etiqueta;
+
+/// El estrato con el subsidio que se usó: si es el de la factura,
+/// "Estrato 2 · subsidio de 40 %"; si es el máximo, como [textoEstrato].
+String textoEstratoAplicado(EntradasCalculo e) =>
+    e.subsidioEstrato == null || e.estrato.subsidio == 0
+    ? textoEstrato(e.estrato)
+    : '${e.estrato.etiqueta} · subsidio de '
+          '${(e.subsidioAplicado * 100).round()} %';

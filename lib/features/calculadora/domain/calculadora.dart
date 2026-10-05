@@ -153,29 +153,71 @@ Costos calcularCostos({
   );
 }
 
+/// Lo que paga la vivienda por [kwh] de la red en un mes según su estrato
+/// (Etapa 12): los estratos 1 a 3 tienen descuento en los primeros
+/// [consumoSubsistencia] kWh y los 5 y 6 pagan la contribución sobre todo.
+/// [subsidio] es el que muestra la factura; sin él, el máximo legal.
+double facturaEnergia(
+  double kwh, {
+  required double tarifa,
+  Estrato estrato = Estrato.cuatro,
+  double? subsidio,
+  double consumoSubsistencia = ConsumoSubsistencia.menosDe1000m,
+}) {
+  final consumo = math.max(0.0, kwh);
+  final subsidiado = math.min(consumo, consumoSubsistencia);
+  final descuento = estrato.subsidio == 0 ? 0.0 : subsidio ?? estrato.subsidio;
+  return (consumo - subsidiado * descuento) *
+      tarifa *
+      (1 + estrato.contribucion);
+}
+
 /// Valor de la energía de un mes para un autogenerador a pequeña escala
 /// (≤ 100 kW) según la CREG 174 de 2021, que liquida por periodo de
 /// facturación:
 ///
-/// - el autoconsumo vale la tarifa;
-/// - el excedente hasta lo importado en el mes se permuta: vale la tarifa
-///   menos el costo de comercialización (Cv);
+/// - el autoconsumo vale lo que baja la factura;
+/// - el excedente hasta lo importado en el mes se permuta: vale lo que baja
+///   la factura menos el costo de comercialización (Cv);
 /// - el excedente que supera lo importado se vende a precio de bolsa.
+///
+/// La factura sigue al [estrato] ([facturaEnergia]). Según el concepto CREG
+/// 3023 de 2026, el consumo facturable del autogenerador es el neto del
+/// periodo después de la permuta y el subsidio se aplica sobre ese neto. Por
+/// eso la energía solar quita primero los kWh de arriba: en los estratos 1
+/// a 3 solo el consumo por debajo del de subsistencia se ahorra al precio
+/// con subsidio.
 ({double ahorro, double permutado, double vendido}) valorEnergiaMes({
   required double autoconsumo,
   required double excedente,
   required double consumo,
   required double tarifa,
   required Supuestos supuestos,
+  Estrato estrato = Estrato.cuatro,
+  double? subsidio,
+  double consumoSubsistencia = ConsumoSubsistencia.menosDe1000m,
 }) {
+  double factura(double kwh) => facturaEnergia(
+    kwh,
+    tarifa: tarifa,
+    estrato: estrato,
+    subsidio: subsidio,
+    consumoSubsistencia: consumoSubsistencia,
+  );
   final importado = math.max(0.0, consumo - autoconsumo);
   final permutado = math.min(excedente, importado);
   final vendido = excedente - permutado;
-  final precioPermuta = math.max(0.0, tarifa - supuestos.costoComercializacion);
+  final valorPermuta = math.max(
+    0.0,
+    factura(importado) -
+        factura(importado - permutado) -
+        permutado * supuestos.costoComercializacion,
+  );
   return (
     ahorro:
-        autoconsumo * tarifa +
-        permutado * precioPermuta +
+        factura(consumo) -
+        factura(importado) +
+        valorPermuta +
         vendido * supuestos.precioBolsa,
     permutado: permutado,
     vendido: vendido,
@@ -216,6 +258,9 @@ ahorroMensual({
     consumo: consumoMesKwh,
     tarifa: entradas.tarifaKwh,
     supuestos: entradas.supuestos,
+    estrato: entradas.estrato,
+    subsidio: entradas.subsidioAplicado,
+    consumoSubsistencia: entradas.consumoSubsistenciaKwh,
   );
   return (
     ahorro: valor.ahorro,
@@ -324,6 +369,9 @@ double _ahorroConBateria({
         consumo: consumoMes,
         tarifa: entradas.tarifaKwh,
         supuestos: entradas.supuestos,
+        estrato: entradas.estrato,
+        subsidio: entradas.subsidioAplicado,
+        consumoSubsistencia: entradas.consumoSubsistenciaKwh,
       ).ahorro *
       12;
 }
@@ -433,5 +481,47 @@ ResultadoCalculo calcular(
     paybackDescontadoAnios: recuperacionAnios(costos.total, [
       for (final a in flujo) a.acumuladoDescontado,
     ]),
+  );
+}
+
+/// El híbrido frente al mismo sistema sin batería (Etapa 12, revisión
+/// crítica 3): [diferenciaVpn] es el VPN con batería menos el VPN sin ella.
+typedef ComparacionSinBateria = ({
+  ResultadoCalculo sinBateria,
+  double autoconsumoSinBateria,
+  double diferenciaVpn,
+});
+
+/// Calcula el mismo sistema híbrido sin batería: los mismos paneles,
+/// conectados a la red con un inversor de red y sin controlador. Sin
+/// batería la casa solo usa lo que consume mientras hay sol, así que el
+/// autoconsumo vuelve al típico de un sistema conectado a la red (60 %), o al
+/// del usuario si lo bajó más. Con la CREG 174 lo que no se guarda se
+/// descuenta de la factura (tarifa menos Cv), por eso la batería casi no
+/// ahorra dinero: su valor está en cubrir los cortes.
+///
+/// `null` si el sistema no es híbrido.
+ComparacionSinBateria? compararSinBateria(
+  EntradasCalculo e,
+  ResultadoCalculo conBateria,
+) {
+  if (e.tipo != TipoSistema.hibrido) return null;
+  final propio =
+      e.supuestos.autoconsumo ??
+      Supuestos.autoconsumoPorDefecto(TipoSistema.hibrido);
+  final fraccion = math.min(
+    propio,
+    Supuestos.autoconsumoPorDefecto(TipoSistema.onGrid),
+  );
+  final sin = calcular(
+    e.copiarCon(
+      tipo: TipoSistema.onGrid,
+      supuestos: e.supuestos.copiarCon(autoconsumo: fraccion),
+    ),
+  );
+  return (
+    sinBateria: sin,
+    autoconsumoSinBateria: fraccion,
+    diferenciaVpn: conBateria.vpn - sin.vpn,
   );
 }

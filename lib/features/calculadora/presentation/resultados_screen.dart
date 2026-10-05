@@ -11,6 +11,7 @@ import '../../dashboard/application/historial_providers.dart';
 import '../../degradacion/domain/integracion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
+import '../domain/calculadora.dart';
 import '../domain/modelos.dart';
 import 'explicaciones.dart';
 
@@ -91,6 +92,7 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
     final e = widget.entradas;
     final r = widget.resultado;
     final anios = e.supuestos.anios;
+    final sinBateria = compararSinBateria(e, r);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Resultados'),
@@ -116,6 +118,28 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                     'Horas solares pico',
                     '${Formato.numero(e.hsp, 2)} · ${e.ubicacion}',
                   ),
+                  if (e.tipo.usaRed) ...[
+                    (
+                      'Estrato',
+                      e.estrato.subsidio > 0
+                          ? '${textoEstratoAplicado(e)} en los primeros '
+                                '${Formato.numero(e.consumoSubsistenciaKwh)} '
+                                'kWh/mes'
+                          : textoEstrato(e.estrato),
+                    ),
+                    (
+                      'Factura de energía hoy (estimada)',
+                      Formato.cop(
+                        facturaEnergia(
+                          r.energiaMesKwh,
+                          tarifa: e.tarifaKwh,
+                          estrato: e.estrato,
+                          subsidio: e.subsidioAplicado,
+                          consumoSubsistencia: e.consumoSubsistenciaKwh,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               _Seccion(
@@ -198,11 +222,32 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                 ],
                 nota: e.tipo.usaBateria
                     ? 'Incluye cambiar la batería cada '
-                          '${e.quimica.vidaUtilAnios} años (vida típica). En el '
-                          'siguiente módulo se calculará con la simulación de '
-                          'degradación.'
+                          '${e.quimica.vidaUtilAnios} años (vida típica).'
+                          '${_puedeSimular ? ' Con "Simular la salud de esta '
+                                    'batería" se calcula con su degradación.' : ''}'
                     : null,
               ),
+              if (sinBateria != null)
+                _Seccion(
+                  titulo: '¿Y sin batería?',
+                  icono: Icons.compare_arrows,
+                  filas: [
+                    (
+                      'Inversión sin batería',
+                      Formato.cop(sinBateria.sinBateria.costos.total),
+                    ),
+                    (
+                      'Ahorro el primer mes sin batería',
+                      Formato.cop(sinBateria.sinBateria.ahorroMensual),
+                    ),
+                    (
+                      'Recuperación sin batería',
+                      Formato.anios(sinBateria.sinBateria.paybackAnios, anios),
+                    ),
+                    ('VPN sin batería', Formato.cop(sinBateria.sinBateria.vpn)),
+                  ],
+                  nota: _notaSinBateria(sinBateria),
+                ),
               const SizedBox(height: 8),
               if (_error != null) ...[
                 MensajeError(_error!),
@@ -245,6 +290,23 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
       ),
     );
   }
+}
+
+/// Qué aporta la batería del híbrido frente al mismo sistema sin ella.
+String _notaSinBateria(ComparacionSinBateria c) {
+  final diferencia = Formato.cop(c.diferenciaVpn.abs());
+  final autoconsumo = Formato.numero(c.autoconsumoSinBateria * 100);
+  final base =
+      'Los mismos paneles conectados a la red, sin batería ni controlador y '
+      'con $autoconsumo % de autoconsumo (sin batería solo se usa lo que la '
+      'casa consume mientras hay sol).';
+  return c.diferenciaVpn < 0
+      ? 'La batería resta $diferencia al VPN: con la CREG 174 lo que no '
+            'guarda se descuenta de tu factura casi al mismo precio, así que '
+            'en plata conviene sin batería. Su valor está en cubrir los cortes '
+            'de luz. $base'
+      : 'La batería suma $diferencia al VPN. Además cubre los cortes de luz. '
+            '$base';
 }
 
 /// Tarjeta con las cifras principales.

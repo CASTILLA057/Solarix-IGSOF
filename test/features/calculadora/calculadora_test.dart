@@ -531,6 +531,181 @@ void main() {
     expect(p.bateriaLitioPorKwh, Precios.referencia.bateriaLitioPorKwh);
   });
 
+  group('Híbrido frente al mismo sistema sin batería', () {
+    const hibrido = EntradasCalculo(
+      tipo: TipoSistema.hibrido,
+      modo: ModoConsumo.factura,
+      consumoFacturaKwhMes: 200,
+      hsp: 4.5,
+      supuestos: Supuestos(autoconsumo: 0.9),
+    );
+
+    test('mismos paneles, sin batería ni controlador, autoconsumo de red', () {
+      final con = calcular(hibrido);
+      final c = compararSinBateria(hibrido, con)!;
+      expect(c.sinBateria.numeroPaneles, con.numeroPaneles);
+      expect(c.sinBateria.bateriaKwh, 0);
+      expect(c.sinBateria.costos.baterias, 0);
+      expect(c.sinBateria.costos.controlador, 0);
+      expect(c.autoconsumoSinBateria, 0.6);
+      expect(c.diferenciaVpn, con.vpn - c.sinBateria.vpn);
+    });
+
+    test('con la CREG 174 la batería resta al VPN (revisión crítica 3)', () {
+      final con = calcular(hibrido);
+      final c = compararSinBateria(hibrido, con)!;
+      // Lo que no guarda se descuenta de la factura casi al mismo precio:
+      // la batería cuesta más de lo que ahorra.
+      expect(c.diferenciaVpn, lessThan(0));
+      expect(c.sinBateria.costos.total, lessThan(con.costos.total));
+    });
+
+    test('si el usuario bajó el autoconsumo, se respeta', () {
+      const bajo = EntradasCalculo(
+        tipo: TipoSistema.hibrido,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 200,
+        hsp: 4.5,
+        supuestos: Supuestos(autoconsumo: 0.4),
+      );
+      expect(
+        compararSinBateria(bajo, calcular(bajo))!.autoconsumoSinBateria,
+        0.4,
+      );
+    });
+
+    test('solo aplica al híbrido', () {
+      for (final tipo in [TipoSistema.onGrid, TipoSistema.offGrid]) {
+        final e = EntradasCalculo(
+          tipo: tipo,
+          modo: ModoConsumo.factura,
+          consumoFacturaKwhMes: 200,
+          hsp: 4.5,
+        );
+        expect(compararSinBateria(e, calcular(e)), isNull);
+      }
+    });
+  });
+
+  group('Tarifa según el estrato', () {
+    const tarifa = 1000.0;
+
+    test('factura: subsidio hasta la subsistencia y contribución', () {
+      double factura(double kwh, Estrato e, [double s = 173]) => facturaEnergia(
+        kwh,
+        tarifa: tarifa,
+        estrato: e,
+        consumoSubsistencia: s,
+      );
+      expect(factura(200, Estrato.cuatro), 200000);
+      // Estrato 1: 60 % menos en los primeros 173 kWh.
+      expect(factura(200, Estrato.uno), closeTo(200000 - 173 * 600, 1e-6));
+      // Por debajo de la subsistencia, todo con subsidio.
+      expect(factura(100, Estrato.dos), closeTo(100 * 500, 1e-6));
+      expect(
+        factura(200, Estrato.tres, 130),
+        closeTo(200000 - 130 * 150, 1e-6),
+      );
+      expect(factura(200, Estrato.cinco), closeTo(240000, 1e-6));
+      expect(factura(200, Estrato.seis), closeTo(240000, 1e-6));
+    });
+
+    test('lo solar quita los kWh de arriba: vale menos en estratos bajos', () {
+      double ahorro(Estrato e) => valorEnergiaMes(
+        autoconsumo: 100,
+        excedente: 0,
+        consumo: 200,
+        tarifa: tarifa,
+        supuestos: const Supuestos(),
+        estrato: e,
+      ).ahorro;
+      expect(ahorro(Estrato.cuatro), closeTo(100000, 1e-6));
+      // De 200 a 100 kWh: 27 kWh a tarifa completa y 73 con subsidio.
+      expect(ahorro(Estrato.uno), closeTo(27 * 1000 + 73 * 400, 1e-6));
+      expect(ahorro(Estrato.uno), lessThan(ahorro(Estrato.tres)));
+      expect(ahorro(Estrato.tres), lessThan(ahorro(Estrato.cuatro)));
+      expect(ahorro(Estrato.cinco), closeTo(120000, 1e-6));
+    });
+
+    test('la permuta también sigue al estrato, menos el Cv', () {
+      final v = valorEnergiaMes(
+        autoconsumo: 0,
+        excedente: 50,
+        consumo: 200,
+        tarifa: tarifa,
+        supuestos: const Supuestos(costoComercializacion: 100),
+        estrato: Estrato.cinco,
+      );
+      expect(v.permutado, 50);
+      expect(v.ahorro, closeTo(50 * (1200 - 100), 1e-6));
+    });
+
+    test('consumo de subsistencia por la altura de la ciudad', () {
+      double de(String nombre) =>
+          ciudadPorNombre(nombre)!.consumoSubsistenciaKwh;
+      expect(de('Bogotá'), 130);
+      // Cali: la cabecera está a unos 995 m; EMCALI aplica 173 aunque la
+      // tabla use 1.000 m para la temperatura.
+      expect(de('Cali'), 173);
+      expect(de('Bucaramanga'), 173);
+      expect(de('Barranquilla'), 173);
+      expect(ConsumoSubsistencia.paraAltitud(999), 173);
+      expect(ConsumoSubsistencia.paraAltitud(1000), 130);
+    });
+
+    test('el subsidio de la factura reemplaza al máximo legal', () {
+      expect(
+        facturaEnergia(
+          200,
+          tarifa: tarifa,
+          estrato: Estrato.uno,
+          subsidio: 0.5,
+          consumoSubsistencia: 173,
+        ),
+        closeTo(200000 - 173 * 500, 1e-6),
+      );
+      EntradasCalculo con(Estrato e, [double? subsidio]) => EntradasCalculo(
+        tipo: TipoSistema.onGrid,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 200,
+        hsp: 4.5,
+        estrato: e,
+        subsidioEstrato: subsidio,
+      );
+      expect(con(Estrato.dos).subsidioAplicado, 0.5);
+      expect(con(Estrato.dos, 0.4).subsidioAplicado, 0.4);
+      // Sin subsidio en su estrato, el valor escrito no se usa.
+      expect(con(Estrato.cuatro, 0.4).subsidioAplicado, 0);
+      // Menos subsidio: cada kWh que se deja de comprar vale más.
+      expect(
+        calcular(con(Estrato.dos, 0.4)).ahorroMensual,
+        greaterThan(calcular(con(Estrato.dos)).ahorroMensual),
+      );
+      expect(con(Estrato.dos, 0.4).aMapa()['subsidio_estrato'], 0.4);
+      expect(con(Estrato.dos).aMapa()['subsidio_estrato'], isNull);
+    });
+
+    test('el cálculo usa el estrato y lo guarda', () {
+      EntradasCalculo con(Estrato e) => EntradasCalculo(
+        tipo: TipoSistema.onGrid,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 300,
+        hsp: 4.5,
+        estrato: e,
+        consumoSubsistenciaKwh: 130,
+      );
+      final bajo = calcular(con(Estrato.uno));
+      final medio = calcular(con(Estrato.cuatro));
+      final alto = calcular(con(Estrato.seis));
+      expect(bajo.ahorroMensual, lessThan(medio.ahorroMensual));
+      expect(alto.ahorroMensual, greaterThan(medio.ahorroMensual));
+      expect(bajo.paybackAnios!, greaterThan(medio.paybackAnios!));
+      final mapa = con(Estrato.uno).aMapa();
+      expect(mapa['estrato'], 1);
+      expect(mapa['consumo_subsistencia_kwh'], 130);
+    });
+  });
+
   group('Ciudades y zonas', () {
     test('las HSP se clasifican en las zonas del modelo', () {
       expect(zonaParaHsp(5.0), ZonaIrradiancia.alta);
@@ -543,6 +718,26 @@ void main() {
       for (final c in ciudadesBase) {
         expect(c.hsp, inInclusiveRange(2, 8));
       }
+    });
+  });
+
+  group('Altitud por coordenadas (Open-Meteo)', () {
+    test('arma la URL con las coordenadas', () {
+      final uri = uriElevacion(latitud: 4.711, longitud: -74.072);
+      expect(uri.host, 'api.open-meteo.com');
+      expect(uri.path, '/v1/elevation');
+      expect(uri.queryParameters['latitude'], '4.711');
+      expect(uri.queryParameters['longitude'], '-74.072');
+    });
+    test('lee la altitud de la respuesta', () {
+      expect(elevacionDesdeRespuesta('{"elevation":[2557.0]}'), 2557);
+    });
+    test('sin dato válido no hay altitud', () {
+      expect(elevacionDesdeRespuesta('{"elevation":[]}'), isNull);
+      expect(elevacionDesdeRespuesta('{"error":true}'), isNull);
+      expect(elevacionDesdeRespuesta('no es json'), isNull);
+      // A diferencia del GPS, 0 m aquí es un dato: el nivel del mar.
+      expect(elevacionDesdeRespuesta('{"elevation":[0.0]}'), 0);
     });
   });
 

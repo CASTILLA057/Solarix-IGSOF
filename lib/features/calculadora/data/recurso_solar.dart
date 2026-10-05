@@ -12,7 +12,10 @@ import '../domain/modelos.dart';
 /// (`ALLSKY_SFC_SW_DWN`, kWh/m²/día = HSP), de lluvia (`PRECTOTCORR`), de
 /// nubosidad (`CLOUD_AMT`) y de temperatura (`T2M`).
 abstract interface class RecursoSolarService {
-  Future<({double hsp, ClimaLugar? clima})> recursoEnUbicacionActual();
+  /// [altitudM]: la del GPS o, si no la da, la del terreno según las
+  /// coordenadas; `null` si ninguna está disponible.
+  Future<({double hsp, ClimaLugar? clima, double? altitudM})>
+  recursoEnUbicacionActual();
 }
 
 /// Extrae el promedio anual de la respuesta JSON de NASA POWER.
@@ -59,6 +62,29 @@ ClimaLugar? climaDesdeRespuestaNasa(String cuerpo, {double? altitudLugar}) {
   );
 }
 
+/// Altitud del terreno (m) en unas coordenadas, del servicio gratuito de
+/// Open-Meteo (modelo de elevación Copernicus de 90 m). Hace falta porque la
+/// app pide la ubicación aproximada, que sale de las redes y no trae altitud.
+Uri uriElevacion({required double latitud, required double longitud}) =>
+    Uri.https('api.open-meteo.com', '/v1/elevation', {
+      'latitude': latitud.toStringAsFixed(3),
+      'longitude': longitud.toStringAsFixed(3),
+    });
+
+/// Altitud de la respuesta de Open-Meteo; `null` si no viene. A diferencia
+/// del GPS, 0 m es un dato (el nivel del mar).
+double? elevacionDesdeRespuesta(String cuerpo) {
+  try {
+    final lista = (jsonDecode(cuerpo) as Map)['elevation'];
+    if (lista is List && lista.isNotEmpty && lista.first is num) {
+      return (lista.first as num).toDouble();
+    }
+  } catch (_) {
+    // Respuesta que no es JSON: sin altitud.
+  }
+  return null;
+}
+
 /// °C que baja la temperatura por metro de altura.
 const gradienteTermico = 0.0065;
 
@@ -81,8 +107,14 @@ class NasaPowerRecursoSolar implements RecursoSolarService {
   static const tiempoMaximo = Duration(seconds: 90);
 
   @override
-  Future<({double hsp, ClimaLugar? clima})> recursoEnUbicacionActual() async {
+  Future<({double hsp, ClimaLugar? clima, double? altitudM})>
+  recursoEnUbicacionActual() async {
     final posicion = await _ubicacion();
+    // El GPS da 0 cuando no conoce la altitud (siempre, con la ubicación
+    // aproximada): entonces se pide por las coordenadas.
+    final altitud = posicion.altitude > 0
+        ? posicion.altitude
+        : await _altitudPorCoordenadas(posicion);
     try {
       final respuesta = await _cliente
           .get(
@@ -99,11 +131,9 @@ class NasaPowerRecursoSolar implements RecursoSolarService {
       }
       return (
         hsp: hspDesdeRespuestaNasa(respuesta.body),
-        // El GPS da 0 cuando no conoce la altitud: entonces no se corrige.
-        clima: climaDesdeRespuestaNasa(
-          respuesta.body,
-          altitudLugar: posicion.altitude > 0 ? posicion.altitude : null,
-        ),
+        // Sin altitud, la temperatura no se corrige.
+        clima: climaDesdeRespuestaNasa(respuesta.body, altitudLugar: altitud),
+        altitudM: altitud,
       );
     } on ErrorApp {
       rethrow;
@@ -115,6 +145,21 @@ class NasaPowerRecursoSolar implements RecursoSolarService {
       throw const ErrorApp(
         'No se pudo consultar NASA POWER. Revisa tu conexión o elige una ciudad.',
       );
+    }
+  }
+
+  /// Altitud de Open-Meteo; `null` si falla: no impide el cálculo, solo
+  /// deja la temperatura sin corregir y el aviso de subsistencia.
+  Future<double?> _altitudPorCoordenadas(Position p) async {
+    try {
+      final respuesta = await _cliente
+          .get(uriElevacion(latitud: p.latitude, longitud: p.longitude))
+          .timeout(const Duration(seconds: 15));
+      return respuesta.statusCode == 200
+          ? elevacionDesdeRespuesta(respuesta.body)
+          : null;
+    } catch (_) {
+      return null;
     }
   }
 

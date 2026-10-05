@@ -45,7 +45,13 @@ enum ZonaIrradiancia {
 
 /// Ciudad de la lista con su recurso solar.
 class Ciudad {
-  const Ciudad(this.nombre, this.departamento, this.hsp);
+  const Ciudad(
+    this.nombre,
+    this.departamento,
+    this.hsp,
+    this.altitudM, {
+    this.subsistenciaOficialKwh,
+  });
 
   final String nombre;
   final String departamento;
@@ -53,7 +59,18 @@ class Ciudad {
   /// Horas solares pico promedio anual (kWh/m²/día).
   final double hsp;
 
+  /// Altura aproximada de la cabecera municipal (m sobre el nivel del mar).
+  final double altitudM;
+
+  /// Consumo de subsistencia que aplica el operador cuando la altura de la
+  /// tabla queda en el límite de 1.000 m y no basta para decidirlo.
+  final double? subsistenciaOficialKwh;
+
   ZonaIrradiancia get zona => zonaParaHsp(hsp);
+
+  /// Consumo de subsistencia del municipio según su altura (UPME 355/2004).
+  double get consumoSubsistenciaKwh =>
+      subsistenciaOficialKwh ?? ConsumoSubsistencia.paraAltitud(altitudM);
 
   String get etiqueta => '$nombre ($departamento)';
 }
@@ -72,40 +89,50 @@ double hspParaZona(ZonaIrradiancia zona) => switch (zona) {
   ZonaIrradiancia.baja => 3.5,
 };
 
-/// Ciudades de la lista (la única fuente desde la Etapa 12).
+/// Ciudades de la lista (la única fuente desde la Etapa 12). La altura es
+/// la aproximada de la cabecera (`BITACORA.md`, clima por ciudad); define el
+/// consumo de subsistencia.
 /// HSP = promedio anual de radiación global horizontal de NASA POWER
 /// (`ALLSKY_SFC_SW_DWN`), consultado el 2026-10-01 en las coordenadas de
 /// cada ciudad y redondeado a un decimal. Resolución de unos 50 km: ciudades
 /// cercanas pueden compartir valor (Armenia, Ibagué y Pereira).
 const ciudadesBase = <Ciudad>[
-  Ciudad('Arauca', 'Arauca', 5.0),
-  Ciudad('Armenia', 'Quindío', 4.5),
-  Ciudad('Barranquilla', 'Atlántico', 5.4),
-  Ciudad('Bogotá', 'Bogotá D. C.', 4.6),
-  Ciudad('Bucaramanga', 'Santander', 5.1),
-  Ciudad('Cali', 'Valle del Cauca', 4.2),
-  Ciudad('Cartagena', 'Bolívar', 5.3),
-  Ciudad('Cúcuta', 'Norte de Santander', 4.3),
-  Ciudad('Florencia', 'Caquetá', 4.4),
-  Ciudad('Ibagué', 'Tolima', 4.5),
-  Ciudad('Leticia', 'Amazonas', 4.6),
-  Ciudad('Manizales', 'Caldas', 4.8),
-  Ciudad('Medellín', 'Antioquia', 4.9),
-  Ciudad('Montería', 'Córdoba', 5.0),
-  Ciudad('Neiva', 'Huila', 4.2),
-  Ciudad('Ocaña', 'Norte de Santander', 5.0),
-  Ciudad('Pasto', 'Nariño', 4.0),
-  Ciudad('Pereira', 'Risaralda', 4.5),
-  Ciudad('Popayán', 'Cauca', 4.1),
-  Ciudad('Quibdó', 'Chocó', 4.0),
-  Ciudad('Riohacha', 'La Guajira', 5.5),
-  Ciudad('San Andrés', 'San Andrés y Providencia', 5.3),
-  Ciudad('Santa Marta', 'Magdalena', 5.7),
-  Ciudad('Sincelejo', 'Sucre', 5.1),
-  Ciudad('Tunja', 'Boyacá', 4.5),
-  Ciudad('Valledupar', 'Cesar', 5.3),
-  Ciudad('Villavicencio', 'Meta', 4.3),
-  Ciudad('Yopal', 'Casanare', 4.5),
+  Ciudad('Arauca', 'Arauca', 5.0, 125),
+  Ciudad('Armenia', 'Quindío', 4.5, 1480),
+  Ciudad('Barranquilla', 'Atlántico', 5.4, 18),
+  Ciudad('Bogotá', 'Bogotá D. C.', 4.6, 2640),
+  Ciudad('Bucaramanga', 'Santander', 5.1, 960),
+  // La cabecera de Cali está a unos 995 m: le corresponden 173 kWh/mes. La
+  // altura de 1.000 m se deja para la corrección de temperatura.
+  Ciudad(
+    'Cali',
+    'Valle del Cauca',
+    4.2,
+    1000,
+    subsistenciaOficialKwh: ConsumoSubsistencia.menosDe1000m,
+  ),
+  Ciudad('Cartagena', 'Bolívar', 5.3, 2),
+  Ciudad('Cúcuta', 'Norte de Santander', 4.3, 320),
+  Ciudad('Florencia', 'Caquetá', 4.4, 242),
+  Ciudad('Ibagué', 'Tolima', 4.5, 1285),
+  Ciudad('Leticia', 'Amazonas', 4.6, 96),
+  Ciudad('Manizales', 'Caldas', 4.8, 2150),
+  Ciudad('Medellín', 'Antioquia', 4.9, 1495),
+  Ciudad('Montería', 'Córdoba', 5.0, 18),
+  Ciudad('Neiva', 'Huila', 4.2, 442),
+  Ciudad('Ocaña', 'Norte de Santander', 5.0, 1202),
+  Ciudad('Pasto', 'Nariño', 4.0, 2527),
+  Ciudad('Pereira', 'Risaralda', 4.5, 1411),
+  Ciudad('Popayán', 'Cauca', 4.1, 1737),
+  Ciudad('Quibdó', 'Chocó', 4.0, 43),
+  Ciudad('Riohacha', 'La Guajira', 5.5, 5),
+  Ciudad('San Andrés', 'San Andrés y Providencia', 5.3, 5),
+  Ciudad('Santa Marta', 'Magdalena', 5.7, 6),
+  Ciudad('Sincelejo', 'Sucre', 5.1, 213),
+  Ciudad('Tunja', 'Boyacá', 4.5, 2782),
+  Ciudad('Valledupar', 'Cesar', 5.3, 169),
+  Ciudad('Villavicencio', 'Meta', 4.3, 467),
+  Ciudad('Yopal', 'Casanare', 4.5, 350),
 ];
 
 /// Clima de cada ciudad de la lista (Etapa 12), de la misma fuente que las

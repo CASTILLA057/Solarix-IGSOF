@@ -254,6 +254,26 @@ class Supuestos {
   /// primer año: supone que la renta líquida alcanza.
   final double tarifaRenta;
 
+  /// Los mismos supuestos con otro autoconsumo.
+  Supuestos copiarCon({required double autoconsumo}) => Supuestos(
+    rendimientoSistema: rendimientoSistema,
+    eficienciaInversor: eficienciaInversor,
+    diasAutonomia: diasAutonomia,
+    fraccionNocturna: fraccionNocturna,
+    cobertura: cobertura,
+    autoconsumo: autoconsumo,
+    costoComercializacion: costoComercializacion,
+    precioBolsa: precioBolsa,
+    incrementoTarifa: incrementoTarifa,
+    degradacionPaneles: degradacionPaneles,
+    mantenimientoAnual: mantenimientoAnual,
+    tasaDescuento: tasaDescuento,
+    anios: anios,
+    vidaCalendarioBateria: vidaCalendarioBateria,
+    exclusionIva: exclusionIva,
+    tarifaRenta: tarifaRenta,
+  );
+
   static double autoconsumoPorDefecto(TipoSistema tipo) => switch (tipo) {
     TipoSistema.onGrid => 0.6,
     TipoSistema.hibrido => 0.9,
@@ -317,6 +337,46 @@ class ClimaLugar {
   };
 }
 
+/// Estrato socioeconómico de la vivienda (Etapa 12). Los estratos 1 a 3
+/// reciben un subsidio sobre el consumo de subsistencia y los 5 y 6 pagan
+/// una contribución de solidaridad sobre todo el consumo; el 4 paga el costo
+/// del servicio. Porcentajes máximos de la ley (la factura muestra el que
+/// aplica el operador): estrato 1 hasta 60 % y estrato 2 hasta 50 % (Ley
+/// 1117 de 2006), estrato 3 hasta 15 % (Ley 142 de 1994, art. 99.6) y
+/// contribución de 20 % (Ley 142, art. 89).
+enum Estrato {
+  uno(1, subsidio: 0.6),
+  dos(2, subsidio: 0.5),
+  tres(3, subsidio: 0.15),
+  cuatro(4),
+  cinco(5, contribucion: 0.2),
+  seis(6, contribucion: 0.2);
+
+  const Estrato(this.numero, {this.subsidio = 0, this.contribucion = 0});
+
+  final int numero;
+
+  /// Descuento sobre la tarifa en el consumo de subsistencia.
+  final double subsidio;
+
+  /// Recargo sobre la tarifa en todo el consumo.
+  final double contribucion;
+
+  String get etiqueta => 'Estrato $numero';
+}
+
+/// Consumo de subsistencia (kWh/mes): hasta ahí llega el subsidio de los
+/// estratos 1 a 3. Resolución UPME 355 de 2004: 173 kWh/mes en municipios
+/// por debajo de 1.000 m y 130 kWh/mes desde 1.000 m (altura de la cabecera
+/// municipal según el IGAC).
+abstract final class ConsumoSubsistencia {
+  static const menosDe1000m = 173.0;
+  static const desde1000m = 130.0;
+
+  static double paraAltitud(double metros) =>
+      metros >= 1000 ? desde1000m : menosDe1000m;
+}
+
 /// Todo lo que el usuario ingresa en la calculadora.
 class EntradasCalculo {
   const EntradasCalculo({
@@ -334,6 +394,9 @@ class EntradasCalculo {
     this.supuestos = const Supuestos(),
     this.precios = Precios.referencia,
     this.clima,
+    this.estrato = Estrato.cuatro,
+    this.subsidioEstrato,
+    this.consumoSubsistenciaKwh = ConsumoSubsistencia.menosDe1000m,
   });
 
   final String nombre;
@@ -342,8 +405,24 @@ class EntradasCalculo {
   final List<Equipo> equipos;
   final double consumoFacturaKwhMes;
 
-  /// COP por kWh de la red (sistemas con red).
+  /// COP por kWh de la red (sistemas con red): el costo del servicio, sin
+  /// subsidio ni contribución (lo que paga el estrato 4).
   final double tarifaKwh;
+
+  /// Estrato de la vivienda: subsidio o contribución sobre [tarifaKwh].
+  final Estrato estrato;
+
+  /// Subsidio que muestra la factura (fracción); `null` = el máximo legal
+  /// del estrato. El operador puede aplicar uno menor.
+  final double? subsidioEstrato;
+
+  /// Subsidio con el que se calcula: el de la factura o el máximo legal; 0
+  /// en los estratos sin subsidio.
+  double get subsidioAplicado =>
+      estrato.subsidio == 0 ? 0 : subsidioEstrato ?? estrato.subsidio;
+
+  /// Consumo de subsistencia del municipio (kWh/mes, [ConsumoSubsistencia]).
+  final double consumoSubsistenciaKwh;
 
   /// Gasto mensual actual en energía sin red (combustible, velas…), en COP.
   final double gastoActualMensual;
@@ -362,6 +441,30 @@ class EntradasCalculo {
   /// escritas a mano.
   final ClimaLugar? clima;
 
+  /// Las mismas entradas con otro tipo de sistema y otros supuestos.
+  EntradasCalculo copiarCon({
+    required TipoSistema tipo,
+    required Supuestos supuestos,
+  }) => EntradasCalculo(
+    tipo: tipo,
+    hsp: hsp,
+    nombre: nombre,
+    modo: modo,
+    equipos: equipos,
+    consumoFacturaKwhMes: consumoFacturaKwhMes,
+    tarifaKwh: tarifaKwh,
+    gastoActualMensual: gastoActualMensual,
+    ubicacion: ubicacion,
+    potenciaPanelW: potenciaPanelW,
+    quimica: quimica,
+    supuestos: supuestos,
+    precios: precios,
+    clima: clima,
+    estrato: estrato,
+    subsidioEstrato: subsidioEstrato,
+    consumoSubsistenciaKwh: consumoSubsistenciaKwh,
+  );
+
   /// Vida calendario de la batería: la editada o la típica de la química.
   double get vidaCalendarioBateria =>
       supuestos.vidaCalendarioBateria ?? quimica.vidaCalendarioAnios.toDouble();
@@ -373,6 +476,9 @@ class EntradasCalculo {
     'equipos': [for (final e in equipos) e.aMapa()],
     'consumo_factura_kwh_mes': consumoFacturaKwhMes,
     'tarifa_kwh': tarifaKwh,
+    'estrato': estrato.numero,
+    'subsidio_estrato': subsidioEstrato,
+    'consumo_subsistencia_kwh': consumoSubsistenciaKwh,
     'gasto_actual_mensual': gastoActualMensual,
     'hsp': hsp,
     'ubicacion': ubicacion,

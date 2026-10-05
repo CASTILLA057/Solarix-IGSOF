@@ -46,6 +46,14 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   List<Equipo> _equipos = equiposBase.take(5).toList();
   final _consumoMes = TextEditingController();
   final _tarifa = TextEditingController(text: '890');
+  Estrato _estrato = Estrato.cuatro;
+
+  /// Subsidio de la factura (%), solo en los estratos 1 a 3; empieza en el
+  /// máximo legal del estrato.
+  final _subsidio = TextEditingController();
+
+  /// Consumo de subsistencia elegido a mano; `null` = el del lugar.
+  double? _subsistenciaElegida;
   final _gastoActual = TextEditingController(text: '0');
 
   // Paso 3: ubicación
@@ -57,6 +65,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   bool _ciudadElegida = false;
   double? _hspUbicacion;
   ClimaLugar? _climaUbicacion;
+  double? _altitudUbicacion;
   bool _buscandoUbicacion = false;
   String? _errorUbicacion;
   final _hspManual = TextEditingController(text: '4.5');
@@ -132,6 +141,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       _nombre,
       _consumoMes,
       _tarifa,
+      _subsidio,
       _gastoActual,
       _hspManual,
       _potenciaPanel,
@@ -169,6 +179,61 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
     _FuenteHsp.ubicacion => _climaUbicacion,
     _FuenteHsp.manual => null,
   };
+
+  /// Consumo de subsistencia del lugar: el del municipio de la ciudad o el
+  /// de la altitud del GPS; `null` sin dato (HSP a mano o GPS sin altitud).
+  double? get _subsistenciaLugar => switch (_fuente) {
+    _FuenteHsp.ciudad => _ciudad?.consumoSubsistenciaKwh,
+    _FuenteHsp.ubicacion =>
+      _altitudUbicacion == null
+          ? null
+          : ConsumoSubsistencia.paraAltitud(_altitudUbicacion!),
+    _FuenteHsp.manual => null,
+  };
+
+  /// Con subsidio y sin dato del lugar ni elección a mano se usan 173 kWh:
+  /// hay que avisarlo.
+  bool get _subsistenciaSupuesta =>
+      _tipo.usaRed &&
+      _estrato.subsidio > 0 &&
+      _subsistenciaElegida == null &&
+      _subsistenciaLugar == null;
+
+  /// Subsidio de la factura; `null` si es el máximo legal o no aplica.
+  double? get _subsidioFactura {
+    if (_estrato.subsidio == 0) return null;
+    final valor = Formato.leer(_subsidio.text);
+    if (valor == null) return null;
+    final fraccion = valor / 100;
+    return (fraccion - _estrato.subsidio).abs() < 1e-9 ? null : fraccion;
+  }
+
+  /// Opciones del consumo de subsistencia: valor, texto de la lista y texto
+  /// corto para el campo cerrado.
+  static const _opcionesSubsistencia = <(double?, String, String)>[
+    (null, 'Según el lugar (ciudad o GPS)', 'Según el lugar'),
+    (
+      ConsumoSubsistencia.menosDe1000m,
+      '173 kWh/mes · menos de 1.000 m',
+      '173 kWh/mes',
+    ),
+    (
+      ConsumoSubsistencia.desde1000m,
+      '130 kWh/mes · 1.000 m o más',
+      '130 kWh/mes',
+    ),
+  ];
+
+  /// Texto del campo cerrado de una lista: una línea y "…" si no cabe.
+  static Widget _enUnaLinea(String texto) => Align(
+    alignment: AlignmentDirectional.centerStart,
+    child: Text(texto, maxLines: 1, overflow: TextOverflow.ellipsis),
+  );
+
+  void _elegirEstrato(Estrato e) => setState(() {
+    _estrato = e;
+    _subsidio.text = _porcentajeTexto(e.subsidio);
+  });
 
   String get _ubicacion => switch (_fuente) {
     _FuenteHsp.ciudad => _ciudad?.etiqueta ?? '',
@@ -236,6 +301,12 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       equipos: _equipos,
       consumoFacturaKwhMes: Formato.leer(_consumoMes.text) ?? 0,
       tarifaKwh: Formato.leer(_tarifa.text) ?? 0,
+      estrato: _tipo.usaRed ? _estrato : Estrato.cuatro,
+      subsidioEstrato: _tipo.usaRed ? _subsidioFactura : null,
+      consumoSubsistenciaKwh:
+          _subsistenciaElegida ??
+          _subsistenciaLugar ??
+          ConsumoSubsistencia.menosDe1000m,
       gastoActualMensual: Formato.leer(_gastoActual.text) ?? 0,
       hsp: _hsp!,
       ubicacion: _ubicacion,
@@ -283,6 +354,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
         setState(() {
           _hspUbicacion = recurso.hsp;
           _climaUbicacion = recurso.clima;
+          _altitudUbicacion = recurso.altitudM;
         });
       }
     } on ErrorApp catch (e) {
@@ -453,15 +525,74 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
               ),
       ),
       const SizedBox(height: 16),
-      if (_tipo.usaRed)
+      if (_tipo.usaRed) ...[
         CampoNumero(
           controller: _tarifa,
           etiqueta: 'Tarifa de la energía',
           sufijo: 'COP/kWh',
-          ayuda: 'Aparece en tu factura como valor del kWh.',
+          ayuda: 'Sin subsidio ni contribución (la del estrato 4).',
+          explicacion: Explicacion.tarifa,
           minimo: 1,
-        )
-      else
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<Estrato>(
+          initialValue: _estrato,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Estrato de la vivienda',
+            suffixIcon: BotonExplicacion(
+              titulo: 'Estrato',
+              texto: Explicacion.estrato,
+            ),
+          ),
+          items: [
+            for (final e in Estrato.values)
+              DropdownMenuItem(value: e, child: Text(textoEstrato(e))),
+          ],
+          // En el campo cerrado va la versión corta: con el ícono ⓘ, la
+          // larga se cortaba a mitad de frase en un celular de 360 dp.
+          selectedItemBuilder: (_) => [
+            for (final e in Estrato.values) _enUnaLinea(textoEstratoCorto(e)),
+          ],
+          onChanged: (e) => _elegirEstrato(e!),
+        ),
+        if (_estrato.subsidio > 0) ...[
+          const SizedBox(height: 16),
+          CampoNumero(
+            key: ValueKey('subsidio-${_estrato.numero}'),
+            controller: _subsidio,
+            etiqueta: 'Subsidio de tu factura',
+            sufijo: '%',
+            ayuda:
+                'Máximo de la ley: ${_porcentajeTexto(_estrato.subsidio)} %. '
+                'Escribe el de tu factura si es otro.',
+            explicacion: Explicacion.subsidioFactura,
+            minimo: 0,
+            maximo: _estrato.subsidio * 100,
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<double?>(
+            initialValue: _subsistenciaElegida,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Consumo de subsistencia',
+              suffixIcon: BotonExplicacion(
+                titulo: 'Consumo de subsistencia',
+                texto: Explicacion.subsistencia,
+              ),
+            ),
+            items: [
+              for (final (valor, largo, _) in _opcionesSubsistencia)
+                DropdownMenuItem<double?>(value: valor, child: Text(largo)),
+            ],
+            selectedItemBuilder: (_) => [
+              for (final (_, _, corto) in _opcionesSubsistencia)
+                _enUnaLinea(corto),
+            ],
+            onChanged: (v) => setState(() => _subsistenciaElegida = v),
+          ),
+        ],
+      ] else
         CampoNumero(
           controller: _gastoActual,
           etiqueta: 'Gasto mensual actual en energía',
@@ -479,6 +610,10 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SegmentedButton<_FuenteHsp>(
+          // Sin el ✓: con él, "Mi ubicación" se achicaba hasta casi no
+          // leerse en un celular de 360 dp. La opción elegida se sigue viendo
+          // por el fondo.
+          showSelectedIcon: false,
           segments: const [
             ButtonSegment(
               value: _FuenteHsp.ciudad,
@@ -571,6 +706,15 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
               ),
             ),
           ),
+          if (_subsistenciaSupuesta) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Sin la altura del lugar se usa un consumo de subsistencia de '
+              '173 kWh/mes. Si vives a 1.000 m o más, elige 130 en el paso '
+              '"Consumo".',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ],
     );
