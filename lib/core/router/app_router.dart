@@ -8,6 +8,7 @@ import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/presentation/bienvenida_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/perfil_screen.dart';
+import '../../features/auth/presentation/politica_datos_screen.dart';
 import '../../features/auth/presentation/recuperar_screen.dart';
 import '../../features/auth/presentation/registro_screen.dart';
 import '../../features/auth/presentation/verificar_correo_screen.dart';
@@ -111,6 +112,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      // Política de datos (Ley 1581): con o sin sesión, desde el registro y
+      // el perfil.
+      GoRoute(
+        path: Rutas.politicaDatos,
+        builder: (context, state) => const PoliticaDatosScreen(),
       ),
       // Pantallas de acceso como hijas de la bienvenida: "atrás" vuelve a ella.
       GoRoute(

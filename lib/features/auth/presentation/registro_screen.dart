@@ -114,7 +114,48 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                 onFieldSubmitted: (_) => _registrarse(),
                 autofillHints: const [AutofillHints.newPassword],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              // Ley 1581 de 2012: autorización previa, expresa e informada.
+              FormField<bool>(
+                initialValue: false,
+                validator: (acepta) => acepta == true
+                    ? null
+                    : 'Debes autorizar el tratamiento de tus datos para crear '
+                          'la cuenta.',
+                builder: (campo) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CheckboxListTile(
+                      value: campo.value ?? false,
+                      onChanged: campo.didChange,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text(
+                        'Autorizo el tratamiento de mis datos personales '
+                        'según la política de tratamiento de datos.',
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => context.push(Rutas.politicaDatos),
+                        child: const Text(
+                          'Leer la política de tratamiento de datos',
+                        ),
+                      ),
+                    ),
+                    if (campo.errorText case final error?)
+                      Text(
+                        error,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               if (_error != null) ...[
                 MensajeError(_error!),
                 const SizedBox(height: 16),

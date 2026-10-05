@@ -110,6 +110,8 @@ Future<void> registrarse(WidgetTester tester) async {
   await escribir(tester, 'Correo', 'ana@correo.com');
   await escribir(tester, 'Contraseña', 'solar2026');
   await escribir(tester, 'Repite la contraseña', 'solar2026');
+  // Autorización del tratamiento de datos (Ley 1581).
+  await tocar(tester, find.byType(CheckboxListTile));
   await tocar(tester, boton('Crear cuenta'));
   await esperar(tester, find.text('Confirma tu correo'));
   await escribir(tester, 'Código', '12345678');

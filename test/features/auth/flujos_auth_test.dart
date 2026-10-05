@@ -167,6 +167,16 @@ void main() {
     expect(find.text('Las contraseñas no coinciden.'), findsOneWidget);
 
     await escribir(tester, 'Repite la contraseña', 'solar2026');
+    // Sin autorizar el tratamiento de datos (Ley 1581) no se crea la cuenta.
+    await tocar(tester, boton('Crear cuenta'));
+    expect(
+      find.text(
+        'Debes autorizar el tratamiento de tus datos para crear la cuenta.',
+      ),
+      findsOneWidget,
+    );
+    expect(auth.llamadas, isEmpty);
+    await tocar(tester, find.byType(CheckboxListTile));
     await tocar(tester, boton('Crear cuenta'));
     expect(auth.llamadas, ['registrarse:ana@correo.com:Ana']);
     expect(find.text('Confirma tu correo'), findsOneWidget);

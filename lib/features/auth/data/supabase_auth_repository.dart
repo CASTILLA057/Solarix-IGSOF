@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/errors/mensajes_error.dart';
 import '../../../core/errors/traducir_error.dart';
+import '../domain/politica_datos.dart';
 import '../domain/usuario.dart';
 import 'auth_repository.dart';
 
@@ -42,7 +43,12 @@ class SupabaseAuthRepository implements AuthRepository {
     final respuesta = await _auth.signUp(
       email: email.trim(),
       password: contrasena,
-      data: {'nombre': nombre.trim()},
+      data: {
+        'nombre': nombre.trim(),
+        // Prueba de la autorización (Ley 1581): versión y fecha.
+        'politica_datos': PoliticaDatos.version,
+        'politica_aceptada_en': DateTime.now().toUtc().toIso8601String(),
+      },
     );
     // Con confirmación de correo activa, Supabase responde "éxito" para un
     // correo ya registrado pero sin identidades (para no revelar cuentas).

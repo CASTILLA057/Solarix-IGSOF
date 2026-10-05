@@ -16,13 +16,14 @@ abstract final class Rutas {
   static const registro = '$bienvenida/registro';
   static const verificar = '$bienvenida/verificar';
   static const recuperar = '$bienvenida/recuperar';
+  static const politicaDatos = '/politica-datos';
 
   /// Pantallas que solo tienen sentido sin sesión: con sesión se va al inicio.
   static const soloSinSesion = {bienvenida, login, registro, verificar};
 
   /// Pantallas accesibles con o sin sesión. Recuperar está aquí porque al
   /// validar el código Supabase abre la sesión antes de cambiar la contraseña.
-  static const publicas = {...soloSinSesion, recuperar};
+  static const publicas = {...soloSinSesion, recuperar, politicaDatos};
 
   /// Pantallas para quien prueba sin cuenta (Etapa 12): calcular y simular.
   /// El perfil y el historial siguen pidiendo sesión.
