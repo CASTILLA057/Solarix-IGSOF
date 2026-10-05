@@ -101,10 +101,16 @@ class ComparacionSimulacion {
   const ComparacionSimulacion({
     required this.principal,
     required this.alternativa,
+    this.referencia,
   });
 
   final ResultadoSimulacion principal;
   final ResultadoSimulacion alternativa;
+
+  /// Batería convencional que no se degrada, con el mismo clima: la base
+  /// para medir cuánta energía deja de aportar la batería que sí se
+  /// degrada (Etapa 12).
+  final ResultadoSimulacion? referencia;
 
   ParametrosSimulacion get parametros => principal.parametros;
   int get semilla => principal.semilla;
@@ -115,7 +121,8 @@ class ComparacionSimulacion {
       parametros.politica == Politica.consciente ? principal : alternativa;
 
   /// Fila de `simulaciones_degradacion` (sin usuario ni cálculo de origen).
-  Map<String, dynamic> aFila() => {
+  /// [financiero]: impacto en la inversión del cálculo de origen, si lo hay.
+  Map<String, dynamic> aFila({Map<String, dynamic>? financiero}) => {
     'politica': parametros.politica.name,
     'parametros': {...parametros.aMapa(), 'semilla': semilla},
     'resultados': {
@@ -124,6 +131,7 @@ class ComparacionSimulacion {
         'politica': alternativa.parametros.politica.name,
         ...resumenSimulacion(alternativa),
       },
+      'financiero': ?financiero,
     },
     'serie': [for (final m in serieMensual(principal.dias)) m.aMapa()],
   };
@@ -132,7 +140,8 @@ class ComparacionSimulacion {
 /// Lo que se envía al isolate: parámetros y semilla.
 typedef SolicitudSimulacion = ({ParametrosSimulacion parametros, int semilla});
 
-/// Función de nivel superior para `compute()`: corre las dos políticas.
+/// Función de nivel superior para `compute()`: corre las dos políticas y la
+/// referencia sin degradación (las tres con el mismo clima).
 ComparacionSimulacion simularComparacion(SolicitudSimulacion s) {
   final otra = s.parametros.politica == Politica.convencional
       ? Politica.consciente
@@ -141,6 +150,14 @@ ComparacionSimulacion simularComparacion(SolicitudSimulacion s) {
     principal: simular(s.parametros, semilla: s.semilla),
     alternativa: simular(
       s.parametros.copiarCon(politica: otra),
+      semilla: s.semilla,
+      registrarDias: false,
+    ),
+    referencia: simular(
+      s.parametros.copiarCon(
+        politica: Politica.convencional,
+        escalaDegradacion: 0,
+      ),
       semilla: s.semilla,
       registrarDias: false,
     ),

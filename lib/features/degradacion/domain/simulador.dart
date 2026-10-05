@@ -48,6 +48,7 @@ class ResultadoSimulacion {
     required this.ciclosEquivalentes,
     required this.sohAnual,
     required this.dias,
+    this.autoabastecidoAnual = const [],
   });
 
   final ParametrosSimulacion parametros;
@@ -63,6 +64,11 @@ class ResultadoSimulacion {
   /// SoH al final de cada año completo; el índice 0 es el inicio (100 %).
   final List<double> sohAnual;
   final List<DiaSimulado> dias;
+
+  /// Energía que los paneles y la batería entregaron a la casa (consumo
+  /// menos lo comprado a la red, kWh) en cada año completo. Se registra
+  /// aunque no se guarden los días; un año a medias (fin de vida) no cuenta.
+  final List<double> autoabastecidoAnual;
 
   /// La corrida se detuvo porque el SoH bajó del 80 % (fin de vida).
   bool get finDeVida => sohFinal < Constantes.sohUmbral;
@@ -112,6 +118,8 @@ class SimuladorSimDeg {
   double _comprada = 0;
   double _generada = 0;
   double _consumida = 0;
+  double _autoabastecidoAnio = 0;
+  final _autoabastecidoAnual = <double>[];
 
   // Registro diario
   final _dias = <DiaSimulado>[];
@@ -129,7 +137,11 @@ class SimuladorSimDeg {
     while (horas < p.horizonteHoras && _soh >= Constantes.sohUmbral) {
       _paso(horas);
       horas++;
-      if (horas % Constantes.horasPorAnio == 0) sohAnual.add(_soh);
+      if (horas % Constantes.horasPorAnio == 0) {
+        sohAnual.add(_soh);
+        _autoabastecidoAnual.add(_autoabastecidoAnio);
+        _autoabastecidoAnio = 0;
+      }
     }
     return ResultadoSimulacion(
       parametros: p,
@@ -143,6 +155,7 @@ class SimuladorSimDeg {
       ciclosEquivalentes: _estres.ciclosEquivalentes,
       sohAnual: sohAnual,
       dias: List.unmodifiable(_dias),
+      autoabastecidoAnual: List.unmodifiable(_autoabastecidoAnual),
     );
   }
 
@@ -159,6 +172,7 @@ class SimuladorSimDeg {
     );
     _compradaHora = d.red;
     _comprada += d.red;
+    _autoabastecidoAnio += _consumo - d.red;
     _actualizarBateria(d);
     _registrarHora(tick, limpiar);
   }
