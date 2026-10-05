@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/app.dart';
 import 'package:solarix/features/auth/application/auth_providers.dart';
+import 'package:solarix/features/auth/domain/perfil.dart';
 import 'package:solarix/features/calculadora/application/calculadora_providers.dart';
 import 'package:solarix/features/calculadora/data/calculadora_repository.dart';
 import 'package:solarix/features/calculadora/domain/modelos.dart';
@@ -22,7 +23,10 @@ class FakeCalculadoraRepository implements CalculadoraRepository {
   }
 }
 
-Future<FakeCalculadoraRepository> abrirCalculadora(WidgetTester tester) async {
+Future<FakeCalculadoraRepository> abrirCalculadora(
+  WidgetTester tester, {
+  Perfil perfil = const Perfil(id: 'u-1'),
+}) async {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -34,6 +38,9 @@ Future<FakeCalculadoraRepository> abrirCalculadora(WidgetTester tester) async {
           FakeAuthRepository(usuario: FakeAuthRepository.usuarioPrueba),
         ),
         calculadoraRepositoryProvider.overrideWithValue(repo),
+        perfilRepositoryProvider.overrideWithValue(
+          FakePerfilRepository(perfil),
+        ),
       ],
       child: const SolarixApp(),
     ),
@@ -174,5 +181,21 @@ void main() {
     }
     await tocar(tester, boton('Siguiente'));
     expect(find.text('Agrega al menos un equipo.'), findsOneWidget);
+  });
+
+  testWidgets('la ciudad del perfil es el lugar por defecto', (tester) async {
+    final repo = await abrirCalculadora(
+      tester,
+      perfil: const Perfil(id: 'u-1', ciudad: 'Cali'),
+    );
+    await tocar(tester, boton('Siguiente'));
+    await tocar(tester, boton('Siguiente'));
+    expect(find.text('Cali (Valle del Cauca)'), findsOneWidget);
+    await tocar(tester, boton('Siguiente'));
+    await tocar(tester, boton('Calcular'));
+    await tocar(tester, boton('Guardar cálculo'));
+    final (entradas, _) = repo.guardados.single;
+    expect(entradas.hsp, 4.2);
+    expect(entradas.clima, isNotNull);
   });
 }
