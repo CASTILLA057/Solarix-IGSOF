@@ -360,3 +360,10 @@ Supuestos fijos encontrados y su corrección planeada en la Etapa 3:
 - `HECHO` **APK firmado**: `flutter build apk --release` (55,8 MB). `apksigner verify --print-certs` confirma el certificado propio (CN=Santiago Castilla, OU=Ufpso, O=Solarix, L=Ocana, ST=Norte de Santander, C=CO), no el de depuración.
 - `HECHO` El autor desinstaló la versión de desarrollo y se instaló el APK firmado por USB (`adb install`). Prueba manual verificada por el autor: ícono, nombre, splash, arranque en claro y la app completa funcionan.
 - `HECHO` **Etapa 11 completa para Android.** La publicación web y las URLs de Auth en Supabase quedan **en espera** por decisión del autor. Subida a GitHub en commits separados por tema.
+
+## 2026-10-04 — Etapa 12: arreglos (plan)
+
+- `HECHO` Revisión crítica del proyecto entero en dos rondas (abogado del diablo): la primera sobre los números, la integración y la sustentación; la segunda sobre el backend y la protección de datos.
+- `DECISIÓN` Los hallazgos se agregan como **Etapa 12 — Arreglos**. "Documentación y entrega" pasa a ser la **Etapa 13**, para no renumerar el despliegue, que ya tiene commits y bitácora como Etapa 11.
+- `DECISIÓN` La más grave: la vida simulada de la batería no tiene envejecimiento calendario y, con la extrapolación lineal y el horizonte de 20 años, casi nunca genera reemplazo, así que la comparación "antes/después" siempre favorece a la simulación. Se corrige con un tope calendario.
+- `HECHO` La Etapa 13 suma tres tareas para la sustentación: diapositiva de límites del modelo, hoja de fórmulas con el origen de cada constante y ensayo de la demo 24 horas antes.

@@ -210,9 +210,54 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [ ] *En espera:* publicar la versión web (por ejemplo, Netlify o Firebase Hosting)
 - [ ] *En espera:* configurar en Supabase las URLs de redirección de Auth para la versión publicada
 
-## Etapa 12 — Documentación y entrega
+## Etapa 12 — Arreglos
+*Grietas encontradas en la revisión crítica del proyecto (abogado del diablo, dos rondas, 2026-10-04). Ordenadas por gravedad dentro de cada bloque. Todo lo que toca Supabase se aplica solo con el visto bueno del autor.*
+
+**Integración batería ↔ flujo de caja (la más grave)**
+- [ ] Tope calendario a la vida simulada de la batería: usar el menor entre la vida por ciclos (simulación) y una vida calendario por química (por ejemplo, 12–15 años para LiFePO₄), porque el modelo no incluye envejecimiento calendario (`t-bat` no entra en la degradación). Hoy la pérdida simulada es de ≈ 8–11 % en 10 años, la extrapolación da 19–26 años y, con un horizonte de 20, la batería casi nunca se reemplaza: la tarjeta "antes/después" siempre favorece a la simulación
+- [ ] Mostrar en la tarjeta las dos vidas (por ciclos y calendario) y cuál limita
+- [ ] Revisar la extrapolación lineal de `aniosHastaFinDeVida` (la curva es `SoH = 100·e^(−Z)`, no una recta) o justificarla
+- [ ] Reemplazo de batería cerca del final del horizonte: no cobrar la batería entera si solo se usa uno o dos años (valor residual o prorrateo)
+
+**Economía de la calculadora**
+- [ ] Excedentes por tramos según la CREG 174 de 2021: lo exportado hasta lo importado, a tarifa menos comercialización; lo que pase de ahí, a precio de bolsa (editable). Hoy todo el excedente vale el 70 % de la tarifa
+- [ ] Incentivos de la Ley 1715 de 2014 (exclusión de IVA y beneficios de renta), al menos como opción
+- [ ] Explicar en la app de dónde salen los supuestos fijos (autoconsumo 60 % on-grid y 90 % híbrido, fracción nocturna 50 %, factor de excedentes, PR 0,78, factor 1,25) o enlazar la fuente
+
+**Coherencia entre cálculo y simulación**
+- [ ] Mapear las HSP al escenario del modelo sin simular con menos sol del real (las ciudades de 4,0–4,2 HSP caen en el escenario medio ≈ 3,5); interpolar o ajustar la potencia del panel
+- [ ] Elegir la zona climática según la ciudad en lugar de dejar siempre "mixta"
+
+**Que la demo no dependa de servicios gratuitos**
+- [ ] Calculadora y simulación sin sesión, con los respaldos locales (`ciudadesBase` y precios en Dart); la cuenta solo para guardar e historial
+- [ ] Una sola fuente de verdad para precios y ciudades: hoy la migración y `modelos.dart`/`catalogos.dart` se sincronizan a mano
+- [ ] Revisar el remitente de los correos: `@gmail.com` enviado por Brevo puede caer en spam por DMARC; probar con una cuenta nueva y, si falla, usar el remitente que Brevo recomiende
+- [ ] Cuenta de demo ya verificada para la sustentación
+- [ ] Copia de respaldo de la llave de firma (`solarix.jks`) y de `key.properties` fuera de este PC
+
+**Seguridad del backend (nueva migración)**
+- [ ] Límite de tamaño en las columnas `jsonb` (`entradas`, `resultados`, `parametros`, `serie`), por ejemplo con `pg_column_size`
+- [ ] Tope de filas por usuario en `calculos_consumo` y `simulaciones_degradacion` (trigger que rechace pasado el límite)
+- [ ] Verificar que `calculo_id` sea del mismo usuario en las políticas de crear y actualizar simulaciones
+- [ ] Quitar `perfiles.zona_irradiancia` (concepto de la Etapa 1 que la app ya no usa) o reemplazarla
+- [ ] Límites de frecuencia de registro y envío de correos en Auth, versionados en `supabase/config.toml` y aplicados en el panel
+- [ ] Alertas de uso de Supabase y de Brevo a un correo que se revise
+
+**Protección de datos (Ley 1581 de 2012)**
+- [ ] Casilla de autorización de tratamiento de datos en el registro, con enlace a la política
+- [ ] Página corta con la política de tratamiento de datos
+- [ ] Botón "Eliminar mi cuenta" en Perfil (borra el usuario de Auth; `on delete cascade` borra sus filas)
+
+**Cierre**
+- [ ] Pruebas de cada arreglo (fórmulas, políticas RLS y pantallas nuevas)
+- [ ] Prueba manual en Chrome y Android
+
+## Etapa 13 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase
 - [ ] Manual breve de usuario (puedes reaprovechar texto de los dos Word que ya tienes)
 - [ ] Documento de validación del modelo (Dart vs. NetLogo) de la Etapa 4
 - [ ] Capturas de pantalla y, si la materia lo pide, video demo
 - [ ] Preparar la sustentación: qué parte viene de cada materia y cómo se conectan
+- [ ] Diapositiva de límites del modelo: sin envejecimiento calendario, validación Dart contra NetLogo (no contra baterías reales), coeficientes sin calibrar con datos medidos
+- [ ] Hoja de fórmulas con el origen de cada constante, para responder sin mirar el código
+- [ ] Reactivar Supabase y ensayar la demo 24 horas antes (registro con correo nuevo incluido)
