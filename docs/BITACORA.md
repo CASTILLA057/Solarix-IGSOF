@@ -409,3 +409,75 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
 - `HECHO` Resultados: excedente que se descuenta de la factura, excedente vendido a bolsa, nota del IVA excluido y deducción de renta del año 1.
 - `HECHO` Pruebas nuevas: tramos de la CREG (permuta parcial, todo a bolsa, todo permutado, Cv mayor que la tarifa), cálculo completo con los nuevos valores, IVA, deducción de renta (solo el año 1), guardado de los campos nuevos, y en pantalla: explicación del precio de bolsa, incentivos que llegan al cálculo guardado y autoconsumo que sigue al tipo de sistema salvo que se edite. 167 pruebas pasan; `flutter analyze` sin advertencias.
 - `HECHO` Prueba manual en Android (`PRUEBAS.md`, paso 20), con el APK firmado instalado encima conservando la sesión: verificada por el autor. Falta repetirla en Chrome.
+
+## 2026-10-05 — Etapa 12 (arreglos): coherencia entre cálculo y simulación (clima por ciudad)
+
+- `CORREGIDO` **Todas las ciudades se simulaban con el mismo sol y la misma temperatura.** La simulación desde un cálculo elegía el escenario de NetLogo más cercano a las HSP del lugar con la zona siempre mixta, y las 28 ciudades caían en el escenario alto (≈ 4,6 HSP y 27 °C): Santa Marta (5,7 HSP) se simulaba con ≈ 19 % menos sol, Pasto (4,0) con ≈ 15 % más, y Bogotá y Tunja con 27 °C.
+- `DECISIÓN` Como dice el plan, NetLogo y sus ecuaciones no cambian: solo las **entradas**. Con el visto bueno del autor, `simulador.dart` cambia 2 líneas, que leen la irradiancia máxima y la temperatura media de los parámetros (`p.irradianciaMaxima`, `p.temperaturaMedia`) en vez del escenario fijo. Por defecto valen lo mismo que el escenario. Se descartó un primer intento que multiplicaba la generación dentro del simulador.
+- `HECHO` **`dart run tool/validar_motor.dart` da los mismos resultados**: los números de `VALIDACION_DART.md` son idénticos; solo cambian la fecha y el tiempo de una corrida (62 ms frente a 63 ms). El archivo se dejó como estaba. Las 27 pruebas del motor también pasan.
+- `HECHO` **Clima de cada ciudad** de NASA POWER, la misma fuente de las HSP, consultado el 2026-10-05 en las mismas coordenadas (las HSP de la consulta coinciden con las del catálogo en las 28): lluvia (`PRECTOTCORR`), nubosidad (`CLOUD_AMT`) y temperatura a 2 m (`T2M`). Va en `catalogos.dart` (`climaDeCiudad`) y no en la tabla `ciudades`, para no cambiar la base de datos.
+- `CORREGIDO` **La temperatura de NASA se corrige por altitud.** La celda de ≈ 50 km promedia valle y montaña: sin corregir, Cali daba 16,3 °C, Neiva 20,3, Villavicencio 19,0 y Bogotá 18,8. Corrección: `T = T2M + 0,0065 · (altitud de la celda − altitud de la ciudad)`, con 6,5 °C por cada 1.000 m. NASA devuelve la altitud de su celda. Queda Cali 23,5, Neiva 26,5, Villavicencio 25,0 y Bogotá 13,3 °C, cerca de los valores conocidos. Altitudes aproximadas de las cabeceras: Arauca 125 m, Armenia 1.480 m, Barranquilla 18 m, Bogotá 2.640 m, Bucaramanga 960 m, Cali 1.000 m, Cartagena 2 m, Cúcuta 320 m, Florencia 242 m, Ibagué 1.285 m, Leticia 96 m, Manizales 2.150 m, Medellín 1.495 m, Montería 18 m, Neiva 442 m, Ocaña 1.202 m, Pasto 2.527 m, Pereira 1.411 m, Popayán 1.737 m, Quibdó 43 m, Riohacha 5 m, San Andrés 5 m, Santa Marta 6 m, Sincelejo 213 m, Tunja 2.782 m, Valledupar 169 m, Villavicencio 467 m, Yopal 350 m. En "Mi ubicación" se usa la altitud del GPS cuando el celular la entrega; si no, la de NASA sin corregir.
+- `DECISIÓN` **Criterio de la zona** (`zonaParaClima`), según cuánto llueve en cada zona del modelo (≈ 18 días de lluvia al año en la muy soleada, 38 en la polvorienta, 98 en la mixta, 169 en la muy nublada y 255 en la lluviosa), en este orden:
+  1. Lluviosa: 2.500 mm/año o más.
+  2. Polvorienta: seca (menos de 1.000 mm/año) y despejada (nubosidad menor al 60 %).
+  3. Muy soleada: despejada.
+  4. Muy nublada: 1.600 mm/año o más, o nubosidad del 80 % o más.
+  5. Mixta: el resto.
+
+  Sin datos del clima (HSP escritas a mano), mixta. Los umbrales se fijaron con las zonas del modelo y mirando cómo se reparten las 28 ciudades; no se ajustaron ciudad por ciudad.
+- `HECHO` **Irradiancia máxima por ciudad**: la que hace que el modelo, en la zona de la ciudad, produzca sus HSP reales. La irradiancia del modelo es proporcional a la máxima y el azar del clima no depende de ella, así que basta una proporción: `800 W/m² × HSP de la ciudad / HSP del escenario alto en esa zona`. No hace falta buscar con 6–8 corridas. La forma del día, la lluvia, las nubes y el polvo son los del escenario alto con la zona de la ciudad. Tope físico de 1.100 W/m²: ninguna ciudad llega (todas entre 688 y 989).
+- `HECHO` Tabla de ciudades (HSP, lluvia en mm/año, nubosidad en %, temperatura corregida en °C, zona e irradiancia máxima en W/m²):
+
+  | Ciudad | HSP | Lluvia | Nubes | Temp. | Zona | Irradiancia |
+  |---|---|---|---|---|---|---|
+  | Arauca | 5,0 | 1.515 | 67 | 27,5 | mixta | 860 |
+  | Armenia | 4,5 | 1.632 | 82 | 20,2 | muyNublada | 883 |
+  | Barranquilla | 5,4 | 1.124 | 57 | 27,9 | muySoleada | 803 |
+  | Bogotá | 4,6 | 1.624 | 78 | 13,3 | muyNublada | 902 |
+  | Bucaramanga | 5,1 | 1.245 | 72 | 24,3 | mixta | 877 |
+  | Cali | 4,2 | 1.022 | 84 | 23,5 | muyNublada | 824 |
+  | Cartagena | 5,3 | 1.369 | 65 | 28,2 | mixta | 912 |
+  | Cúcuta | 4,3 | 909 | 79 | 28,4 | mixta | 740 |
+  | Florencia | 4,4 | 1.427 | 81 | 26,0 | muyNublada | 863 |
+  | Ibagué | 4,5 | 1.504 | 82 | 21,9 | muyNublada | 883 |
+  | Leticia | 4,6 | 2.555 | 80 | 25,8 | lluviosa | 989 |
+  | Manizales | 4,8 | 1.986 | 81 | 16,0 | muyNublada | 942 |
+  | Medellín | 4,9 | 2.270 | 79 | 20,0 | muyNublada | 961 |
+  | Montería | 5,0 | 1.369 | 68 | 28,0 | mixta | 860 |
+  | Neiva | 4,2 | 1.314 | 82 | 26,5 | muyNublada | 824 |
+  | Ocaña | 5,0 | 1.011 | 71 | 22,1 | mixta | 860 |
+  | Pasto | 4,0 | 1.037 | 79 | 13,3 | mixta | 688 |
+  | Pereira | 4,5 | 1.986 | 82 | 20,8 | muyNublada | 883 |
+  | Popayán | 4,1 | 971 | 82 | 18,3 | muyNublada | 804 |
+  | Quibdó | 4,0 | 4.406 | 89 | 25,7 | lluviosa | 860 |
+  | Riohacha | 5,5 | 931 | 57 | 27,8 | polvorienta | 891 |
+  | San Andrés | 5,3 | 1.533 | 62 | 27,7 | mixta | 912 |
+  | Santa Marta | 5,7 | 847 | 55 | 28,8 | polvorienta | 923 |
+  | Sincelejo | 5,1 | 1.431 | 68 | 27,0 | mixta | 877 |
+  | Tunja | 4,5 | 1.785 | 78 | 11,6 | muyNublada | 883 |
+  | Valledupar | 5,3 | 719 | 66 | 28,4 | mixta | 912 |
+  | Villavicencio | 4,3 | 2.435 | 83 | 25,0 | muyNublada | 843 |
+  | Yopal | 4,5 | 1.964 | 74 | 26,4 | muyNublada | 883 |
+
+- `DECISIÓN` Las HSP del modelo se miden con **10 años** de referencia (lo que se simula) y no con 1 o 3: el modelo varía la lluvia de un año a otro entre × 0,6 y × 1,6, y con 3 años una ciudad quedaba a 7,6 % de sus HSP medida con otra semilla.
+- `HECHO` **Pantalla de simulación**: sección "Entorno" con selector de **Lugar** ("Lugar del cálculo" o una de las 28 ciudades; sin cálculo, la ciudad del perfil si está en la lista, o Ocaña) y el resumen de lo que se simula (zona, irradiancia máxima, temperatura y HSP). La irradiancia y la zona de NetLogo pasan a **"Avanzado: configuración de NetLogo"**, con un interruptor que usa los escenarios originales sin cambios. Allí no se pueden elegir combinaciones imposibles: con irradiancia baja (casi sin sol) no hay zona muy soleada ni polvorienta.
+- `HECHO` El cálculo guarda el clima del lugar (`entradas.clima`); "Mi ubicación" lo trae en la misma consulta a NASA. La simulación guarda `irradiancia_maxima_lugar` y `temperatura_media_lugar` en `parametros`, y los resultados y el historial describen el entorno ("irradiancia máxima 860 W/m² · 22,1 °C · zona mixta" o "irradiancia alta (NetLogo) · zona mixta"). Los cálculos y simulaciones viejos se leen igual.
+- `PENDIENTE` Limitaciones: la celda de NASA de ≈ 50 km también afecta la lluvia y la nubosidad en las montañas (Pasto, con 79,4 % de nubosidad, queda como mixta aunque es nublada). Las configuraciones por ciudad son interpolaciones de las entradas que no se validaron una por una contra NetLogo, como ya dice la diapositiva de límites (Etapa 13).
+- `HECHO` Pruebas nuevas:
+  - Reglas de la zona y sus límites.
+  - Clima, temperatura y zona de las ciudades.
+  - La zona cambia el sol del modelo.
+  - **Todas las ciudades sin llegar al tope y a ±5 % de sus HSP**, medido con otra semilla en 10 años.
+  - El entorno del lugar solo cambia entradas, y la configuración de NetLogo queda intacta.
+  - Del cálculo: consumo ajustado a la temperatura del lugar (≈ 10 kWh/día).
+  - Lectura de NASA con lluvia, nubosidad, temperatura y corrección por altitud.
+  - En pantalla: sin datos del clima con HSP a mano, y la zona muy soleada al elegir Barranquilla en la calculadora.
+
+  175 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` Revisión en el celular del autor (APK firmado instalado encima; manejado por `adb` con capturas):
+  - Calculadora con Riohacha → simulación: "Lugar del cálculo", zona polvorienta, 891 W/m², 27,8 °C y 5,5 HSP.
+  - Cambio de lugar a Bogotá: zona muy nublada, 902 W/m², 13,3 °C y 4,6 HSP.
+  - "Avanzado": con NetLogo y irradiancia baja, la zona solo ofrece mixta, muy nublada y lluviosa, y el resumen dice "Configuración original de NetLogo".
+  - Simulación de Bogotá: los resultados y el detalle del historial (Supabase real) dicen "irradiancia máxima 902 W/m² · 13,3 °C · zona muy nublada". Con el frío de Bogotá, en la política consciente limita la vida calendario.
+- `CORREGIDO` Encontrado en esa revisión: en el selector de lugar, "Lugar del cálculo · 5,5" no dejaba ver "HSP" en un celular de 360 px. Ahora dice "Del cálculo · 5,5 HSP", y cualquier opción que no quepa termina en "…".
+- `HECHO` El autor aprobó el bloque y pidió subirlo. Quedaron en su cuenta un cálculo "Prueba clima Riohacha" y una simulación de Bogotá de prueba.

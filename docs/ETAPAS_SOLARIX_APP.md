@@ -229,14 +229,15 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 
 **Coherencia entre cálculo y simulación (clima por ciudad)**
 *NetLogo y las ecuaciones de Dart (`submodelos.dart`, `simulador.dart`) no se tocan: solo cambian las entradas (`integracion.dart`, tabla de ciudades y pantallas). Así sigue siendo cierto que "las ecuaciones son las de NetLogo, validadas con sus configuraciones; la app ajusta las entradas a cada ciudad".*
-- [ ] Criterio escrito y medible para asignar la zona climática a cada ciudad (por ejemplo, días de lluvia al año de NASA POWER o del IDEAM con umbrales fijos, y polvo por región, como La Guajira), registrado en `BITACORA.md` antes de llenar la tabla
-- [ ] Tabla de ciudades con HSP (NASA POWER), temperatura media (NASA POWER) y zona climática según ese criterio
-- [ ] Irradiancia máxima ajustada por ciudad: búsqueda del valor con el que el modelo, en la zona de la ciudad, produce sus HSP reales (unas 6–8 corridas de un año), con tope físico de ≈ 1 100 W/m²; si se llega al tope, la zona asignada está mal
-- [ ] Temperatura media tomada de la ciudad, no del escenario
-- [ ] Pantalla de simulación con selector de ciudad (o la del perfil); irradiancia y zona pasan a "Avanzado"
-- [ ] En "Avanzado", los escenarios de NetLogo intactos ("configuración de NetLogo, validada") y sin combinaciones imposibles (por ejemplo, irradiancia baja con zona muy soleada)
-- [ ] Prueba que recorra todas las ciudades: falla si alguna llega al tope de irradiancia o se aleja más de ±5 % de sus HSP reales
-- [ ] `dart run tool/validar_motor.dart` da los mismos resultados que hoy en `VALIDACION_DART.md`
+- [x] Criterio escrito y medible para asignar la zona climática a cada ciudad (por ejemplo, días de lluvia al año de NASA POWER o del IDEAM con umbrales fijos, y polvo por región, como La Guajira), registrado en `BITACORA.md` antes de llenar la tabla
+- [x] Tabla de ciudades con HSP (NASA POWER), temperatura media (NASA POWER) y zona climática según ese criterio
+- [x] Irradiancia máxima ajustada por ciudad: búsqueda del valor con el que el modelo, en la zona de la ciudad, produce sus HSP reales (unas 6–8 corridas de un año), con tope físico de ≈ 1 100 W/m²; si se llega al tope, la zona asignada está mal
+- [x] Temperatura media tomada de la ciudad, no del escenario
+- [x] Pantalla de simulación con selector de ciudad (o la del perfil); irradiancia y zona pasan a "Avanzado"
+- [x] En "Avanzado", los escenarios de NetLogo intactos ("configuración de NetLogo, validada") y sin combinaciones imposibles (por ejemplo, irradiancia baja con zona muy soleada)
+- [x] Prueba que recorra todas las ciudades: falla si alguna llega al tope de irradiancia o se aleja más de ±5 % de sus HSP reales
+- [x] `dart run tool/validar_motor.dart` da los mismos resultados que hoy en `VALIDACION_DART.md`
+- [x] Prueba manual del bloque en Android (revisada en el celular del autor)
 
 **Que la demo no dependa de servicios gratuitos**
 - [ ] Calculadora y simulación sin sesión, con los respaldos locales (`ciudadesBase` y precios en Dart); la cuenta solo para guardar e historial
