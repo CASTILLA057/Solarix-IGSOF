@@ -12,8 +12,9 @@ flutter test
 
 | Grupo | Archivos | Qué prueba |
 |---|---|---|
-| Fórmulas | `test/features/calculadora/calculadora_test.dart`, `test/features/degradacion/motor_test.dart` | Consumo, dimensionamiento, costos, payback; motor SimDeg-FV contra NetLogo (Etapa 4) |
-| Pantallas | `test/features/**` | Login, registro, recuperar contraseña, perfil, calculadora, simulación, inicio, historial, gráficas, errores, modo oscuro, tamaños de pantalla |
+| Fórmulas | `test/features/calculadora/calculadora_test.dart`, `test/features/degradacion/motor_test.dart`, `test/features/degradacion/integracion_test.dart` | Consumo, dimensionamiento, costos, payback, excedentes (CREG 174) e incentivos (Ley 1715); motor SimDeg-FV contra NetLogo (Etapa 4); vida de la batería, ahorro con la degradación y clima por ciudad (Etapa 12) |
+| Pantallas | `test/features/**` | Login, registro, recuperar contraseña, perfil, calculadora, simulación, inicio, historial, gráficas, errores, modo oscuro, tamaños de pantalla, modo sin cuenta, política de datos y "Eliminar mi cuenta", "Avanzado" de NetLogo |
+| Límites de la base | `test/core/limites_backend_test.dart` | Lo más grande que guarda la app cabe en los límites de la migración de seguridad; mensajes del tope de 200 y de datos demasiado grandes |
 | Colores | `test/core/paleta_contraste_test.dart` | Contraste de texto (≥ 4,5:1) y de las líneas de las gráficas (≥ 3:1), en claro y oscuro |
 | De principio a fin | `test/flujo_completo_test.dart` | Registro → calculadora → simulación → guardar → inicio, historial y detalle |
 
@@ -59,7 +60,7 @@ Recorrer en el **celular** (`flutter run` con la configuración "Solarix (Androi
 | 2 | Crear cuenta con un correo real | Llega el correo con el código de 8 dígitos; al escribirlo entra al inicio | [x] | [x] |
 | 3 | Cerrar sesión y volver a entrar | Entra al inicio; cerrar y abrir la app mantiene la sesión | [x] | [x] |
 | 4 | "¿Olvidaste tu contraseña?" | Llega el código; pide el código antes de la contraseña nueva; entra con la nueva | [x] | [x] |
-| 5 | Perfil: cambiar nombre, ciudad y zona; guardar | "Perfil guardado"; al volver se mantienen | [x] | [x] |
+| 5 | Perfil: cambiar el nombre y elegir la ciudad de la lista; guardar | "Perfil guardado"; al volver se mantienen | [x] | [x] |
 | 6 | Perfil → Apariencia: Claro, Oscuro, Sistema; cerrar y abrir la app | Cambia al instante y se recuerda | [x] | [x] |
 | 7 | Calculadora: conectado a la red, con equipos y una ciudad | Resultados con paneles, costos y recuperación de la inversión | [x] | [x] |
 | 8 | Calculadora: "Mi ubicación" | Pide permiso; tras unos segundos usa las HSP de NASA POWER | [x] | [x] |
@@ -74,4 +75,29 @@ Recorrer en el **celular** (`flutter run` con la configuración "Solarix (Androi
 | 17 | Teclado del celular en los formularios | El campo activo queda visible sobre el teclado | [x] | — |
 | 18 | Botón atrás del celular en cada pantalla | Vuelve a la pantalla anterior; desde el inicio sale de la app | [x] | — |
 | 19 | Ícono de casa y "Volver al inicio" en los resultados, sin guardar y guardado | Sin guardar pregunta (Guardar y salir / Salir sin guardar / Cancelar); guardado va directo al inicio | [x] | [x] |
-| 20 | Calculadora → "Supuestos técnicos y financieros": tocar ⓘ en varios campos; cambiar a híbrido; abrir "Incentivos de la Ley 1715", activar "Comprar sin IVA" y poner una tarifa de renta; calcular | Cada ⓘ abre su explicación con la fuente; el autoconsumo pasa de 60 a 90 % y aparece "Consumo sin sol"; en los resultados, excedente descontado de la factura y vendido a bolsa, la nota "Sin IVA" y la "Deducción de renta (año 1)" | [x] | [ ] |
+| 20 | Calculadora → "Supuestos técnicos y financieros": tocar ⓘ en varios campos; cambiar a híbrido; abrir "Incentivos de la Ley 1715", activar "Comprar sin IVA" y poner una tarifa de renta; calcular | Cada ⓘ abre su explicación con la fuente; el autoconsumo pasa de 60 a 90 % y aparece "Consumo sin sol"; en los resultados, excedente descontado de la factura y vendido a bolsa, la nota "Sin IVA" y la "Deducción de renta (año 1)" | [x] | [x] |
+| 21 | Bienvenida → "Probar sin cuenta": calcular, simular y tratar de guardar | Todo funciona sin sesión; en vez de guardar dice "Crea una cuenta para guardar"; el perfil y el historial piden cuenta | [x] | [x] |
+| 22 | Registro sin marcar la casilla de autorización; "Leer la política de tratamiento de datos" | "Debes autorizar el tratamiento de tus datos para crear la cuenta"; la política se abre y "atrás" vuelve al registro | [x] | [x] |
+| 23 | Perfil → "Eliminar mi cuenta" con una cuenta de prueba | El botón se activa solo al escribir ELIMINAR; borra todo y vuelve a la bienvenida | [x] | — |
+| 24 | Perfil: elegir una ciudad; abrir la calculadora y la simulación sin cálculo | Las dos arrancan en esa ciudad | [x] | [x] |
+| 25 | Simulación: cambiar "Lugar"; en "Avanzado", usar un escenario de NetLogo con irradiancia baja | El resumen cambia con la ciudad; con NetLogo el lugar se bloquea y la zona no ofrece "Muy soleada" ni "Polvorienta" | [x] | [x] |
+| 26 | Calculadora híbrida → guardar → simular → guardar → historial → detalle | Tabla Calculadora / Convencional / Consciente en los resultados y en el detalle del historial | [x] | [x] |
+
+"Eliminar mi cuenta" se prueba en un solo lado porque borra la cuenta: el código es el mismo en Android y en la web.
+
+## 4. Pruebas de seguridad en la base (RLS y límites)
+
+Revisan, en el Supabase real, que cada usuario solo pueda ver y cambiar lo suyo y que los límites de la Etapa 12 funcionen. El script crea dos usuarios de prueba, intenta lo prohibido como uno de ellos y al final lanza un error a propósito que **deshace todo**: no queda nada en la base.
+
+```bash
+npx supabase db query --linked -f supabase/pruebas/seguridad_rls.sql
+```
+
+El resultado esperado es un error que empieza con `PRUEBAS DE SEGURIDAD: 18 de 18 bien (todo se deshizo)` y una línea por prueba. Cualquier línea con `MAL` es una falla. Revisa:
+
+- Perfiles y cálculos ajenos: no se ven, no se cambian, no se borran y no se crean a nombre de otro.
+- Una simulación no se enlaza a un cálculo ajeno, ni al crearla ni al cambiarla.
+- Datos demasiado grandes (entradas de 70 KB, serie de 270 KB) se rechazan.
+- El cálculo y la simulación número 201 se rechazan (`limite_filas`).
+- Sin sesión no se ven datos ni se puede llamar a `eliminar_mi_cuenta`.
+- `eliminar_mi_cuenta` borra todo lo del usuario y nada de los demás.

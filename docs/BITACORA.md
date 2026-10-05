@@ -552,3 +552,28 @@ Primer bloque de la Etapa 12, el más grave de la revisión crítica.
   - El perfil carga, prueba de que la app ya no pide `zona_irradiancia`. La ciudad escrita antes a mano se reconoció como "Ocaña (Norte de Santander)".
   - Se cambió la ciudad del perfil a Bogotá: se guarda, y la calculadora y la simulación sin cálculo arrancan en Bogotá (4,6 HSP).
   - Se guardaron cálculos conectados a la red e híbridos y una simulación enlazada a su cálculo, con la nueva regla de `calculo_id`. El historial los muestra.
+
+## 2026-10-05 — Etapa 12 (arreglos): cierre
+
+- `HECHO` **Pruebas automáticas de cada arreglo.** Se revisó qué arreglo de la Etapa 12 tenía prueba y se llenaron los huecos:
+  - "Avanzado: configuración de NetLogo": con NetLogo el lugar se bloquea; con irradiancia baja la zona no ofrece "Muy soleada" ni "Polvorienta"; se guardan los valores originales del modelo.
+  - La prueba de desbordes (celular pequeño, celular oscuro y escritorio) recorre también la política de datos y el detalle del historial con el impacto financiero.
+- `HECHO` **Prueba de seguridad en el Supabase real** (`supabase/pruebas/seguridad_rls.sql`, con el visto bueno del autor). El script crea dos usuarios, intenta lo prohibido como uno de ellos y al final lanza un error a propósito que deshace todo. Resultado: **18 de 18 bien**, y después no quedó ningún usuario de prueba. Revisa:
+  - Perfiles y cálculos ajenos: no se ven, no se cambian, no se borran y no se crean a nombre de otro.
+  - Una simulación no se enlaza a un cálculo ajeno, ni al crearla ni al cambiarla.
+  - Se rechazan las entradas de 70 KB y la serie de 270 KB.
+  - Se rechazan el cálculo y la simulación número 201.
+  - Sin sesión no se ven datos ni se llama a `eliminar_mi_cuenta`.
+  - `eliminar_mi_cuenta` borra todo lo del usuario y nada de los demás.
+
+  `pgTAP` no se usó porque el CLI lo corre con Docker, que este PC no tiene.
+- `HECHO` **Prueba manual** (`PRUEBAS.md`, pasos nuevos 21 a 26):
+  - Chrome: pasos 20, 21, 22, 24, 25 y 26 (el paso 20 estaba pendiente en Chrome).
+  - Android: pasos 24 y 26; los demás se revisaron en cada bloque.
+  - "Eliminar mi cuenta" se probó solo en Android, porque borra la cuenta y el código es el mismo.
+- `CORREGIDO` Encontrado en Chrome con la ventana de 320 px:
+  - La cifra de la inversión del resumen de resultados se partía ("5.031.38" / "3 $"). Ahora se achica para caber en una línea.
+  - Las opciones de los botones segmentados se partían a mitad de palabra ("Ciu/dad", "Convencio/nal"). Nuevo `EtiquetaSegmento`, aplicado a las 12 opciones.
+  - Una prueba a 320 px cubre los dos arreglos; sin ellos falla (84 px y 60 px de alto, en vez de una línea).
+- `HECHO` 190 pruebas pasan; `flutter analyze` sin advertencias; la versión web compila.
+- `HECHO` **Etapa 12 completa.**

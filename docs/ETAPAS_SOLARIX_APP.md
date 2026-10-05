@@ -261,8 +261,8 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Prueba manual del bloque en Android con el Supabase real (verificada por el autor)
 
 **Cierre**
-- [ ] Pruebas de cada arreglo (fórmulas, políticas RLS y pantallas nuevas)
-- [ ] Prueba manual en Chrome y Android
+- [x] Pruebas de cada arreglo (fórmulas, políticas RLS y pantallas nuevas): pruebas de Dart por bloque y `supabase/pruebas/seguridad_rls.sql` contra el Supabase real (18 de 18, todo se deshace)
+- [x] Prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 20 a 26)
 
 ## Etapa 13 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase
