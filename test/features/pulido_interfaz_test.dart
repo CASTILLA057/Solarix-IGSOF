@@ -19,6 +19,7 @@ import 'package:solarix/features/dashboard/domain/historial.dart';
 import 'package:solarix/features/degradacion/domain/comparacion.dart';
 import 'package:solarix/features/degradacion/domain/integracion.dart';
 import 'package:solarix/features/degradacion/domain/parametros.dart';
+import 'package:solarix/features/degradacion/presentation/etiquetas.dart';
 
 import '../helpers/fakes.dart';
 import '../helpers/historial_fakes.dart';
@@ -161,6 +162,87 @@ void main() {
       find.text('Convencional'),
     );
     expect(opcion.size.height, lessThan(opcion.text.style!.fontSize! * 1.6));
+  });
+
+  testWidgets('aislado: la energía de la red es la que faltó', (tester) async {
+    await _abrir(tester);
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(SolarixApp)),
+    ).read(routerProvider);
+    final comparacion = simularComparacion((
+      parametros: const ParametrosSimulacion(anios: 2),
+      semilla: 1,
+    ));
+    OrigenCalculo origen(TipoSistema tipo) {
+      final e = EntradasCalculo(
+        tipo: tipo,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 150,
+        gastoActualMensual: 80000,
+        hsp: 5,
+      );
+      return OrigenCalculo(entradas: e, resultado: calcular(e));
+    }
+
+    ImpactoFinanciero impacto(OrigenCalculo o) => calcularImpacto(
+      origen: o,
+      convencional: comparacion.convencional,
+      consciente: comparacion.consciente,
+      referencia: comparacion.referencia,
+      elegida: Politica.convencional,
+    );
+
+    // Resultados de la simulación.
+    router.go(
+      Rutas.resultadosSimulacion,
+      extra: (comparacion, origen(TipoSistema.offGrid)),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Energía que faltó'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Energía comprada a la red'), findsNothing);
+    expect(find.text(notaEnergiaQueFalto), findsOneWidget);
+
+    router.go(
+      Rutas.resultadosSimulacion,
+      extra: (comparacion, origen(TipoSistema.hibrido)),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Energía comprada a la red'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text(notaEnergiaQueFalto), findsNothing);
+
+    // Detalle del historial: el dato viaja con el impacto guardado.
+    final aislada = impacto(origen(TipoSistema.offGrid));
+    expect(aislada.sinRed, isTrue);
+    expect(aislada.aMapa()['sin_red'], isTrue);
+    expect(
+      impacto(origen(TipoSistema.hibrido)).aMapa(),
+      isNot(contains('sin_red')),
+    );
+    router.go(
+      Rutas.detalleSimulacion,
+      extra: SimulacionGuardada.desdeFila({
+        'id': 's3',
+        'creado_en': DateTime(2026, 10, 3).toUtc().toIso8601String(),
+        'calculo_id': 'c3',
+        ...comparacion.aFila(financiero: aislada.aMapa()),
+      }),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Energía que faltó'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Energía que faltó (acumulada)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text(notaEnergiaQueFalto), findsOneWidget);
   });
 
   // Recorre las pantallas en celular pequeño y escritorio, en claro y oscuro:

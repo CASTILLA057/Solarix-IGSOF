@@ -66,7 +66,7 @@ class DetalleSimulacionScreen extends StatelessWidget {
                       ),
                       ('Pérdida por año', Formato.numero(s.perdidaAnual, 2)),
                       (
-                        'Energía comprada a la red',
+                        etiquetaEnergiaRed(sinRed: s.sinRed),
                         '${Formato.numero(s.compradaKwh)} kWh',
                       ),
                       ('Limpiezas de paneles', '${s.limpiezas}'),
@@ -111,9 +111,21 @@ class DetalleSimulacionScreen extends StatelessWidget {
                   ),
                 ),
                 tarjeta(
-                  'Energía comprada a la red (acumulada)',
-                  GraficaCompradaAcumulada(
-                    compradaMensual: [for (final m in serie) m.compradaKwh],
+                  '${etiquetaEnergiaRed(sinRed: s.sinRed)} (acumulada)',
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      GraficaCompradaAcumulada(
+                        compradaMensual: [for (final m in serie) m.compradaKwh],
+                      ),
+                      if (s.sinRed) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          notaEnergiaQueFalto,
+                          style: tema.textTheme.bodySmall,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

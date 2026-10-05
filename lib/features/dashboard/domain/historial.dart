@@ -190,6 +190,9 @@ class SimulacionGuardada {
   /// Efecto en la inversión del cálculo de origen (Etapa 12); `null` en
   /// simulaciones sin cálculo o guardadas antes de la Etapa 12.
   final ImpactoFinanciero? impacto;
+
+  /// Viene de un sistema aislado: la energía "comprada" es la que faltó.
+  bool get sinRed => impacto?.sinRed ?? false;
 }
 
 /// Filtro de fecha del historial.

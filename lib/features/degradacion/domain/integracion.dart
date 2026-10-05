@@ -345,6 +345,7 @@ class ImpactoFinanciero {
     required this.calculadora,
     required this.convencional,
     required this.consciente,
+    this.sinRed = false,
   });
 
   factory ImpactoFinanciero.desdeMapa(Map<String, dynamic> m) {
@@ -361,6 +362,7 @@ class ImpactoFinanciero {
       calculadora: cifras('calculadora'),
       convencional: cifras('convencional'),
       consciente: cifras('consciente'),
+      sinRed: m['sin_red'] == true,
     );
   }
 
@@ -370,6 +372,10 @@ class ImpactoFinanciero {
   final CifrasFinancieras calculadora;
   final CifrasFinancieras convencional;
   final CifrasFinancieras consciente;
+
+  /// El cálculo de origen es un sistema aislado (Etapa 12): lo que el
+  /// modelo cuenta como energía comprada a la red es energía que faltó.
+  final bool sinRed;
 
   CifrasFinancieras de(Politica p) => switch (p) {
     Politica.convencional => convencional,
@@ -383,6 +389,7 @@ class ImpactoFinanciero {
     'calculadora': calculadora.aMapa(),
     'convencional': convencional.aMapa(),
     'consciente': consciente.aMapa(),
+    if (sinRed) 'sin_red': true,
   };
 }
 
@@ -427,5 +434,6 @@ ImpactoFinanciero calcularImpacto({
     ),
     convencional: conSimulacion(convencional),
     consciente: conSimulacion(consciente),
+    sinRed: !e.tipo.usaRed,
   );
 }

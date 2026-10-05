@@ -142,7 +142,10 @@ class _ResultadosSimulacionScreenState
               _Tarjeta(
                 titulo: 'Convencional frente a consciente',
                 icono: Icons.compare_arrows,
-                child: _TablaComparacion(comparacion: c),
+                child: _TablaComparacion(
+                  comparacion: c,
+                  sinRed: widget.origen?.entradas.tipo.usaRed == false,
+                ),
               ),
               _Tarjeta(
                 titulo: 'Salud de la batería año a año',
@@ -225,9 +228,12 @@ class _Destacado extends StatelessWidget {
 }
 
 class _TablaComparacion extends StatelessWidget {
-  const _TablaComparacion({required this.comparacion});
+  const _TablaComparacion({required this.comparacion, required this.sinRed});
 
   final ComparacionSimulacion comparacion;
+
+  /// Sistema aislado (Etapa 12): la energía "comprada" es la que faltó.
+  final bool sinRed;
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +254,7 @@ class _TablaComparacion extends StatelessWidget {
         Formato.numero(cs.perdidaAnual, 2),
       ),
       (
-        'Energía comprada a la red',
+        etiquetaEnergiaRed(sinRed: sinRed),
         '${Formato.numero(cv.energiaCompradaKwh)} kWh',
         '${Formato.numero(cs.energiaCompradaKwh)} kWh',
       ),
@@ -294,11 +300,17 @@ class _TablaComparacion extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Con el mismo clima, la política consciente cambia la caída del SoH '
-          'en ${Formato.numero(cambioCaida * 100, 1)} % y la energía comprada '
-          'en ${Formato.numero(cambioEnergia * 100, 1)} %.',
+          fraseComparacionPoliticas(
+            cambioCaida: cambioCaida,
+            cambioEnergia: cambioEnergia,
+            energia: etiquetaEnergiaRed(sinRed: sinRed),
+          ),
           style: estilo.bodySmall,
         ),
+        if (sinRed) ...[
+          const SizedBox(height: 8),
+          Text(notaEnergiaQueFalto, style: estilo.bodySmall),
+        ],
       ],
     );
   }
