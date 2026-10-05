@@ -74,3 +74,4 @@ Recorrer en el **celular** (`flutter run` con la configuración "Solarix (Androi
 | 17 | Teclado del celular en los formularios | El campo activo queda visible sobre el teclado | [x] | — |
 | 18 | Botón atrás del celular en cada pantalla | Vuelve a la pantalla anterior; desde el inicio sale de la app | [x] | — |
 | 19 | Ícono de casa y "Volver al inicio" en los resultados, sin guardar y guardado | Sin guardar pregunta (Guardar y salir / Salir sin guardar / Cancelar); guardado va directo al inicio | [x] | [x] |
+| 20 | Calculadora → "Supuestos técnicos y financieros": tocar ⓘ en varios campos; cambiar a híbrido; abrir "Incentivos de la Ley 1715", activar "Comprar sin IVA" y poner una tarifa de renta; calcular | Cada ⓘ abre su explicación con la fuente; el autoconsumo pasa de 60 a 90 % y aparece "Consumo sin sol"; en los resultados, excedente descontado de la factura y vendido a bolsa, la nota "Sin IVA" y la "Deducción de renta (año 1)" | [x] | [ ] |

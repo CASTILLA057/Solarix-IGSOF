@@ -222,9 +222,10 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Prueba manual del bloque en Android (revisada en el celular del autor)
 
 **Economía de la calculadora**
-- [ ] Excedentes por tramos según la CREG 174 de 2021: lo exportado hasta lo importado, a tarifa menos comercialización; lo que pase de ahí, a precio de bolsa (editable). Hoy todo el excedente vale el 70 % de la tarifa
-- [ ] Incentivos de la Ley 1715 de 2014 (exclusión de IVA y beneficios de renta), al menos como opción
-- [ ] Explicar en la app de dónde salen los supuestos fijos (autoconsumo 60 % on-grid y 90 % híbrido, fracción nocturna 50 %, factor de excedentes, PR 0,78, factor 1,25) o enlazar la fuente
+- [x] Excedentes por tramos según la CREG 174 de 2021: lo exportado hasta lo importado, a tarifa menos comercialización; lo que pase de ahí, a precio de bolsa (editable). Hoy todo el excedente vale el 70 % de la tarifa
+- [x] Incentivos de la Ley 1715 de 2014 (exclusión de IVA y beneficios de renta), al menos como opción
+- [x] Explicar en la app de dónde salen los supuestos fijos (autoconsumo 60 % on-grid y 90 % híbrido, fracción nocturna 50 %, factor de excedentes, PR 0,78, factor 1,25) o enlazar la fuente
+- [x] Prueba manual del bloque en Android (`PRUEBAS.md`, paso 20, revisada en el celular del autor)
 
 **Coherencia entre cálculo y simulación (clima por ciudad)**
 *NetLogo y las ecuaciones de Dart (`submodelos.dart`, `simulador.dart`) no se tocan: solo cambian las entradas (`integracion.dart`, tabla de ciudades y pantallas). Así sigue siendo cierto que "las ecuaciones son las de NetLogo, validadas con sus configuraciones; la app ajusta las entradas a cada ciudad".*
