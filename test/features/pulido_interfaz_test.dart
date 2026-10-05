@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solarix/app.dart';
 import 'package:solarix/core/errors/error_app.dart';
+import 'package:solarix/core/formato.dart';
 import 'package:solarix/core/errors/mensajes_error.dart';
 import 'package:solarix/core/router/app_router.dart';
 import 'package:solarix/core/router/rutas.dart';
@@ -124,6 +126,43 @@ void main() {
     expect(find.byTooltip('Eliminar simulación'), findsOneWidget);
   });
 
+  testWidgets('a 320 px no se parten las cifras ni las opciones', (
+    tester,
+  ) async {
+    await _abrir(tester, tamano: const Size(320, 640));
+    const e = EntradasCalculo(
+      tipo: TipoSistema.hibrido,
+      modo: ModoConsumo.factura,
+      consumoFacturaKwhMes: 300,
+      hsp: 5,
+    );
+    final r = calcular(e);
+    ProviderScope.containerOf(tester.element(find.byType(SolarixApp)))
+        .read(routerProvider)
+        .go(Rutas.resultados, extra: (e, r));
+    await tester.pumpAndSettle();
+    // La primera es la del resumen; la otra, la fila "Total" de los costos.
+    final total = tester.renderObject<RenderParagraph>(
+      find.text(Formato.cop(r.costos.total)).first,
+    );
+    expect(total.size.height, lessThan(total.text.style!.fontSize! * 1.6));
+
+    // Las opciones de los SegmentedButton tampoco ("Convencio" / "nal").
+    ProviderScope.containerOf(tester.element(find.byType(SolarixApp)))
+        .read(routerProvider)
+        .go(Rutas.simulacion);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Convencional'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final opcion = tester.renderObject<RenderParagraph>(
+      find.text('Convencional'),
+    );
+    expect(opcion.size.height, lessThan(opcion.text.style!.fontSize! * 1.6));
+  });
+
   // Recorre las pantallas en celular pequeño y escritorio, en claro y oscuro:
   // cualquier desborde (overflow) hace fallar la prueba.
   const entradas = EntradasCalculo(
@@ -153,6 +192,29 @@ void main() {
     ),
     (Rutas.historial, null),
     (Rutas.detalleSimulacion, _simulacion),
+    // Etapa 12: detalle con el impacto financiero guardado y la política de
+    // datos.
+    (
+      Rutas.detalleSimulacion,
+      SimulacionGuardada.desdeFila({
+        'id': 's2',
+        'creado_en': DateTime(2026, 10, 2).toUtc().toIso8601String(),
+        'calculo_id': 'c1',
+        ...comparacion.aFila(
+          financiero: calcularImpacto(
+            origen: OrigenCalculo(
+              entradas: entradas,
+              resultado: calcular(entradas),
+            ),
+            convencional: comparacion.convencional,
+            consciente: comparacion.consciente,
+            referencia: comparacion.referencia,
+            elegida: Politica.convencional,
+          ).aMapa(),
+        ),
+      }),
+    ),
+    (Rutas.politicaDatos, null),
   ];
   for (final (nombre, tamano, modo) in [
     ('celular pequeño', const Size(320, 640), 'light'),

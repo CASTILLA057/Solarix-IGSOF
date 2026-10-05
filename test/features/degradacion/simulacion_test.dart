@@ -26,6 +26,40 @@ class FakeSimulacionRepository implements SimulacionRepository {
   }
 }
 
+/// Abre la app con sesión en el inicio, con un ejecutor de 2 años sin
+/// isolate para que la prueba sea rápida.
+Future<FakeSimulacionRepository> _abrir(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final repo = FakeSimulacionRepository();
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          FakeAuthRepository(usuario: FakeAuthRepository.usuarioPrueba),
+        ),
+        simulacionRepositoryProvider.overrideWithValue(repo),
+        ejecutorSimulacionProvider.overrideWithValue(
+          (s) async => simularComparacion((
+            parametros: s.parametros.copiarCon(anios: 2),
+            semilla: 1,
+          )),
+        ),
+      ],
+      child: const SolarixApp(),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return repo;
+}
+
+Future<void> _tocar(WidgetTester tester, Finder f) async {
+  await tester.ensureVisible(f);
+  await tester.tap(f);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('Comparación y serie mensual', () {
     final c = simularComparacion((
@@ -68,35 +102,8 @@ void main() {
   });
 
   testWidgets('simula desde el inicio, compara y guarda', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final repo = FakeSimulacionRepository();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(
-            FakeAuthRepository(usuario: FakeAuthRepository.usuarioPrueba),
-          ),
-          simulacionRepositoryProvider.overrideWithValue(repo),
-          // Sin isolate en la prueba: 2 años para que sea rápida.
-          ejecutorSimulacionProvider.overrideWithValue(
-            (s) async => simularComparacion((
-              parametros: s.parametros.copiarCon(anios: 2),
-              semilla: 1,
-            )),
-          ),
-        ],
-        child: const SolarixApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    Future<void> tocar(Finder f) async {
-      await tester.ensureVisible(f);
-      await tester.tap(f);
-      await tester.pumpAndSettle();
-    }
+    final repo = await _abrir(tester);
+    Future<void> tocar(Finder f) => _tocar(tester, f);
 
     await tocar(find.text('Simular degradación de batería'));
     expect(find.text('Simular degradación'), findsOneWidget);
@@ -110,5 +117,45 @@ void main() {
     await tocar(find.widgetWithText(FilledButton, 'Guardar simulación'));
     expect(repo.guardadas.single.parametros.politica, Politica.consciente);
     expect(find.text('Simulación guardada'), findsOneWidget);
+  });
+
+  testWidgets('"Avanzado": escenario de NetLogo sin combinaciones imposibles', (
+    tester,
+  ) async {
+    final repo = await _abrir(tester);
+    Future<void> tocar(Finder f) => _tocar(tester, f);
+    final lugar = find.byType(DropdownButtonFormField<String>);
+
+    await tocar(find.text('Simular degradación de batería'));
+    expect(
+      tester.widget<DropdownButtonFormField<String>>(lugar).onChanged,
+      isNotNull,
+    );
+    await tocar(find.text('Avanzado: configuración de NetLogo'));
+    await tocar(find.text('Usar un escenario de NetLogo'));
+    // Con NetLogo el lugar no se usa.
+    expect(
+      tester.widget<DropdownButtonFormField<String>>(lugar).onChanged,
+      isNull,
+    );
+    expect(
+      find.textContaining('Configuración original de NetLogo'),
+      findsOneWidget,
+    );
+
+    // Irradiancia baja (casi sin sol): sin zona muy soleada ni polvorienta.
+    await tocar(find.text('Baja'));
+    await tocar(find.byType(DropdownButtonFormField<ZonaClimatica>));
+    expect(find.text('Muy soleada'), findsNothing);
+    expect(find.text('Polvorienta'), findsNothing);
+    await tocar(find.text('Lluviosa').last);
+
+    await tocar(find.widgetWithText(FilledButton, 'Simular'));
+    await tocar(find.widgetWithText(FilledButton, 'Guardar simulación'));
+    final p = repo.guardadas.single.parametros;
+    expect(p.escenario, EscenarioIrradiancia.baja);
+    expect(p.zona, ZonaClimatica.lluviosa);
+    // Los valores originales de NetLogo, no los de un lugar.
+    expect(p.irradianciaMaxima, EscenarioIrradiancia.baja.irradianciaMaxima);
   });
 }
