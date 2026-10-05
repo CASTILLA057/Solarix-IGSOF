@@ -118,4 +118,10 @@ class FakePerfilRepository implements PerfilRepository {
     guardados.add(perfil);
     this.perfil = perfil;
   }
+
+  /// Veces que se pidió eliminar la cuenta.
+  var cuentasEliminadas = 0;
+
+  @override
+  Future<void> eliminarCuenta() async => cuentasEliminadas++;
 }

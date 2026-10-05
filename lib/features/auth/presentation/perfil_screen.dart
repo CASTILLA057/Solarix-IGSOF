@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/error_app.dart';
+import '../../../core/router/rutas.dart';
 import '../../../core/theme/tema_providers.dart';
 import '../../../core/widgets/estados.dart';
 import '../../../core/widgets/navegacion.dart';
@@ -114,6 +116,41 @@ class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
     }
   }
 
+  /// Ley 1581: el titular puede pedir que se borren sus datos. Se confirma
+  /// escribiendo ELIMINAR, porque no se puede deshacer.
+  Future<void> _eliminarCuenta() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => const _DialogoEliminarCuenta(),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(perfilRepositoryProvider).eliminarCuenta();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tu cuenta y todos tus datos se eliminaron.'),
+          ),
+        );
+      }
+      // El usuario ya no existe: se cierra la sesión local y el router lleva
+      // a la bienvenida.
+      try {
+        await ref.read(authRepositoryProvider).cerrarSesion();
+      } on ErrorApp {
+        // La sesión ya no vale en el servidor; no importa.
+      }
+    } on ErrorApp catch (e) {
+      if (mounted) setState(() => _error = e.mensaje);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -209,11 +246,88 @@ class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
                   icon: const Icon(Icons.logout),
                   label: const Text('Cerrar sesión'),
                 ),
+                const SizedBox(height: 24),
+                const Divider(),
+                TextButton.icon(
+                  onPressed: () => context.push(Rutas.politicaDatos),
+                  icon: const Icon(Icons.privacy_tip_outlined),
+                  label: const Text('Política de tratamiento de datos'),
+                ),
+                TextButton.icon(
+                  onPressed: _guardando ? null : _eliminarCuenta,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                  icon: const Icon(Icons.delete_forever_outlined),
+                  label: const Text('Eliminar mi cuenta'),
+                ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Confirmación de "Eliminar mi cuenta": el botón se activa solo al escribir
+/// ELIMINAR.
+class _DialogoEliminarCuenta extends StatefulWidget {
+  const _DialogoEliminarCuenta();
+
+  @override
+  State<_DialogoEliminarCuenta> createState() => _DialogoEliminarCuentaState();
+}
+
+class _DialogoEliminarCuentaState extends State<_DialogoEliminarCuenta> {
+  static const _palabra = 'ELIMINAR';
+  final _texto = TextEditingController();
+
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final listo = _texto.text.trim().toUpperCase() == _palabra;
+    return AlertDialog(
+      title: const Text('Eliminar mi cuenta'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Se borran tu cuenta, tu perfil y todos tus cálculos y '
+            'simulaciones. No se puede deshacer.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _texto,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(
+              labelText: 'Escribe $_palabra para confirmar',
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: listo ? () => Navigator.pop(context, true) : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Theme.of(context).colorScheme.onError,
+          ),
+          child: const Text('Eliminar mi cuenta'),
+        ),
+      ],
     );
   }
 }

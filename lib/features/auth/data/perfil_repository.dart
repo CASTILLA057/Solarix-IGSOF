@@ -10,6 +10,10 @@ import '../domain/perfil.dart';
 abstract interface class PerfilRepository {
   Future<Perfil> obtener(String usuarioId);
   Future<void> guardar(Perfil perfil);
+
+  /// Borra la cuenta de quien la pide y, en cascada, todos sus datos
+  /// (función `eliminar_mi_cuenta`, Etapa 12).
+  Future<void> eliminarCuenta();
 }
 
 class SupabasePerfilRepository implements PerfilRepository {
@@ -38,6 +42,12 @@ class SupabasePerfilRepository implements PerfilRepository {
         })
         .eq('id', perfil.id);
   }, accion: 'guardar tu perfil');
+
+  @override
+  Future<void> eliminarCuenta() => ejecutarRemoto(
+    () => _db.rpc<void>('eliminar_mi_cuenta'),
+    accion: 'eliminar tu cuenta',
+  );
 }
 
 class SinBackendPerfilRepository implements PerfilRepository {
@@ -49,5 +59,9 @@ class SinBackendPerfilRepository implements PerfilRepository {
 
   @override
   Future<void> guardar(Perfil perfil) =>
+      Future.error(ErrorApp(mensajeErrorAuth(CodigosError.sinBackend)));
+
+  @override
+  Future<void> eliminarCuenta() =>
       Future.error(ErrorApp(mensajeErrorAuth(CodigosError.sinBackend)));
 }
