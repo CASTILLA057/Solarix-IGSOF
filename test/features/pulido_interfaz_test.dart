@@ -15,6 +15,7 @@ import 'package:solarix/features/calculadora/domain/modelos.dart';
 import 'package:solarix/features/dashboard/application/historial_providers.dart';
 import 'package:solarix/features/dashboard/domain/historial.dart';
 import 'package:solarix/features/degradacion/domain/comparacion.dart';
+import 'package:solarix/features/degradacion/domain/integracion.dart';
 import 'package:solarix/features/degradacion/domain/parametros.dart';
 
 import '../helpers/fakes.dart';
@@ -142,6 +143,14 @@ void main() {
     (Rutas.resultados, (entradas, calcular(entradas))),
     (Rutas.simulacion, null),
     (Rutas.resultadosSimulacion, (comparacion, null)),
+    // Con cálculo de origen: la tabla de tres columnas del impacto.
+    (
+      Rutas.resultadosSimulacion,
+      (
+        comparacion,
+        OrigenCalculo(entradas: entradas, resultado: calcular(entradas)),
+      ),
+    ),
     (Rutas.historial, null),
     (Rutas.detalleSimulacion, _simulacion),
   ];

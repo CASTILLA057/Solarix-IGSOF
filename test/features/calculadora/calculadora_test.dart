@@ -273,7 +273,10 @@ void main() {
         supuestos: sinCrecimiento,
       );
       expect([for (final a in flujo) a.reemplazoBateria], [0, 100, 0, 100, 0]);
-      expect([for (final a in flujo) a.acumulado], [-700, -500, -200, 0, 300]);
+      // La batería del año 4 se usa solo 1 de sus 2 años: al final se
+      // devuelve la mitad de su costo como valor residual (Etapa 12).
+      expect([for (final a in flujo) a.valorResidual], [0, 0, 0, 0, 50]);
+      expect([for (final a in flujo) a.acumulado], [-700, -500, -200, 0, 350]);
       final cuatroAnios = flujoDeCaja(
         inversion: 1000,
         ahorroAnualInicial: 300,
@@ -296,12 +299,39 @@ void main() {
         recuperacionAnios(1000, [for (final a in flujo) a.acumulado]),
         closeTo(4.0, 1e-9),
       );
-      // Descontado al 10 % no alcanza a recuperarse en 5 años.
+      // Descontado al 10 %, el valor residual del año 5 (50 / 1,1⁵) lo hace
+      // recuperarse justo antes de terminar.
       expect(
         recuperacionAnios(1000, [for (final a in flujo) a.acumuladoDescontado]),
-        isNull,
+        closeTo(4.92, 0.01),
       );
-      expect(flujo.last.acumuladoDescontado, closeTo(-13.71, 0.01));
+      expect(flujo.last.acumuladoDescontado, closeTo(-13.71 + 31.05, 0.01));
+    });
+
+    test('valor residual: lineal, solo el último año y solo si queda vida', () {
+      Iterable<double> residuales(int vida, int anios) => flujoDeCaja(
+        inversion: 1000,
+        ahorroAnualInicial: 300,
+        costoBaterias: 100,
+        vidaBateriaAnios: vida,
+        supuestos: Supuestos(anios: anios),
+      ).map((a) => a.valorResidual);
+      // Dura más que el horizonte (25 de 20 años): quedan 5 de 25.
+      expect(residuales(25, 20).last, closeTo(20, 1e-9));
+      expect(residuales(25, 20).take(19), everyElement(0));
+      // Termina justo al final (10 + 10 = 20): no queda nada.
+      expect(residuales(10, 20).last, 0);
+      // Sin batería, nada.
+      expect(
+        flujoDeCaja(
+          inversion: 1000,
+          ahorroAnualInicial: 300,
+          costoBaterias: 0,
+          vidaBateriaAnios: 0,
+          supuestos: const Supuestos(),
+        ).last.valorResidual,
+        0,
+      );
     });
 
     test('la recuperación interpola dentro del año', () {

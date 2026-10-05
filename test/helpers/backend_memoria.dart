@@ -5,6 +5,7 @@ import 'package:solarix/features/dashboard/data/historial_repository.dart';
 import 'package:solarix/features/dashboard/domain/historial.dart';
 import 'package:solarix/features/degradacion/data/simulacion_repository.dart';
 import 'package:solarix/features/degradacion/domain/comparacion.dart';
+import 'package:solarix/features/degradacion/domain/integracion.dart';
 
 /// Supabase falso en memoria para las pruebas de principio a fin: guarda
 /// cálculos y simulaciones como filas con las mismas columnas que las tablas
@@ -53,12 +54,13 @@ class BackendEnMemoria
   Future<void> guardar(
     ComparacionSimulacion simulacion, {
     String? calculoId,
+    ImpactoFinanciero? impacto,
   }) async {
     filasSimulaciones.add({
       'id': _id('sim'),
       'creado_en': _ahora(),
       'calculo_id': calculoId,
-      ...simulacion.aFila(),
+      ...simulacion.aFila(financiero: impacto?.aMapa()),
     });
   }
 

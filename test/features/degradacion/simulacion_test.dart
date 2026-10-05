@@ -6,6 +6,7 @@ import 'package:solarix/features/auth/application/auth_providers.dart';
 import 'package:solarix/features/degradacion/application/simulacion_providers.dart';
 import 'package:solarix/features/degradacion/data/simulacion_repository.dart';
 import 'package:solarix/features/degradacion/domain/comparacion.dart';
+import 'package:solarix/features/degradacion/domain/integracion.dart';
 import 'package:solarix/features/degradacion/domain/parametros.dart';
 
 import '../../helpers/fakes.dart';
@@ -18,6 +19,7 @@ class FakeSimulacionRepository implements SimulacionRepository {
   Future<void> guardar(
     ComparacionSimulacion simulacion, {
     String? calculoId,
+    ImpactoFinanciero? impacto,
   }) async {
     guardadas.add(simulacion);
     calculosVinculados.add(calculoId);

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,12 +58,13 @@ void main() {
         const ParametrosSimulacion(),
         registrarDias: false,
       );
-      // ≈ 1,5 %/año → 20 / 1,5 ≈ 13 años.
-      expect(
-        aniosHastaFinDeVida(normal),
-        closeTo(20 / normal.perdidaAnual, 1e-9),
-      );
-      expect(vidaBateriaParaFlujo(normal), inInclusiveRange(12, 15));
+      // ≈ 1,5 %/año durante 10 años: llega al 80 % pasados los 10 años. En
+      // este rango el SoH simulado baja casi en línea recta, así que la
+      // curva del modelo da casi lo mismo que una recta (≈ 13 años).
+      final porUso = aniosHastaFinDeVida(normal)!;
+      expect(porUso, greaterThan(normal.aniosSimulados));
+      expect(porUso, closeTo(20 / normal.perdidaAnual, 1.5));
+      expect(vidaBateriaParaFlujo(normal, calendario: 30), porUso.round());
 
       final rapida = simular(
         const ParametrosSimulacion(exponenteDegradacion: 1.3),
@@ -73,7 +76,50 @@ void main() {
         const ParametrosSimulacion(escenario: EscenarioIrradiancia.baja),
         registrarDias: false,
       );
-      expect(vidaBateriaParaFlujo(sinUso), isNull);
+      expect(aniosHastaFinDeVida(sinUso), isNull);
+      // Sin desgaste por uso, manda la vida calendario.
+      final vida = vidaBateria(sinUso, calendario: 15);
+      expect(vida.porUso, isNull);
+      expect(vida.efectiva, 15);
+      expect(vida.limitaCalendario, isTrue);
+      expect(vidaBateriaParaFlujo(sinUso, calendario: 15), 15);
+    });
+
+    test('extrapola con la curva del modelo (Z = a·tᵇ), no con una recta', () {
+      // SoH = 100·e^(−0,01·t^1,5): llega al 80 % en (ln 1,25 / 0,01)^(1/1,5).
+      double soh(double t) => 100 * math.exp(-0.01 * math.pow(t, 1.5));
+      final r = ResultadoSimulacion(
+        parametros: const ParametrosSimulacion(anios: 5),
+        semilla: 1,
+        horasSimuladas: 5 * Constantes.horasPorAnio,
+        sohFinal: soh(5),
+        energiaCompradaKwh: 0,
+        energiaGeneradaKwh: 0,
+        consumoKwh: 0,
+        limpiezas: 0,
+        ciclosEquivalentes: 0,
+        sohAnual: [for (var t = 0; t <= 5; t++) soh(t.toDouble())],
+        dias: const [],
+      );
+      final esperado = math.pow(math.log(1.25) / 0.01, 1 / 1.5);
+      expect(aniosHastaFinDeVida(r), closeTo(esperado, 1e-6));
+      // La recta sobre el SoH se pasaría: la degradación se acelera.
+      expect(20 / r.perdidaAnual, greaterThan(esperado + 1));
+    });
+
+    test('la vida calendario pone tope a la vida por uso', () {
+      final normal = simular(
+        const ParametrosSimulacion(),
+        registrarDias: false,
+      );
+      final corta = vidaBateria(normal, calendario: 8);
+      expect(corta.limitaCalendario, isTrue);
+      expect(corta.efectiva, 8);
+      expect(corta.porUso, greaterThan(10));
+      expect(vidaBateriaParaFlujo(normal, calendario: 8), 8);
+      final larga = vidaBateria(normal, calendario: 40);
+      expect(larga.limitaCalendario, isFalse);
+      expect(larga.efectiva, larga.porUso);
     });
 
     test('la vida simulada reemplaza a la típica en el flujo de caja', () {
@@ -85,6 +131,162 @@ void main() {
       expect(primerReemplazo(simulada), 13);
       expect(simulada.vpn, greaterThan(tipica.vpn));
     });
+  });
+
+  group('Etapa 12: la degradación cambia el ahorro, no solo el reemplazo', () {
+    final origen = OrigenCalculo(
+      entradas: hibrida,
+      resultado: calcular(hibrida),
+    );
+    // 10 años, como en la app: cada política y la referencia sin degradación
+    // con el mismo clima.
+    final c = simularComparacion((
+      parametros: parametrosDesdeCalculo(origen).copiarCon(anios: 10),
+      semilla: 7,
+    ));
+
+    test('la referencia no se degrada y registra la energía de cada año', () {
+      final ref = c.referencia!;
+      expect(ref.sohFinal, 100);
+      expect(ref.autoabastecidoAnual, hasLength(10));
+      expect(c.convencional.autoabastecidoAnual, hasLength(10));
+    });
+
+    test('el aporte de la batería baja con los años', () {
+      final conv = aporteAnual(c.convencional, c.referencia!);
+      final consc = aporteAnual(c.consciente, c.referencia!);
+      expect(conv, hasLength(10));
+      expect(conv.first, closeTo(1, 0.01)); // casi nueva el primer año
+      expect(conv.last, lessThan(conv.first - 0.05));
+      for (var i = 1; i < conv.length; i++) {
+        expect(conv[i], lessThanOrEqualTo(conv[i - 1] + 1e-9));
+      }
+      // La consciente no carga por encima de 95 %: aporta menos desde el
+      // primer año (≈ 4 %), a cambio de degradarse más despacio.
+      expect(consc.first, lessThan(conv.first - 0.02));
+      expect(consc.first - consc.last, lessThan(conv.first - conv.last));
+    });
+
+    test('más allá de lo simulado sigue la tendencia, sin subir', () {
+      final f = aportePorEdad([1, 0.98, 0.96]);
+      expect(f(1), 1);
+      expect(f(3), 0.96);
+      expect(f(5), closeTo(0.92, 1e-9));
+      expect(f(200), 0); // nunca negativo
+      expect(aportePorEdad([0.95, 0.97])(4), 0.97); // no inventa mejoras
+      expect(aportePorEdad(const [])(7), 1);
+    });
+
+    test('el ahorro de cada año usa el aporte y se recupera al reemplazar', () {
+      final sinAporte = calcular(hibrida, vidaBateriaAnios: 5);
+      final conAporte = calcular(
+        hibrida,
+        vidaBateriaAnios: 5,
+        aporteBateria: (edad) => 1 - 0.05 * (edad - 1),
+      );
+      // Año 1: batería nueva, mismo ahorro.
+      expect(conAporte.flujo[0].ahorro, closeTo(sinAporte.flujo[0].ahorro, 1));
+      // Año 5 (edad 5): menos ahorro; año 6 (batería nueva): se recupera.
+      double relativo(int anio) =>
+          conAporte.flujo[anio - 1].ahorro / sinAporte.flujo[anio - 1].ahorro;
+      expect(relativo(5), lessThan(0.98));
+      expect(relativo(6), closeTo(1, 1e-9));
+      // Lo que la batería no guarda se vende a la red (factor 0,7): el
+      // ahorro cae menos que el aporte.
+      expect(relativo(5), greaterThan(0.8));
+      expect(conAporte.vpn, lessThan(sinAporte.vpn));
+    });
+
+    test('sin batería (conectado a la red) el aporte no cambia nada', () {
+      const red = EntradasCalculo(
+        tipo: TipoSistema.onGrid,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 300,
+        hsp: 5,
+      );
+      expect(calcular(red, aporteBateria: (_) => 0.5).vpn, calcular(red).vpn);
+    });
+
+    test('impacto: compara la calculadora con cada política', () {
+      final i = calcularImpacto(
+        origen: origen,
+        convencional: c.convencional,
+        consciente: c.consciente,
+        referencia: c.referencia,
+        elegida: Politica.consciente,
+      );
+      expect(i.calculadora.vpn, origen.resultado.vpn);
+      expect(i.calculadora.vidaAnios, 10);
+      // Las dos vidas de cada política, y la que se usa es la menor.
+      for (final f in [i.convencional, i.consciente]) {
+        expect(f.vidaCalendarioAnios, 15);
+        expect(f.vidaAnios, math.min(f.vidaUsoAnios!, 15));
+      }
+      expect(i.consciente.vidaAnios, greaterThan(i.convencional.vidaAnios!));
+      // Con la energía que deja de aportar, la batería simulada ahorra menos
+      // que la que "rinde igual siempre" de la calculadora.
+      expect(i.convencional.ahorroTotal, lessThan(i.calculadora.ahorroTotal));
+      expect(i.consciente.ahorroTotal, lessThan(i.convencional.ahorroTotal));
+      // Contar solo la vida (lo de antes) sobrestimaba el VPN.
+      final soloVida = calcularImpacto(
+        origen: origen,
+        convencional: c.convencional,
+        consciente: c.consciente,
+        referencia: null,
+        elegida: Politica.consciente,
+      );
+      expect(i.convencional.vpn, lessThan(soloVida.convencional.vpn));
+      expect(i.consciente.vpn, lessThan(soloVida.consciente.vpn));
+
+      // Se guarda y se lee igual (columna `resultados.financiero`).
+      final leido = ImpactoFinanciero.desdeMapa(i.aMapa());
+      expect(leido.elegida, Politica.consciente);
+      expect(leido.consciente.vpn, i.consciente.vpn);
+      expect(leido.convencional.paybackAnios, i.convencional.paybackAnios);
+      expect(leido.consciente.vidaUsoAnios, i.consciente.vidaUsoAnios);
+      expect(leido.consciente.valorResidual, i.consciente.valorResidual);
+      expect(
+        c.aFila(financiero: i.aMapa())['resultados']['financiero'],
+        i.aMapa(),
+      );
+      expect((c.aFila()['resultados'] as Map).containsKey('financiero'), false);
+    });
+  });
+
+  test('con una vida calendario corta, manda el calendario y hay más '
+      'reemplazos', () {
+    const corta = EntradasCalculo(
+      tipo: TipoSistema.hibrido,
+      modo: ModoConsumo.factura,
+      consumoFacturaKwhMes: 300,
+      hsp: 5,
+      supuestos: Supuestos(vidaCalendarioBateria: 6),
+    );
+    final origen = OrigenCalculo(entradas: corta, resultado: calcular(corta));
+    final c = simularComparacion((
+      parametros: parametrosDesdeCalculo(origen).copiarCon(anios: 3),
+      semilla: 3,
+    ));
+    final i = calcularImpacto(
+      origen: origen,
+      convencional: c.convencional,
+      consciente: c.consciente,
+      referencia: c.referencia,
+      elegida: Politica.convencional,
+    );
+    expect(i.convencional.limitaCalendario, isTrue);
+    expect(i.convencional.vidaAnios, 6);
+    // Con 6 años en 20: reemplazos en los años 6, 12 y 18; al final la
+    // batería tiene 2 de sus 6 años (quedan 4/6 de su valor).
+    final r = calcular(corta, vidaBateriaAnios: 6);
+    expect(
+      [
+        for (final a in r.flujo)
+          if (a.reemplazoBateria > 0) a.anio,
+      ],
+      [6, 12, 18],
+    );
+    expect(r.valorResidual, closeTo(r.costos.baterias * 4 / 6, 1e-6));
   });
 
   testWidgets('de la calculadora a la simulación vinculada', (tester) async {
@@ -137,9 +339,12 @@ void main() {
     await tocar(boton('Simular'));
 
     expect(find.text('Con el sistema que dimensionaste'), findsOneWidget);
-    expect(find.text('Con simulación'), findsOneWidget);
+    expect(find.text('Calculadora'), findsOneWidget);
+    expect(find.textContaining('En plata conviene'), findsOneWidget);
     await tocar(boton('Guardar simulación'));
     expect(simulaciones.calculosVinculados, ['calc-1']);
+    // Con el cálculo de origen, se guarda también su impacto en la inversión.
+    expect(simulaciones.impactos.single, isNotNull);
   });
 }
 
@@ -159,10 +364,15 @@ class _FakeCalculos implements CalculadoraRepository {
 
 class _FakeSimulaciones implements SimulacionRepository {
   final calculosVinculados = <String?>[];
+  final impactos = <ImpactoFinanciero?>[];
 
   @override
   Future<void> guardar(
     ComparacionSimulacion simulacion, {
     String? calculoId,
-  }) async => calculosVinculados.add(calculoId);
+    ImpactoFinanciero? impacto,
+  }) async {
+    calculosVinculados.add(calculoId);
+    impactos.add(impacto);
+  }
 }

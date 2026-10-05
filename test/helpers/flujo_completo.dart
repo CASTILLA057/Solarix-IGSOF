@@ -178,15 +178,21 @@ Future<void> calcularSimularYRevisar(
   await esperar(tester, vinculada);
   await tocar(tester, vinculada.first);
   expect(find.text('Simulación guardada'), findsOneWidget);
-  // Las tres gráficas (en pantalla pequeña se desplaza hasta cada una).
+  // El impacto en la inversión (Etapa 12) y las tres gráficas (en pantalla
+  // pequeña se desplaza hasta cada una).
   for (final titulo in [
     'Salud de la batería (SoH)',
+    'Con el sistema que dimensionaste',
     'Generación y consumo por mes',
     'Energía comprada a la red (acumulada)',
   ]) {
     await buscar(tester, find.text(titulo));
     await tester.ensureVisible(find.text(titulo));
     await tester.pumpAndSettle();
-    expect(find.byType(LineChart), findsWidgets, reason: titulo);
+    if (titulo.startsWith('Con el sistema')) {
+      expect(find.textContaining('En plata conviene'), findsOneWidget);
+    } else {
+      expect(find.byType(LineChart), findsWidgets, reason: titulo);
+    }
   }
 }
