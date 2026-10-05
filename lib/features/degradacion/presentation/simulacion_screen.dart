@@ -1,3 +1,5 @@
+import '../../../core/widgets/etiqueta_segmento.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -372,7 +374,7 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                               for (final e in EscenarioIrradiancia.values)
                                 ButtonSegment(
                                   value: e,
-                                  label: Text(e.etiqueta),
+                                  label: EtiquetaSegmento(e.etiqueta),
                                 ),
                             ],
                             selected: {_escenario},
@@ -414,7 +416,10 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
                     SegmentedButton<Politica>(
                       segments: [
                         for (final p in Politica.values)
-                          ButtonSegment(value: p, label: Text(p.etiqueta)),
+                          ButtonSegment(
+                            value: p,
+                            label: EtiquetaSegmento(p.etiqueta),
+                          ),
                       ],
                       selected: {_politica},
                       onSelectionChanged: (s) =>

@@ -6,6 +6,7 @@ import '../../../core/errors/error_app.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/theme/tema_providers.dart';
 import '../../../core/widgets/estados.dart';
+import '../../../core/widgets/etiqueta_segmento.dart';
 import '../../../core/widgets/navegacion.dart';
 import '../../calculadora/domain/catalogos.dart';
 import '../application/auth_providers.dart';
@@ -217,17 +218,17 @@ class _FormularioPerfilState extends ConsumerState<_FormularioPerfil> {
                     ButtonSegment(
                       value: ThemeMode.system,
                       icon: Icon(Icons.brightness_auto_outlined),
-                      label: Text('Sistema'),
+                      label: EtiquetaSegmento('Sistema'),
                     ),
                     ButtonSegment(
                       value: ThemeMode.light,
                       icon: Icon(Icons.light_mode_outlined),
-                      label: Text('Claro'),
+                      label: EtiquetaSegmento('Claro'),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
                       icon: Icon(Icons.dark_mode_outlined),
-                      label: Text('Oscuro'),
+                      label: EtiquetaSegmento('Oscuro'),
                     ),
                   ],
                   selected: {ref.watch(modoTemaProvider)},

@@ -261,13 +261,19 @@ class _Destacado extends StatelessWidget {
     Widget cifra(String valor, String etiqueta) => Expanded(
       child: Column(
         children: [
-          Text(
-            valor,
-            style: estilo.titleLarge?.copyWith(
-              color: esquema.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
+          // En una línea: en pantallas angostas la cifra se achica en vez
+          // de partirse ("5.031.38" / "3 $").
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              valor,
+              maxLines: 1,
+              style: estilo.titleLarge?.copyWith(
+                color: esquema.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
           Text(
             etiqueta,

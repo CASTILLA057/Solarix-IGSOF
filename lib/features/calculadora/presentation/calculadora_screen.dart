@@ -1,3 +1,5 @@
+import '../../../core/widgets/etiqueta_segmento.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -421,12 +423,12 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
         segments: const [
           ButtonSegment(
             value: ModoConsumo.equipos,
-            label: Text('Mis equipos'),
+            label: EtiquetaSegmento('Mis equipos'),
             icon: Icon(Icons.kitchen_outlined),
           ),
           ButtonSegment(
             value: ModoConsumo.factura,
-            label: Text('Mi factura'),
+            label: EtiquetaSegmento('Mi factura'),
             icon: Icon(Icons.receipt_long_outlined),
           ),
         ],
@@ -478,12 +480,18 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       children: [
         SegmentedButton<_FuenteHsp>(
           segments: const [
-            ButtonSegment(value: _FuenteHsp.ciudad, label: Text('Ciudad')),
+            ButtonSegment(
+              value: _FuenteHsp.ciudad,
+              label: EtiquetaSegmento('Ciudad'),
+            ),
             ButtonSegment(
               value: _FuenteHsp.ubicacion,
-              label: Text('Mi ubicación'),
+              label: EtiquetaSegmento('Mi ubicación'),
             ),
-            ButtonSegment(value: _FuenteHsp.manual, label: Text('Manual')),
+            ButtonSegment(
+              value: _FuenteHsp.manual,
+              label: EtiquetaSegmento('Manual'),
+            ),
           ],
           selected: {_fuente},
           onSelectionChanged: (s) => setState(() => _fuente = s.first),

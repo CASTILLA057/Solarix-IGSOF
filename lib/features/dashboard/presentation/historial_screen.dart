@@ -1,3 +1,5 @@
+import '../../../core/widgets/etiqueta_segmento.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -156,12 +158,12 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
                               segments: [
                                 const ButtonSegment(
                                   value: null,
-                                  label: Text('Todas'),
+                                  label: EtiquetaSegmento('Todas'),
                                 ),
                                 for (final p in Politica.values)
                                   ButtonSegment(
                                     value: p,
-                                    label: Text(p.etiqueta),
+                                    label: EtiquetaSegmento(p.etiqueta),
                                   ),
                               ],
                               selected: {_politica},
