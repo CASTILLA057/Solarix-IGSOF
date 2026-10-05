@@ -61,6 +61,9 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   final _incrementoTarifa = TextEditingController(text: '6');
   final _tasaDescuento = TextEditingController(text: '10');
   final _anios = TextEditingController(text: '20');
+  final _vidaCalendario = TextEditingController(
+    text: '${QuimicaBateria.litio.vidaCalendarioAnios}',
+  );
   final _factorExcedente = TextEditingController(text: '70');
   final _mantenimiento = TextEditingController(text: '1');
   final _precios = <String, TextEditingController>{};
@@ -96,6 +99,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       _incrementoTarifa,
       _tasaDescuento,
       _anios,
+      _vidaCalendario,
       _factorExcedente,
       _mantenimiento,
       ..._precios.values,
@@ -158,6 +162,9 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
 
   double _porcentaje(TextEditingController c) => Formato.leer(c.text)! / 100;
 
+  /// Batería de litio: la que se puede simular (y lleva vida calendario).
+  bool get _simulable => _tipo.usaBateria && _quimica == QuimicaBateria.litio;
+
   EntradasCalculo _entradas() {
     final p = <String, double>{
       for (final MapEntry(:key, :value) in _precios.entries)
@@ -187,6 +194,9 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
         mantenimientoAnual: _porcentaje(_mantenimiento),
         tasaDescuento: _porcentaje(_tasaDescuento),
         anios: Formato.leer(_anios.text)!.round(),
+        vidaCalendarioBateria: _simulable
+            ? Formato.leer(_vidaCalendario.text)
+            : null,
       ),
       precios: Precios.desdeFilas(p),
     );
@@ -614,6 +624,19 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
             minimo: 1,
             maximo: 30,
           ),
+          if (_simulable) ...[
+            const SizedBox(height: 12),
+            CampoNumero(
+              controller: _vidaCalendario,
+              etiqueta: 'Vida calendario de la batería',
+              sufijo: 'años',
+              ayuda:
+                  'Lo que dura aunque se use poco: es el tope de la vida '
+                  'simulada.',
+              minimo: 5,
+              maximo: 30,
+            ),
+          ],
         ],
       ),
       ExpansionTile(

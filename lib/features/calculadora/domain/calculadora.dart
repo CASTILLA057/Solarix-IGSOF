@@ -180,19 +180,26 @@ Costos calcularCostos({
 /// Flujo de caja anual: el ahorro crece con la tarifa y cae con la pérdida
 /// de rendimiento de los paneles; se restan el mantenimiento y los
 /// reemplazos de batería (cada `vidaBateria` años, sin contar el último).
+/// El último año se suma el valor residual de la batería en uso: la parte
+/// de su vida que queda sin usar (lineal, Etapa 12).
+///
+/// [ahorroBasePorAnio] (año 1, 2, …), a precios del primer año, reemplaza a
+/// [ahorroAnualInicial] cuando el ahorro cambia de un año a otro (Etapa 12:
+/// la batería degradada aporta menos).
 List<AnioFlujo> flujoDeCaja({
   required double inversion,
   required double ahorroAnualInicial,
   required double costoBaterias,
   required int vidaBateriaAnios,
   required Supuestos supuestos,
+  double Function(int anio)? ahorroBasePorAnio,
 }) {
   final flujo = <AnioFlujo>[];
   var acumulado = -inversion;
   var acumuladoDescontado = -inversion;
   for (var t = 1; t <= supuestos.anios; t++) {
     final ahorro =
-        ahorroAnualInicial *
+        (ahorroBasePorAnio?.call(t) ?? ahorroAnualInicial) *
         math.pow(1 + supuestos.incrementoTarifa, t - 1) *
         math.pow(1 - supuestos.degradacionPaneles, t - 1);
     final mantenimiento = inversion * supuestos.mantenimientoAnual;
@@ -203,7 +210,13 @@ List<AnioFlujo> flujoDeCaja({
             t < supuestos.anios
         ? costoBaterias
         : 0.0;
-    final neto = ahorro - mantenimiento - reemplazo;
+    final residual =
+        t == supuestos.anios && costoBaterias > 0 && vidaBateriaAnios > 0
+        ? costoBaterias *
+              math.max(0, vidaBateriaAnios - ((t - 1) % vidaBateriaAnios + 1)) /
+              vidaBateriaAnios
+        : 0.0;
+    final neto = ahorro - mantenimiento - reemplazo + residual;
     acumulado += neto;
     acumuladoDescontado += neto / math.pow(1 + supuestos.tasaDescuento, t);
     flujo.add(
@@ -212,6 +225,7 @@ List<AnioFlujo> flujoDeCaja({
         ahorro: ahorro,
         mantenimiento: mantenimiento,
         reemplazoBateria: reemplazo,
+        valorResidual: residual,
         neto: neto,
         acumulado: acumulado,
         acumuladoDescontado: acumuladoDescontado,
@@ -236,12 +250,40 @@ double? recuperacionAnios(double inversion, List<double> acumulados) {
   return null;
 }
 
+/// Ahorro anual (precios del año 1) cuando la batería entrega [aporte] de lo
+/// que entregaría nueva.
+double _ahorroConBateria({
+  required EntradasCalculo entradas,
+  required ({double ahorro, double autoconsumo, double excedente}) ahorroMes,
+  required double aporte,
+}) {
+  final f = aporte.clamp(0.0, 1.0);
+  if (entradas.tipo == TipoSistema.offGrid) return ahorroMes.ahorro * 12 * f;
+  final autoconsumo = ahorroMes.autoconsumo * 12;
+  final excedente = ahorroMes.excedente * 12;
+  final tarifa = entradas.tarifaKwh;
+  return autoconsumo * f * tarifa +
+      (excedente + autoconsumo * (1 - f)) *
+          tarifa *
+          entradas.supuestos.factorExcedente;
+}
+
 /// Ejecuta el cálculo completo.
 ///
 /// `vidaBateriaAnios` reemplaza la vida típica de la química en el flujo de
 /// caja; en la Etapa 6 viene de la simulación de degradación (años hasta que
 /// el SoH llega al 80 %).
-ResultadoCalculo calcular(EntradasCalculo e, {int? vidaBateriaAnios}) {
+///
+/// `aporteBateria(edad)` (Etapa 12) es la energía que entrega a la casa una
+/// batería de esa edad (1 = primer año) como fracción de la de una batería
+/// nueva: con él, el ahorro baja a medida que la batería se degrada y se
+/// recupera con cada reemplazo. Lo que la batería deja de guardar se vende
+/// a la red (con el factor de excedente) o, sin red, se pierde.
+ResultadoCalculo calcular(
+  EntradasCalculo e, {
+  int? vidaBateriaAnios,
+  double Function(int edadBateria)? aporteBateria,
+}) {
   final s = e.supuestos;
   final energiaDiaWh = energiaDiariaWh(e);
   final cobertura = e.tipo == TipoSistema.offGrid ? 1.0 : s.cobertura;
@@ -287,12 +329,20 @@ ResultadoCalculo calcular(EntradasCalculo e, {int? vidaBateriaAnios}) {
     generacionMesKwh: generacionMesKwh,
     consumoMesKwh: energiaDiaWh / 1000 * 30,
   );
+  final vida = vidaBateriaAnios ?? e.quimica.vidaUtilAnios;
   final flujo = flujoDeCaja(
     inversion: costos.total,
     ahorroAnualInicial: ahorro.ahorro * 12,
     costoBaterias: costos.baterias,
-    vidaBateriaAnios: vidaBateriaAnios ?? e.quimica.vidaUtilAnios,
+    vidaBateriaAnios: vida,
     supuestos: s,
+    ahorroBasePorAnio: aporteBateria == null || !e.tipo.usaBateria
+        ? null
+        : (t) => _ahorroConBateria(
+            entradas: e,
+            ahorroMes: ahorro,
+            aporte: aporteBateria(vida > 0 ? (t - 1) % vida + 1 : t),
+          ),
   );
   return ResultadoCalculo(
     energiaDiaKwh: energiaDiaWh / 1000,

@@ -31,13 +31,24 @@ enum TipoSistema {
 }
 
 enum QuimicaBateria {
-  litio('Litio (LiFePO₄)', profundidadDescarga: 0.9, vidaUtilAnios: 10),
-  plomo('Plomo-ácido', profundidadDescarga: 0.5, vidaUtilAnios: 4);
+  litio(
+    'Litio (LiFePO₄)',
+    profundidadDescarga: 0.9,
+    vidaUtilAnios: 10,
+    vidaCalendarioAnios: 15,
+  ),
+  plomo(
+    'Plomo-ácido',
+    profundidadDescarga: 0.5,
+    vidaUtilAnios: 4,
+    vidaCalendarioAnios: 6,
+  );
 
   const QuimicaBateria(
     this.etiqueta, {
     required this.profundidadDescarga,
     required this.vidaUtilAnios,
+    required this.vidaCalendarioAnios,
   });
 
   final String etiqueta;
@@ -47,6 +58,11 @@ enum QuimicaBateria {
 
   /// Años típicos antes de reemplazarla (hasta tener la simulación, Etapa 6).
   final int vidaUtilAnios;
+
+  /// Años que dura aunque casi no se use (envejecimiento calendario). El
+  /// modelo de degradación no lo incluye: es el tope de la vida simulada
+  /// (Etapa 12).
+  final int vidaCalendarioAnios;
 }
 
 enum ModoConsumo { equipos, factura }
@@ -181,6 +197,7 @@ class Supuestos {
     this.mantenimientoAnual = 0.01,
     this.tasaDescuento = 0.10,
     this.anios = 20,
+    this.vidaCalendarioBateria,
   });
 
   /// PR: pérdidas por temperatura, cableado, suciedad e inversor.
@@ -210,6 +227,10 @@ class Supuestos {
   final double tasaDescuento;
   final int anios;
 
+  /// Vida calendario de la batería (años); si es `null` se usa la típica de
+  /// la química ([QuimicaBateria.vidaCalendarioAnios]).
+  final double? vidaCalendarioBateria;
+
   static double autoconsumoPorDefecto(TipoSistema tipo) => switch (tipo) {
     TipoSistema.onGrid => 0.6,
     TipoSistema.hibrido => 0.9,
@@ -229,6 +250,7 @@ class Supuestos {
     'mantenimiento_anual': mantenimientoAnual,
     'tasa_descuento': tasaDescuento,
     'anios': anios,
+    'vida_calendario_bateria': vidaCalendarioBateria,
   };
 }
 
@@ -272,6 +294,10 @@ class EntradasCalculo {
   final Supuestos supuestos;
   final Precios precios;
 
+  /// Vida calendario de la batería: la editada o la típica de la química.
+  double get vidaCalendarioBateria =>
+      supuestos.vidaCalendarioBateria ?? quimica.vidaCalendarioAnios.toDouble();
+
   Map<String, dynamic> aMapa() => {
     'nombre': nombre,
     'tipo': tipo.valorBd,
@@ -299,12 +325,17 @@ class AnioFlujo {
     required this.neto,
     required this.acumulado,
     required this.acumuladoDescontado,
+    this.valorResidual = 0,
   });
 
   final int anio;
   final double ahorro;
   final double mantenimiento;
   final double reemplazoBateria;
+
+  /// Solo el último año: parte de la batería en uso que no se alcanzó a
+  /// usar dentro del horizonte (se suma como ingreso, Etapa 12).
+  final double valorResidual;
   final double neto;
   final double acumulado;
   final double acumuladoDescontado;
@@ -314,6 +345,7 @@ class AnioFlujo {
     'ahorro': ahorro,
     'mantenimiento': mantenimiento,
     'reemplazo_bateria': reemplazoBateria,
+    'valor_residual': valorResidual,
     'neto': neto,
     'acumulado': acumulado,
     'acumulado_descontado': acumuladoDescontado,
@@ -403,6 +435,9 @@ class ResultadoCalculo {
   double get gastosTotales =>
       costos.total +
       flujo.fold<double>(0, (s, a) => s + a.mantenimiento + a.reemplazoBateria);
+
+  /// Valor de la batería que sigue útil al final del horizonte.
+  double get valorResidual => flujo.fold(0, (s, a) => s + a.valorResidual);
 
   Map<String, dynamic> aMapa() => {
     'energia_dia_kwh': energiaDiaKwh,
