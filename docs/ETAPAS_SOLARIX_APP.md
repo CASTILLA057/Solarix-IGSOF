@@ -214,10 +214,12 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 *Grietas encontradas en la revisión crítica del proyecto (abogado del diablo, dos rondas, 2026-10-04). Ordenadas por gravedad dentro de cada bloque. Todo lo que toca Supabase se aplica solo con el visto bueno del autor.*
 
 **Integración batería ↔ flujo de caja (la más grave)**
-- [ ] Tope calendario a la vida simulada de la batería: usar el menor entre la vida por ciclos (simulación) y una vida calendario por química (por ejemplo, 12–15 años para LiFePO₄), porque el modelo no incluye envejecimiento calendario (`t-bat` no entra en la degradación). Hoy la pérdida simulada es de ≈ 8–11 % en 10 años, la extrapolación da 19–26 años y, con un horizonte de 20, la batería casi nunca se reemplaza: la tarjeta "antes/después" siempre favorece a la simulación
-- [ ] Mostrar en la tarjeta las dos vidas (por ciclos y calendario) y cuál limita
-- [ ] Revisar la extrapolación lineal de `aniosHastaFinDeVida` (la curva es `SoH = 100·e^(−Z)`, no una recta) o justificarla
-- [ ] Reemplazo de batería cerca del final del horizonte: no cobrar la batería entera si solo se usa uno o dos años (valor residual o prorrateo)
+- [x] Tope calendario a la vida simulada de la batería: usar el menor entre la vida por ciclos (simulación) y una vida calendario por química (por ejemplo, 12–15 años para LiFePO₄), porque el modelo no incluye envejecimiento calendario (`t-bat` no entra en la degradación). Hoy la pérdida simulada es de ≈ 8–11 % en 10 años, la extrapolación da 19–26 años y, con un horizonte de 20, la batería casi nunca se reemplaza: la tarjeta "antes/después" siempre favorece a la simulación
+- [x] Mostrar en la tarjeta las dos vidas (por ciclos y calendario) y cuál limita
+- [x] Revisar la extrapolación lineal de `aniosHastaFinDeVida` (la curva es `SoH = 100·e^(−Z)`, no una recta) o justificarla
+- [x] Reemplazo de batería cerca del final del horizonte: no cobrar la batería entera si solo se usa uno o dos años (valor residual o prorrateo)
+- [x] El ahorro de cada año baja con la energía que la batería degradada deja de aportar (medida contra una batería que no se degrada, con el mismo clima), cada política paga su costo en energía, la tarjeta compara Calculadora | Convencional | Consciente y el resultado se guarda con la simulación y se ve en el historial
+- [x] Prueba manual del bloque en Android (revisada en el celular del autor)
 
 **Economía de la calculadora**
 - [ ] Excedentes por tramos según la CREG 174 de 2021: lo exportado hasta lo importado, a tarifa menos comercialización; lo que pase de ahí, a precio de bolsa (editable). Hoy todo el excedente vale el 70 % de la tarifa
