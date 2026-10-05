@@ -11,6 +11,7 @@ import '../application/calculadora_providers.dart';
 import '../domain/calculadora.dart';
 import '../domain/catalogos.dart';
 import '../domain/modelos.dart';
+import 'explicaciones.dart';
 import 'widgets/campos.dart';
 import 'widgets/equipos_editor.dart';
 
@@ -64,8 +65,16 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
   final _vidaCalendario = TextEditingController(
     text: '${QuimicaBateria.litio.vidaCalendarioAnios}',
   );
-  final _factorExcedente = TextEditingController(text: '70');
+  final _autoconsumo = TextEditingController(
+    text: _porcentajeTexto(Supuestos.autoconsumoPorDefecto(TipoSistema.onGrid)),
+  );
+  bool _autoconsumoEditado = false;
+  final _fraccionNocturna = TextEditingController(text: '50');
+  final _comercializacion = TextEditingController(text: '100');
+  final _precioBolsa = TextEditingController(text: '300');
   final _mantenimiento = TextEditingController(text: '1');
+  bool _exclusionIva = false;
+  final _tarifaRenta = TextEditingController(text: '0');
   final _precios = <String, TextEditingController>{};
   bool _preciosCargados = false;
 
@@ -100,8 +109,12 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       _tasaDescuento,
       _anios,
       _vidaCalendario,
-      _factorExcedente,
+      _autoconsumo,
+      _fraccionNocturna,
+      _comercializacion,
+      _precioBolsa,
       _mantenimiento,
+      _tarifaRenta,
       ..._precios.values,
     ]) {
       c.dispose();
@@ -162,6 +175,20 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
 
   double _porcentaje(TextEditingController c) => Formato.leer(c.text)! / 100;
 
+  static String _porcentajeTexto(double fraccion) =>
+      Formato.numero(fraccion * 100);
+
+  /// Al cambiar el tipo de sistema, el autoconsumo toma el valor típico del
+  /// nuevo tipo, salvo que el usuario ya lo haya escrito.
+  void _elegirTipo(TipoSistema tipo) => setState(() {
+    _tipo = tipo;
+    if (!_autoconsumoEditado) {
+      _autoconsumo.text = _porcentajeTexto(
+        Supuestos.autoconsumoPorDefecto(tipo),
+      );
+    }
+  });
+
   /// Batería de litio: la que se puede simular (y lleva vida calendario).
   bool get _simulable => _tipo.usaBateria && _quimica == QuimicaBateria.litio;
 
@@ -189,7 +216,10 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
         rendimientoSistema: _porcentaje(_rendimiento),
         diasAutonomia: Formato.leer(_diasAutonomia.text)!,
         cobertura: _porcentaje(_cobertura),
-        factorExcedente: _porcentaje(_factorExcedente),
+        fraccionNocturna: _porcentaje(_fraccionNocturna),
+        autoconsumo: _tipo.usaRed ? _porcentaje(_autoconsumo) : null,
+        costoComercializacion: Formato.leer(_comercializacion.text)!,
+        precioBolsa: Formato.leer(_precioBolsa.text)!,
         incrementoTarifa: _porcentaje(_incrementoTarifa),
         mantenimientoAnual: _porcentaje(_mantenimiento),
         tasaDescuento: _porcentaje(_tasaDescuento),
@@ -197,6 +227,8 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
         vidaCalendarioBateria: _simulable
             ? Formato.leer(_vidaCalendario.text)
             : null,
+        exclusionIva: _exclusionIva,
+        tarifaRenta: _porcentaje(_tarifaRenta),
       ),
       precios: Precios.desdeFilas(p),
     );
@@ -329,7 +361,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
     children: [
       RadioGroup<TipoSistema>(
         groupValue: _tipo,
-        onChanged: (t) => setState(() => _tipo = t!),
+        onChanged: (t) => _elegirTipo(t!),
         child: Column(
           children: [
             for (final tipo in TipoSistema.values)
@@ -554,6 +586,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
           etiqueta: 'Días de autonomía',
           sufijo: 'días',
           ayuda: 'Días que la batería cubre la casa sin sol.',
+          explicacion: Explicacion.diasAutonomia,
           minimo: 0.5,
           maximo: 7,
         ),
@@ -563,6 +596,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
           controller: _cobertura,
           etiqueta: 'Parte del consumo a cubrir con paneles',
           sufijo: '%',
+          explicacion: Explicacion.cobertura,
           minimo: 10,
           maximo: 200,
         ),
@@ -571,6 +605,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       ExpansionTile(
         tilePadding: EdgeInsets.zero,
         title: const Text('Supuestos técnicos y financieros'),
+        subtitle: const Text('Toca ⓘ para ver de dónde sale cada valor'),
         childrenPadding: const EdgeInsets.only(top: _margenEtiqueta, bottom: 8),
         children: [
           CampoNumero(
@@ -578,17 +613,54 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
             etiqueta: 'Rendimiento del sistema (PR)',
             sufijo: '%',
             ayuda: 'Pérdidas por calor, cableado, suciedad e inversor.',
+            explicacion: Explicacion.rendimiento,
             minimo: 50,
             maximo: 95,
           ),
           if (_tipo.usaRed) ...[
             const SizedBox(height: 12),
             CampoNumero(
-              controller: _factorExcedente,
-              etiqueta: 'Pago por energía vendida a la red',
-              sufijo: '% de la tarifa',
+              controller: _autoconsumo,
+              etiqueta: 'Autoconsumo',
+              sufijo: '% de la generación',
+              ayuda:
+                  'Lo que la casa usa en el momento; el resto sale a la red.',
+              explicacion: Explicacion.autoconsumo,
               minimo: 0,
               maximo: 100,
+              onChanged: (_) => _autoconsumoEditado = true,
+            ),
+          ],
+          if (_tipo == TipoSistema.hibrido) ...[
+            const SizedBox(height: 12),
+            CampoNumero(
+              controller: _fraccionNocturna,
+              etiqueta: 'Consumo sin sol',
+              sufijo: '% del consumo',
+              ayuda: 'Lo que la batería debe cubrir cada noche.',
+              explicacion: Explicacion.fraccionNocturna,
+              minimo: 0,
+              maximo: 100,
+            ),
+          ],
+          if (_tipo.usaRed) ...[
+            const SizedBox(height: 12),
+            CampoNumero(
+              controller: _comercializacion,
+              etiqueta: 'Costo de comercialización (Cv)',
+              sufijo: 'COP/kWh',
+              ayuda: 'Se descuenta del excedente que se permuta.',
+              explicacion: Explicacion.comercializacion,
+              minimo: 0,
+            ),
+            const SizedBox(height: 12),
+            CampoNumero(
+              controller: _precioBolsa,
+              etiqueta: 'Precio de bolsa',
+              sufijo: 'COP/kWh',
+              ayuda: 'Paga el excedente que supera lo que tomas de la red.',
+              explicacion: Explicacion.precioBolsa,
+              minimo: 0,
             ),
           ],
           const SizedBox(height: 12),
@@ -596,6 +668,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
             controller: _incrementoTarifa,
             etiqueta: 'Aumento anual del precio de la energía',
             sufijo: '%',
+            explicacion: Explicacion.incrementoTarifa,
             minimo: 0,
             maximo: 30,
           ),
@@ -604,6 +677,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
             controller: _mantenimiento,
             etiqueta: 'Mantenimiento anual',
             sufijo: '% de la inversión',
+            explicacion: Explicacion.mantenimiento,
             minimo: 0,
             maximo: 10,
           ),
@@ -613,6 +687,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
             etiqueta: 'Tasa de descuento',
             sufijo: '%',
             ayuda: 'Rentabilidad que exigirías a tu dinero (para el VPN).',
+            explicacion: Explicacion.tasaDescuento,
             minimo: 0,
             maximo: 50,
           ),
@@ -621,6 +696,7 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
             controller: _anios,
             etiqueta: 'Horizonte del análisis',
             sufijo: 'años',
+            explicacion: Explicacion.horizonte,
             minimo: 1,
             maximo: 30,
           ),
@@ -633,10 +709,46 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
               ayuda:
                   'Lo que dura aunque se use poco: es el tope de la vida '
                   'simulada.',
+              explicacion: Explicacion.vidaCalendario,
               minimo: 5,
               maximo: 30,
             ),
           ],
+        ],
+      ),
+      ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: const Text('Incentivos de la Ley 1715'),
+        subtitle: const Text('Necesitan el certificado de la UPME'),
+        childrenPadding: const EdgeInsets.only(top: _margenEtiqueta, bottom: 8),
+        children: [
+          Text(
+            Explicacion.ley1715,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Comprar sin IVA'),
+            subtitle: const Text(
+              'Exclusión de IVA (19 %) en equipos y servicios',
+            ),
+            secondary: const BotonExplicacion(
+              titulo: 'Comprar sin IVA',
+              texto: Explicacion.exclusionIva,
+            ),
+            value: _exclusionIva,
+            onChanged: (v) => setState(() => _exclusionIva = v),
+          ),
+          const SizedBox(height: 4),
+          CampoNumero(
+            controller: _tarifaRenta,
+            etiqueta: 'Tu tarifa marginal de renta',
+            sufijo: '%',
+            ayuda: '0 si no declaras renta.',
+            explicacion: Explicacion.tarifaRenta,
+            minimo: 0,
+            maximo: 39,
+          ),
         ],
       ),
       ExpansionTile(

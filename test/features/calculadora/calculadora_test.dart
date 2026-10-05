@@ -227,17 +227,55 @@ void main() {
     }
   });
 
-  group('Ahorro mensual', () {
-    test('red: autoconsumo a tarifa y excedentes al 70 %', () {
-      // Genera 600, consume 300: autoconsumo min(600 · 0,6; 300) = 300.
+  group('Ahorro mensual (CREG 174 de 2021)', () {
+    test('excedente hasta lo importado se permuta a tarifa menos Cv', () {
+      // Genera 400, consume 300: autoconsumo min(400 · 0,6; 300) = 240,
+      // excedente 160, importa 60. Se permutan 60 a $1000 − $100 y los otros
+      // 100 se venden a bolsa ($300).
+      final a = ahorroMensual(
+        entradas: hogarRed,
+        generacionMesKwh: 400,
+        consumoMesKwh: 300,
+      );
+      expect(a.autoconsumo, 240);
+      expect(a.excedente, 160);
+      expect(a.permutado, 60);
+      expect(a.vendido, 100);
+      expect(a.ahorro, 240 * 1000 + 60 * 900 + 100 * 300);
+    });
+    test('sin importación todo el excedente va a bolsa', () {
+      // Genera 600, consume 300: autoconsumo 300, no importa nada.
       final a = ahorroMensual(
         entradas: hogarRed,
         generacionMesKwh: 600,
         consumoMesKwh: 300,
       );
       expect(a.autoconsumo, 300);
-      expect(a.excedente, 300);
-      expect(a.ahorro, 300 * 1000 + 300 * 700);
+      expect(a.permutado, 0);
+      expect(a.vendido, 300);
+      expect(a.ahorro, 300 * 1000 + 300 * 300);
+    });
+    test('excedente menor que lo importado: todo se permuta', () {
+      final a = valorEnergiaMes(
+        autoconsumo: 100,
+        excedente: 50,
+        consumo: 300,
+        tarifa: 1000,
+        supuestos: const Supuestos(),
+      );
+      expect(a.permutado, 50);
+      expect(a.vendido, 0);
+      expect(a.ahorro, 100 * 1000 + 50 * 900);
+    });
+    test('si Cv supera la tarifa, la permuta no vale negativo', () {
+      final a = valorEnergiaMes(
+        autoconsumo: 0,
+        excedente: 10,
+        consumo: 100,
+        tarifa: 80,
+        supuestos: const Supuestos(costoComercializacion: 100),
+      );
+      expect(a.ahorro, 0);
     });
     test('aislado: el gasto actual en energía', () {
       const e = EntradasCalculo(
@@ -367,8 +405,11 @@ void main() {
       expect(r.controladorA, 0);
       expect(r.inversorW, 3000);
       expect(r.costos.total, closeTo(9213750, 1e-6));
-      // Autoconsumo 193,05 a $1000 + excedente 128,7 a $700.
-      expect(r.ahorroMensual, closeTo(283140, 0.01));
+      // Autoconsumo 193,05 a $1000; importa 106,95, que se permutan a $900;
+      // los 21,75 restantes se venden a $300.
+      expect(r.excedentePermutadoMesKwh, closeTo(106.95, 1e-9));
+      expect(r.excedenteVendidoMesKwh, closeTo(21.75, 1e-9));
+      expect(r.ahorroMensual, closeTo(193050 + 96255 + 6525, 0.01));
       expect(r.flujo, hasLength(20));
       expect(r.paybackAnios, isNotNull);
       expect(r.paybackAnios!, lessThan(20));
@@ -400,6 +441,79 @@ void main() {
         ],
         [4, 8, 12, 16],
       );
+    });
+
+    group('Incentivos de la Ley 1715 de 2014', () {
+      test('sin incentivos por defecto', () {
+        final r = calcular(hogarRed);
+        expect(r.costos.ivaExcluido, 0);
+        expect(r.beneficioRenta, 0);
+      });
+
+      test('la exclusión de IVA quita el 19 % de toda la inversión', () {
+        final r = calcular(
+          const EntradasCalculo(
+            tipo: TipoSistema.onGrid,
+            modo: ModoConsumo.factura,
+            consumoFacturaKwhMes: 300,
+            tarifaKwh: 1000,
+            hsp: 5,
+            supuestos: Supuestos(exclusionIva: true),
+          ),
+        );
+        expect(r.costos.total, closeTo(9213750 / 1.19, 0.01));
+        expect(r.costos.ivaExcluido, closeTo(9213750 - 9213750 / 1.19, 0.01));
+        expect(r.costos.paneles, closeTo(2887500 / 1.19, 0.01));
+        final sinIva = calcular(hogarRed);
+        expect(r.paybackAnios!, lessThan(sinIva.paybackAnios!));
+      });
+
+      test('deducción de renta: 50 % de la inversión por la tarifa, año 1', () {
+        final r = calcular(
+          const EntradasCalculo(
+            tipo: TipoSistema.onGrid,
+            modo: ModoConsumo.factura,
+            consumoFacturaKwhMes: 300,
+            tarifaKwh: 1000,
+            hsp: 5,
+            supuestos: Supuestos(tarifaRenta: 0.35),
+          ),
+        );
+        final esperado = 9213750 * 0.5 * 0.35;
+        expect(r.beneficioRenta, closeTo(esperado, 0.01));
+        expect(r.flujo.first.beneficioTributario, closeTo(esperado, 0.01));
+        expect(
+          r.flujo.skip(1).map((a) => a.beneficioTributario),
+          everyElement(0),
+        );
+        final sin = calcular(hogarRed);
+        expect(
+          r.flujo.first.neto - sin.flujo.first.neto,
+          closeTo(esperado, 0.01),
+        );
+      });
+
+      test('se guardan en el flujo y en los supuestos', () {
+        const s = Supuestos(exclusionIva: true, tarifaRenta: 0.2);
+        expect(s.aMapa()['exclusion_iva'], true);
+        expect(s.aMapa()['tarifa_renta'], 0.2);
+        final r = calcular(
+          const EntradasCalculo(
+            tipo: TipoSistema.onGrid,
+            modo: ModoConsumo.factura,
+            consumoFacturaKwhMes: 300,
+            hsp: 5,
+            supuestos: s,
+          ),
+        );
+        final mapa = r.aMapa();
+        expect((mapa['costos'] as Map)['iva_excluido'], greaterThan(0));
+        expect(mapa['beneficio_renta'], greaterThan(0));
+        expect(
+          ((mapa['flujo'] as List).first as Map)['beneficio_tributario'],
+          greaterThan(0),
+        );
+      });
     });
 
     test('se guarda en Supabase con las columnas esperadas', () {

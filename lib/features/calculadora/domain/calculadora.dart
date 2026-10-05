@@ -136,20 +136,61 @@ Costos calcularCostos({
       costoInversor +
       costoControlador +
       costoEstructura;
+  final instalacion = equipos <= 0
+      ? 0.0
+      : math.max(equipos * p.instalacionPorcentaje, p.instalacionMinima);
+  // Ley 1715, art. 12: equipos y servicios sin IVA. Los precios de
+  // referencia son de tienda (con IVA), así que se descuenta de todos.
+  final f = entradas.supuestos.exclusionIva ? 1 / (1 + Supuestos.iva) : 1.0;
   return Costos(
-    paneles: costoPaneles,
-    baterias: costoBaterias,
-    inversor: costoInversor,
-    controlador: costoControlador,
-    estructura: costoEstructura,
-    instalacion: equipos <= 0
-        ? 0
-        : math.max(equipos * p.instalacionPorcentaje, p.instalacionMinima),
+    paneles: costoPaneles * f,
+    baterias: costoBaterias * f,
+    inversor: costoInversor * f,
+    controlador: costoControlador * f,
+    estructura: costoEstructura * f,
+    instalacion: instalacion * f,
+    ivaExcluido: (equipos + instalacion) * (1 - f),
+  );
+}
+
+/// Valor de la energía de un mes para un autogenerador a pequeña escala
+/// (≤ 100 kW) según la CREG 174 de 2021, que liquida por periodo de
+/// facturación:
+///
+/// - el autoconsumo vale la tarifa;
+/// - el excedente hasta lo importado en el mes se permuta: vale la tarifa
+///   menos el costo de comercialización (Cv);
+/// - el excedente que supera lo importado se vende a precio de bolsa.
+({double ahorro, double permutado, double vendido}) valorEnergiaMes({
+  required double autoconsumo,
+  required double excedente,
+  required double consumo,
+  required double tarifa,
+  required Supuestos supuestos,
+}) {
+  final importado = math.max(0.0, consumo - autoconsumo);
+  final permutado = math.min(excedente, importado);
+  final vendido = excedente - permutado;
+  final precioPermuta = math.max(0.0, tarifa - supuestos.costoComercializacion);
+  return (
+    ahorro:
+        autoconsumo * tarifa +
+        permutado * precioPermuta +
+        vendido * supuestos.precioBolsa,
+    permutado: permutado,
+    vendido: vendido,
   );
 }
 
 /// Ahorro del primer mes y reparto de la generación (kWh/mes).
-({double ahorro, double autoconsumo, double excedente}) ahorroMensual({
+({
+  double ahorro,
+  double autoconsumo,
+  double excedente,
+  double permutado,
+  double vendido,
+})
+ahorroMensual({
   required EntradasCalculo entradas,
   required double generacionMesKwh,
   required double consumoMesKwh,
@@ -160,6 +201,8 @@ Costos calcularCostos({
       ahorro: entradas.gastoActualMensual,
       autoconsumo: math.min(generacionMesKwh, consumoMesKwh),
       excedente: 0,
+      permutado: 0,
+      vendido: 0,
     );
   }
   final fraccion =
@@ -167,13 +210,19 @@ Costos calcularCostos({
       Supuestos.autoconsumoPorDefecto(entradas.tipo);
   final autoconsumo = math.min(generacionMesKwh * fraccion, consumoMesKwh);
   final excedente = generacionMesKwh - autoconsumo;
-  final tarifa = entradas.tarifaKwh;
-  return (
-    ahorro:
-        autoconsumo * tarifa +
-        excedente * tarifa * entradas.supuestos.factorExcedente,
+  final valor = valorEnergiaMes(
     autoconsumo: autoconsumo,
     excedente: excedente,
+    consumo: consumoMesKwh,
+    tarifa: entradas.tarifaKwh,
+    supuestos: entradas.supuestos,
+  );
+  return (
+    ahorro: valor.ahorro,
+    autoconsumo: autoconsumo,
+    excedente: excedente,
+    permutado: valor.permutado,
+    vendido: valor.vendido,
   );
 }
 
@@ -186,6 +235,9 @@ Costos calcularCostos({
 /// [ahorroBasePorAnio] (año 1, 2, …), a precios del primer año, reemplaza a
 /// [ahorroAnualInicial] cuando el ahorro cambia de un año a otro (Etapa 12:
 /// la batería degradada aporta menos).
+///
+/// [beneficioRenta] es el impuesto que se deja de pagar por la deducción de
+/// la Ley 1715; se suma el primer año.
 List<AnioFlujo> flujoDeCaja({
   required double inversion,
   required double ahorroAnualInicial,
@@ -193,6 +245,7 @@ List<AnioFlujo> flujoDeCaja({
   required int vidaBateriaAnios,
   required Supuestos supuestos,
   double Function(int anio)? ahorroBasePorAnio,
+  double beneficioRenta = 0,
 }) {
   final flujo = <AnioFlujo>[];
   var acumulado = -inversion;
@@ -216,7 +269,8 @@ List<AnioFlujo> flujoDeCaja({
               math.max(0, vidaBateriaAnios - ((t - 1) % vidaBateriaAnios + 1)) /
               vidaBateriaAnios
         : 0.0;
-    final neto = ahorro - mantenimiento - reemplazo + residual;
+    final beneficio = t == 1 ? beneficioRenta : 0.0;
+    final neto = ahorro - mantenimiento - reemplazo + residual + beneficio;
     acumulado += neto;
     acumuladoDescontado += neto / math.pow(1 + supuestos.tasaDescuento, t);
     flujo.add(
@@ -226,6 +280,7 @@ List<AnioFlujo> flujoDeCaja({
         mantenimiento: mantenimiento,
         reemplazoBateria: reemplazo,
         valorResidual: residual,
+        beneficioTributario: beneficio,
         neto: neto,
         acumulado: acumulado,
         acumuladoDescontado: acumuladoDescontado,
@@ -251,21 +306,26 @@ double? recuperacionAnios(double inversion, List<double> acumulados) {
 }
 
 /// Ahorro anual (precios del año 1) cuando la batería entrega [aporte] de lo
-/// que entregaría nueva.
+/// que entregaría nueva: lo que deja de guardar pasa a ser excedente (y se
+/// liquida por tramos, [valorEnergiaMes]) y la casa lo importa de la red.
 double _ahorroConBateria({
   required EntradasCalculo entradas,
-  required ({double ahorro, double autoconsumo, double excedente}) ahorroMes,
+  required double ahorroMes,
+  required double autoconsumoMes,
+  required double excedenteMes,
+  required double consumoMes,
   required double aporte,
 }) {
   final f = aporte.clamp(0.0, 1.0);
-  if (entradas.tipo == TipoSistema.offGrid) return ahorroMes.ahorro * 12 * f;
-  final autoconsumo = ahorroMes.autoconsumo * 12;
-  final excedente = ahorroMes.excedente * 12;
-  final tarifa = entradas.tarifaKwh;
-  return autoconsumo * f * tarifa +
-      (excedente + autoconsumo * (1 - f)) *
-          tarifa *
-          entradas.supuestos.factorExcedente;
+  if (entradas.tipo == TipoSistema.offGrid) return ahorroMes * 12 * f;
+  return valorEnergiaMes(
+        autoconsumo: autoconsumoMes * f,
+        excedente: excedenteMes + autoconsumoMes * (1 - f),
+        consumo: consumoMes,
+        tarifa: entradas.tarifaKwh,
+        supuestos: entradas.supuestos,
+      ).ahorro *
+      12;
 }
 
 /// Ejecuta el cálculo completo.
@@ -278,7 +338,7 @@ double _ahorroConBateria({
 /// batería de esa edad (1 = primer año) como fracción de la de una batería
 /// nueva: con él, el ahorro baja a medida que la batería se degrada y se
 /// recupera con cada reemplazo. Lo que la batería deja de guardar se vende
-/// a la red (con el factor de excedente) o, sin red, se pierde.
+/// a la red (por tramos, CREG 174) o, sin red, se pierde.
 ResultadoCalculo calcular(
   EntradasCalculo e, {
   int? vidaBateriaAnios,
@@ -324,10 +384,11 @@ ResultadoCalculo calcular(
     inversorW: inversorW,
     controladorA: controladorA,
   );
+  final consumoMesKwh = energiaDiaWh / 1000 * 30;
   final ahorro = ahorroMensual(
     entradas: e,
     generacionMesKwh: generacionMesKwh,
-    consumoMesKwh: energiaDiaWh / 1000 * 30,
+    consumoMesKwh: consumoMesKwh,
   );
   final vida = vidaBateriaAnios ?? e.quimica.vidaUtilAnios;
   final flujo = flujoDeCaja(
@@ -336,11 +397,16 @@ ResultadoCalculo calcular(
     costoBaterias: costos.baterias,
     vidaBateriaAnios: vida,
     supuestos: s,
+    beneficioRenta:
+        costos.total * Supuestos.fraccionDeduccionRenta * s.tarifaRenta,
     ahorroBasePorAnio: aporteBateria == null || !e.tipo.usaBateria
         ? null
         : (t) => _ahorroConBateria(
             entradas: e,
-            ahorroMes: ahorro,
+            ahorroMes: ahorro.ahorro,
+            autoconsumoMes: ahorro.autoconsumo,
+            excedenteMes: ahorro.excedente,
+            consumoMes: consumoMesKwh,
             aporte: aporteBateria(vida > 0 ? (t - 1) % vida + 1 : t),
           ),
   );
@@ -356,6 +422,8 @@ ResultadoCalculo calcular(
     costos: costos,
     autoconsumoMesKwh: ahorro.autoconsumo,
     excedenteMesKwh: ahorro.excedente,
+    excedentePermutadoMesKwh: ahorro.permutado,
+    excedenteVendidoMesKwh: ahorro.vendido,
     ahorroMensual: ahorro.ahorro,
     flujo: flujo,
     vpn: flujo.isEmpty ? -costos.total : flujo.last.acumuladoDescontado,

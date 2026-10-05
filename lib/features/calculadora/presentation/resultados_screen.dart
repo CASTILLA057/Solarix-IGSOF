@@ -11,6 +11,7 @@ import '../../degradacion/domain/integracion.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
 import '../domain/modelos.dart';
+import 'explicaciones.dart';
 
 /// Resumen del cálculo: consumo, sistema recomendado, costos y retorno.
 class ResultadosScreen extends ConsumerStatefulWidget {
@@ -138,6 +139,7 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                   if (r.controladorA > 0)
                     ('Controlador de carga', '${r.controladorA} A'),
                 ],
+                nota: Explicacion.margenes,
               ),
               _Seccion(
                 titulo: 'Costos estimados',
@@ -153,16 +155,31 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
                   ('Instalación', Formato.cop(r.costos.instalacion)),
                   ('Total', Formato.cop(r.costos.total)),
                 ],
+                nota: r.costos.ivaExcluido > 0
+                    ? 'Sin IVA (Ley 1715): te ahorras '
+                          '${Formato.cop(r.costos.ivaExcluido)}, ya descontados '
+                          'de cada valor.'
+                    : null,
               ),
               _Seccion(
                 titulo: 'Ahorro y retorno',
                 icono: Icons.trending_up,
                 filas: [
                   ('Ahorro el primer mes', Formato.cop(r.ahorroMensual)),
-                  if (r.excedenteMesKwh > 0)
+                  if (r.excedentePermutadoMesKwh > 0)
                     (
-                      'Energía vendida a la red',
-                      '${Formato.numero(r.excedenteMesKwh)} kWh/mes',
+                      'Excedente que se descuenta de tu factura',
+                      '${Formato.numero(r.excedentePermutadoMesKwh)} kWh/mes',
+                    ),
+                  if (r.excedenteVendidoMesKwh > 0)
+                    (
+                      'Excedente vendido a precio de bolsa',
+                      '${Formato.numero(r.excedenteVendidoMesKwh)} kWh/mes',
+                    ),
+                  if (r.beneficioRenta > 0)
+                    (
+                      'Deducción de renta (año 1)',
+                      Formato.cop(r.beneficioRenta),
                     ),
                   (
                     'Recuperación de la inversión',

@@ -11,6 +11,7 @@ class CampoNumero extends StatelessWidget {
     required this.etiqueta,
     this.sufijo,
     this.ayuda,
+    this.explicacion,
     this.minimo,
     this.maximo,
     this.onChanged,
@@ -20,6 +21,10 @@ class CampoNumero extends StatelessWidget {
   final String etiqueta;
   final String? sufijo;
   final String? ayuda;
+
+  /// Texto largo (qué es, de dónde sale el valor): se abre con el ícono de
+  /// información del campo.
+  final String? explicacion;
   final double? minimo;
   final double? maximo;
   final ValueChanged<String>? onChanged;
@@ -49,7 +54,41 @@ class CampoNumero extends StatelessWidget {
         suffixText: sufijo,
         helperText: ayuda,
         helperMaxLines: 2,
+        suffixIcon: explicacion == null
+            ? null
+            : BotonExplicacion(titulo: etiqueta, texto: explicacion!),
       ),
     );
   }
+}
+
+/// Ícono que abre una explicación en un diálogo.
+class BotonExplicacion extends StatelessWidget {
+  const BotonExplicacion({
+    super.key,
+    required this.titulo,
+    required this.texto,
+  });
+
+  final String titulo;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: const Icon(Icons.info_outline),
+    tooltip: 'Qué es y de dónde sale',
+    onPressed: () => showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(titulo),
+        content: SingleChildScrollView(child: Text(texto)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -215,7 +215,7 @@ class CifrasFinancieras {
     valorResidual: r.valorResidual,
     paybackAnios: r.paybackAnios,
     vpn: r.vpn,
-    costoTotal: r.gastosTotales - r.valorResidual,
+    costoTotal: r.gastosTotales - r.valorResidual - r.beneficioRenta,
     ahorroTotal: r.ahorroTotal,
   );
 
@@ -251,7 +251,7 @@ class CifrasFinancieras {
   final double vpn;
 
   /// Inversión, mantenimiento y reemplazos de batería en el horizonte, menos
-  /// el valor residual.
+  /// el valor residual y la deducción de renta (Ley 1715).
   final double costoTotal;
 
   /// Ahorro sumado en el horizonte (sin descontar).

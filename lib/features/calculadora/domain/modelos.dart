@@ -191,14 +191,23 @@ class Supuestos {
     this.fraccionNocturna = 0.5,
     this.cobertura = 1,
     this.autoconsumo,
-    this.factorExcedente = 0.7,
+    this.costoComercializacion = 100,
+    this.precioBolsa = 300,
     this.incrementoTarifa = 0.06,
     this.degradacionPaneles = 0.005,
     this.mantenimientoAnual = 0.01,
     this.tasaDescuento = 0.10,
     this.anios = 20,
     this.vidaCalendarioBateria,
+    this.exclusionIva = false,
+    this.tarifaRenta = 0,
   });
+
+  /// IVA general en Colombia.
+  static const iva = 0.19;
+
+  /// Parte de la inversión que se deduce de la renta (Ley 1715, art. 11).
+  static const fraccionDeduccionRenta = 0.5;
 
   /// PR: pérdidas por temperatura, cableado, suciedad e inversor.
   final double rendimientoSistema;
@@ -217,8 +226,13 @@ class Supuestos {
   /// el valor típico del tipo de sistema ([autoconsumoPorDefecto]).
   final double? autoconsumo;
 
-  /// Precio del kWh vendido a la red como fracción de la tarifa.
-  final double factorExcedente;
+  /// Componente de comercialización (Cv, COP/kWh) que el operador cobra por
+  /// cada kWh de excedente permutado (CREG 174 de 2021, AGPE ≤ 100 kW).
+  final double costoComercializacion;
+
+  /// Precio (COP/kWh) del excedente que supera lo importado en el mes: se
+  /// liquida a precio de bolsa (CREG 174 de 2021, art. 25).
+  final double precioBolsa;
   final double incrementoTarifa;
   final double degradacionPaneles;
 
@@ -230,6 +244,15 @@ class Supuestos {
   /// Vida calendario de la batería (años); si es `null` se usa la típica de
   /// la química ([QuimicaBateria.vidaCalendarioAnios]).
   final double? vidaCalendarioBateria;
+
+  /// Ley 1715 de 2014: compra de equipos y servicios sin IVA (requiere el
+  /// certificado de la UPME).
+  final bool exclusionIva;
+
+  /// Tarifa marginal del impuesto de renta del usuario (0 si no declara).
+  /// Con ella, la deducción de la Ley 1715 (50 % de la inversión) se toma el
+  /// primer año: supone que la renta líquida alcanza.
+  final double tarifaRenta;
 
   static double autoconsumoPorDefecto(TipoSistema tipo) => switch (tipo) {
     TipoSistema.onGrid => 0.6,
@@ -244,13 +267,16 @@ class Supuestos {
     'fraccion_nocturna': fraccionNocturna,
     'cobertura': cobertura,
     'autoconsumo': autoconsumo,
-    'factor_excedente': factorExcedente,
+    'costo_comercializacion': costoComercializacion,
+    'precio_bolsa': precioBolsa,
     'incremento_tarifa': incrementoTarifa,
     'degradacion_paneles': degradacionPaneles,
     'mantenimiento_anual': mantenimientoAnual,
     'tasa_descuento': tasaDescuento,
     'anios': anios,
     'vida_calendario_bateria': vidaCalendarioBateria,
+    'exclusion_iva': exclusionIva,
+    'tarifa_renta': tarifaRenta,
   };
 }
 
@@ -326,6 +352,7 @@ class AnioFlujo {
     required this.acumulado,
     required this.acumuladoDescontado,
     this.valorResidual = 0,
+    this.beneficioTributario = 0,
   });
 
   final int anio;
@@ -336,6 +363,10 @@ class AnioFlujo {
   /// Solo el último año: parte de la batería en uso que no se alcanzó a
   /// usar dentro del horizonte (se suma como ingreso, Etapa 12).
   final double valorResidual;
+
+  /// Solo el primer año: impuesto de renta que se deja de pagar por la
+  /// deducción de la Ley 1715.
+  final double beneficioTributario;
   final double neto;
   final double acumulado;
   final double acumuladoDescontado;
@@ -346,6 +377,7 @@ class AnioFlujo {
     'mantenimiento': mantenimiento,
     'reemplazo_bateria': reemplazoBateria,
     'valor_residual': valorResidual,
+    'beneficio_tributario': beneficioTributario,
     'neto': neto,
     'acumulado': acumulado,
     'acumulado_descontado': acumuladoDescontado,
@@ -360,6 +392,7 @@ class Costos {
     required this.controlador,
     required this.estructura,
     required this.instalacion,
+    this.ivaExcluido = 0,
   });
 
   final double paneles;
@@ -368,6 +401,10 @@ class Costos {
   final double controlador;
   final double estructura;
   final double instalacion;
+
+  /// IVA que no se paga con la exclusión de la Ley 1715 (los demás valores
+  /// ya lo descuentan).
+  final double ivaExcluido;
 
   double get equipos =>
       paneles + baterias + inversor + controlador + estructura;
@@ -380,6 +417,7 @@ class Costos {
     'controlador': controlador,
     'estructura': estructura,
     'instalacion': instalacion,
+    'iva_excluido': ivaExcluido,
     'total': total,
   };
 }
@@ -398,6 +436,8 @@ class ResultadoCalculo {
     required this.costos,
     required this.autoconsumoMesKwh,
     required this.excedenteMesKwh,
+    this.excedentePermutadoMesKwh = 0,
+    this.excedenteVendidoMesKwh = 0,
     required this.ahorroMensual,
     required this.flujo,
     required this.vpn,
@@ -419,6 +459,11 @@ class ResultadoCalculo {
   final double autoconsumoMesKwh;
   final double excedenteMesKwh;
 
+  /// Parte del excedente que se permuta contra lo importado en el mes y la
+  /// que se vende a precio de bolsa (CREG 174 de 2021).
+  final double excedentePermutadoMesKwh;
+  final double excedenteVendidoMesKwh;
+
   /// Ahorro del primer año, por mes.
   final double ahorroMensual;
   final List<AnioFlujo> flujo;
@@ -439,6 +484,10 @@ class ResultadoCalculo {
   /// Valor de la batería que sigue útil al final del horizonte.
   double get valorResidual => flujo.fold(0, (s, a) => s + a.valorResidual);
 
+  /// Impuesto de renta que se deja de pagar (Ley 1715).
+  double get beneficioRenta =>
+      flujo.fold(0, (s, a) => s + a.beneficioTributario);
+
   Map<String, dynamic> aMapa() => {
     'energia_dia_kwh': energiaDiaKwh,
     'numero_paneles': numeroPaneles,
@@ -451,7 +500,10 @@ class ResultadoCalculo {
     'costos': costos.aMapa(),
     'autoconsumo_mes_kwh': autoconsumoMesKwh,
     'excedente_mes_kwh': excedenteMesKwh,
+    'excedente_permutado_mes_kwh': excedentePermutadoMesKwh,
+    'excedente_vendido_mes_kwh': excedenteVendidoMesKwh,
     'ahorro_mensual': ahorroMensual,
+    'beneficio_renta': beneficioRenta,
     'vpn': vpn,
     'payback_anios': paybackAnios,
     'payback_descontado_anios': paybackDescontadoAnios,
