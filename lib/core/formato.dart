@@ -2,11 +2,16 @@ import 'package:intl/intl.dart';
 
 /// Formatos numéricos para Colombia (separador de miles con punto).
 abstract final class Formato {
+  // Signo adelante, como el mockup (Etapa 13): "$ 53.400".
   static final _cop = NumberFormat.currency(
     locale: 'es_CO',
     symbol: r'$',
     decimalDigits: 0,
+    customPattern: '\u00A4 #,##0',
   );
+
+  /// "1 panel", "2 paneles".
+  static String paneles(int n) => n == 1 ? '1 panel' : '$n paneles';
 
   static String cop(num valor) => _cop.format(valor);
 

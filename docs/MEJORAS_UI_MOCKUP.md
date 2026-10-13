@@ -1236,20 +1236,31 @@ flutter run -d <id-celular> --dart-define-from-file=env.json
 
 Cada paso deja la app funcionando, así que puedes hacer un commit por paso.
 
-- [ ] **1. Tema:** agregar `solarSuave` y `bordeFuerte`, botón secundario, campos, segmentado, snackbar (sección 2).
-- [ ] **1b. Sol:** declarar `assets/icono/sol.png` en `pubspec.yaml`, crear `SolSolarix` y reemplazar los `Icons.wb_sunny_rounded` (sección 2.4).
-- [ ] **2. Widgets base:** crear `solarix_ui.dart` (sección 3) y `barra_web.dart` (sección 4.1).
-- [ ] **3. Resultados:** `_Seccion` → `TarjetaSeccion`, destacado ámbar, aviso con "VER", grilla web.
-- [ ] **4. Inicio:** saludo, mosaicos, leyenda, historial reciente en web.
-- [ ] **5. Perfil:** avatar, actividad, tarjetas, dos columnas en web.
-- [ ] **6. Calculadora:** quitar `Stepper`, `IndicadorPasos`, `EncabezadoPaso`, vista web con pasos laterales.
-- [ ] **7. Equipos:** lista en tarjeta, banda verde de consumo, tabla en web.
-- [ ] **8. Bienvenida web:** dos columnas.
-- [ ] **9. Resto de pantallas:** `BarraWeb` + `TarjetaSeccion` (sección 5.6).
-- [ ] **10. Pruebas:** actualizar tests (sección 6), `flutter analyze` y `flutter test` en verde.
-- [ ] **11. Revisión visual:** comparar cada pantalla con el mockup en Figma, en celular y en web,
+- [x] **1. Tema:** agregar `solarSuave` y `bordeFuerte`, botón secundario, campos, segmentado, snackbar (sección 2).
+- [x] **1b. Sol:** declarar `assets/icono/sol.png` en `pubspec.yaml`, crear `SolSolarix` y reemplazar los `Icons.wb_sunny_rounded` (sección 2.4).
+- [x] **2. Widgets base:** crear `solarix_ui.dart` (sección 3) y `barra_web.dart` (sección 4.1).
+- [x] **3. Resultados:** `_Seccion` → `TarjetaSeccion`, destacado ámbar, aviso con "VER", grilla web.
+- [x] **4. Inicio:** saludo, mosaicos, leyenda, historial reciente en web.
+- [x] **5. Perfil:** avatar, actividad, tarjetas, dos columnas en web.
+- [x] **6. Calculadora:** quitar `Stepper`, `IndicadorPasos`, `EncabezadoPaso`, vista web con pasos laterales.
+- [x] **7. Equipos:** lista en tarjeta, banda verde de consumo, tabla en web.
+- [x] **8. Bienvenida web:** dos columnas.
+- [x] **9. Resto de pantallas:** `BarraWeb` + `TarjetaSeccion` (sección 5.6).
+- [x] **10. Pruebas:** actualizar tests (sección 6), `flutter analyze` y `flutter test` en verde.
+- [x] **11. Revisión visual:** comparar cada pantalla con el mockup en Figma, en celular y en web,
       en modo claro y oscuro.
-- [ ] **12. Bitácora:** anotar la Etapa 13 en `docs/BITACORA.md` y en `docs/ETAPAS_SOLARIX_APP.md`.
+- [x] **12. Bitácora:** anotar la Etapa 13 en `docs/BITACORA.md` y en `docs/ETAPAS_SOLARIX_APP.md`.
+
+### Cómo quedó (diferencias con esta guía)
+
+- **Sol:** como dice la sección 2.4: `SolSolarix` carga `assets/icono/sol.png` (declarado en `pubspec.yaml`) y lo agranda para que el sol llene su cuadrado. `pintarSol` (la función que genera el ícono y el splash) quedó en `lib/core/widgets/sol_solarix.dart` y el generador la importa.
+- **Comparado con Figma (W1 a W5 y M1 a M5)** y ajustado: bienvenida web en dos mitades iguales con los títulos del mockup; en el inicio web, "Último cálculo · …" y "Última simulación · …" con su detalle y "Ver todo el historial" dentro de "Historial reciente"; cifras abreviadas ("$ 14,8 M"); en la calculadora web, descripción de los pasos pendientes, botones a la derecha, estrato y tarifa lado a lado, y la tabla con encabezados en mayúsculas y "5 h"; equipos con la cantidad siempre ("1 × 150 W"); resultados web con cuatro cifras con su unidad y la nota de la Ley 1715 a lo ancho; perfil con "Datos personales" y "Apariencia" sin burbuja, el correo como campo de solo lectura en web y la ayuda de "Apariencia".
+- **Barra web:** los enlaces se achican si la ventana es justa (900 a ~1.200 px), el nombre del usuario se corta en 140 px y cada enlace tiene tooltip ("Ir al inicio" en el de Inicio, como el ícono de casa del celular).
+- **Inicio web:** el saludo y los dos botones van en un `Wrap`: a 900 px los botones bajan en vez de desbordar. La gráfica de salud ya trae su leyenda, así que no se duplicó.
+- **Resultados web:** el título sigue siendo "Resultados" y el subtítulo dice nombre · tipo · lugar.
+- **Aviso "Cálculo guardado" con VER:** con acción, Flutter lo deja fijo; se cierra a los 4 s y al abrir la simulación, para no tapar su botón "Simular".
+- **Pantallas sin AppBar en web:** `TituloPagina` pone el título y, si se puede volver, la flecha de atrás.
+- **Pantallas de acceso en web:** el formulario va en una tarjeta de 440 px.
 
 ### Medidas de referencia del mockup
 

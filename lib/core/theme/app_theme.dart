@@ -14,6 +14,8 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
     required this.consciente,
     required this.convencional,
     required this.finDeVida,
+    required this.solarSuave,
+    required this.bordeFuerte,
   });
 
   /// Ámbar vivo: botones principales e ícono del sol.
@@ -29,6 +31,13 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
   final Color convencional;
   final Color finDeVida;
 
+  /// Ámbar muy claro (Etapa 13, mockup): selección activa, botón
+  /// secundario, burbujas ámbar y destacados.
+  final Color solarSuave;
+
+  /// Borde de campos y selectores, más marcado que `outlineVariant`.
+  final Color bordeFuerte;
+
   static const claro = ColoresSolarix(
     solar: Color(0xFFF59E0B),
     textoSobreSolar: Color(0xFF1C1917),
@@ -39,6 +48,8 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
     consciente: Color(0xFF059669),
     convencional: Color(0xFFD97706),
     finDeVida: Color(0xFFDC2626),
+    solarSuave: Color(0xFFFEF3C7),
+    bordeFuerte: Color(0xFFD6CFC2),
   );
 
   static const oscuro = ColoresSolarix(
@@ -49,6 +60,8 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
     consciente: Color(0xFF34D399),
     convencional: Color(0xFFFBBF24),
     finDeVida: Color(0xFFF87171),
+    solarSuave: Color(0xFF422006),
+    bordeFuerte: Color(0xFF57534E),
   );
 
   static ColoresSolarix of(BuildContext context) =>
@@ -64,6 +77,8 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
     Color? consciente,
     Color? convencional,
     Color? finDeVida,
+    Color? solarSuave,
+    Color? bordeFuerte,
   }) => ColoresSolarix(
     solar: solar ?? this.solar,
     textoSobreSolar: textoSobreSolar ?? this.textoSobreSolar,
@@ -72,6 +87,8 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
     consciente: consciente ?? this.consciente,
     convencional: convencional ?? this.convencional,
     finDeVida: finDeVida ?? this.finDeVida,
+    solarSuave: solarSuave ?? this.solarSuave,
+    bordeFuerte: bordeFuerte ?? this.bordeFuerte,
   );
 
   @override
@@ -86,6 +103,8 @@ class ColoresSolarix extends ThemeExtension<ColoresSolarix> {
       consciente: m(consciente, other.consciente),
       convencional: m(convencional, other.convencional),
       finDeVida: m(finDeVida, other.finDeVida),
+      solarSuave: m(solarSuave, other.solarSuave),
+      bordeFuerte: m(bordeFuerte, other.bordeFuerte),
     );
   }
 }
@@ -170,11 +189,34 @@ abstract final class AppTheme {
         backgroundColor: esquema.surface,
         foregroundColor: esquema.onSurface,
         scrolledUnderElevation: 1,
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: esquema.onSurface,
+        ),
       ),
+      // Campos: borde más marcado (mockup) y ámbar al enfocar.
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(borderRadius: _redondeo),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: _redondeo,
+          borderSide: BorderSide(color: colores.bordeFuerte),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: _redondeo,
+          borderSide: BorderSide(color: colores.solar, width: 2),
+        ),
         filled: true,
         fillColor: esquema.surfaceContainerLowest,
+      ),
+      // Selector segmentado: la opción elegida en ámbar suave.
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: colores.solarSuave,
+          selectedForegroundColor: esquema.onSurface,
+          side: BorderSide(color: colores.bordeFuerte),
+          minimumSize: const Size(0, 40),
+        ),
       ),
       // Botón principal: ámbar vivo con texto carbón (≈ 8:1).
       filledButtonTheme: FilledButtonThemeData(
@@ -187,14 +229,15 @@ abstract final class AppTheme {
         ),
       ),
       // Botón secundario: texto carbón (claro en modo oscuro), borde ámbar de
-      // 1,5 px y fondo ámbar al 8 %.
+      // 1,5 px y fondo ámbar suave sólido (mockup, Etapa 13).
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: esquema.onSurface,
-          backgroundColor: colores.solar.withValues(alpha: 0.08),
+          backgroundColor: colores.solarSuave,
           side: BorderSide(color: colores.solar, width: 1.5),
           minimumSize: tamanoBoton,
           shape: formaBoton,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
       cardTheme: CardThemeData(
@@ -209,8 +252,13 @@ abstract final class AppTheme {
           side: BorderSide(color: esquema.outlineVariant),
         ),
       ),
-      snackBarTheme: const SnackBarThemeData(
+      // Aviso flotante oscuro con la acción en ámbar.
+      snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: claro ? carbon : const Color(0xFFFAF5EF),
+        contentTextStyle: TextStyle(color: claro ? Colors.white : carbon),
+        actionTextColor: claro ? colores.solar : const Color(0xFFB45309),
+        shape: RoundedRectangleBorder(borderRadius: _redondeo),
       ),
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

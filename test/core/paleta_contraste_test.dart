@@ -27,9 +27,13 @@ void main() {
         'enlaces y pestañas (primario)': (e.primary, e.surface),
         'texto sobre el primario': (e.onPrimary, e.primary),
         'botón principal (ámbar vivo)': (c.textoSobreSolar, c.solar),
-        'botón secundario (fondo ámbar 8 %)': (
+        'botón secundario y selección (ámbar suave)': (
           e.onSurface,
-          Color.alphaBlend(c.solar.withValues(alpha: 0.08), e.surface),
+          c.solarSuave,
+        ),
+        'íconos y etiquetas ámbar sobre el ámbar suave': (
+          e.primary,
+          c.solarSuave,
         ),
         'texto sobre el verde': (e.onSecondary, e.secondary),
         'texto sobre el contenedor verde': (

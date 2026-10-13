@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/formato.dart';
+import '../../../../core/widgets/solarix_ui.dart';
 import '../../domain/catalogos.dart';
 import '../../domain/modelos.dart';
 import 'campos.dart';
@@ -68,43 +69,154 @@ class EquiposEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalWh = equipos.fold<double>(0, (s, e) => s + e.whDia);
-    final tema = Theme.of(context);
+    final ancho = esAncho(context);
+    final agregar = OutlinedButton.icon(
+      onPressed: () => _agregar(context),
+      icon: const Icon(Icons.add),
+      label: const Text('Agregar equipo'),
+    );
+    final total = Aviso(
+      tono: TonoBurbuja.verde,
+      icono: Icons.bolt_outlined,
+      texto: 'Consumo total: ${Formato.numero(totalWh / 1000, 2)} kWh/día',
+      detalle: '≈ ${Formato.numero(totalWh / 1000 * 30)} kWh al mes',
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (i, e) in equipos.indexed)
+        if (equipos.isNotEmpty)
           Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              title: Text(
-                e.cantidad > 1 ? '${e.nombre} × ${e.cantidad}' : e.nombre,
-              ),
-              subtitle: Text(
-                '${_detalle(e)} → ${Formato.numero(e.whDia)} Wh/día',
-              ),
-              onTap: () => _editar(context, i),
-              trailing: IconButton(
-                tooltip: 'Quitar',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => onChanged([...equipos]..removeAt(i)),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ancho ? _tabla(context) : _lista(context),
+          ),
+        if (ancho)
+          Row(
+            children: [
+              agregar,
+              const SizedBox(width: 16),
+              Expanded(child: total),
+            ],
+          )
+        else ...[
+          agregar,
+          const SizedBox(height: 12),
+          total,
+        ],
+      ],
+    );
+  }
+
+  /// Celular: los equipos en una tarjeta, separados por líneas.
+  Widget _lista(BuildContext context) {
+    final tema = Theme.of(context);
+    return Column(
+      children: [
+        for (final (i, e) in equipos.indexed) ...[
+          if (i > 0) const Divider(height: 1),
+          ListTile(
+            title: Text(e.nombre, style: tema.textTheme.titleMedium),
+            subtitle: Text(
+              _detalleConCantidad(e),
+              style: tema.textTheme.labelMedium?.copyWith(
+                color: tema.colorScheme.onSurfaceVariant,
               ),
             ),
+            onTap: () => _editar(context, i),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${Formato.numero(e.whDia)} Wh',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                IconButton(
+                  tooltip: 'Quitar',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => onChanged([...equipos]..removeAt(i)),
+                ),
+              ],
+            ),
           ),
-        OutlinedButton.icon(
-          onPressed: () => _agregar(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Agregar equipo'),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Consumo total: ${Formato.numero(totalWh / 1000, 2)} kWh/día '
-          '(${Formato.numero(totalWh / 1000 * 30)} kWh/mes)',
-          style: tema.textTheme.titleSmall,
-        ),
+        ],
+      ],
+    );
+  }
+
+  /// Web: tabla con una columna por dato.
+  Widget _tabla(BuildContext context) {
+    final tema = Theme.of(context);
+    final encabezado = tema.textTheme.labelMedium?.copyWith(
+      color: tema.colorScheme.onSurfaceVariant,
+    );
+    Widget celda(String texto, {TextStyle? estilo, bool fin = true}) => Text(
+      texto,
+      style: estilo,
+      textAlign: fin ? TextAlign.end : TextAlign.start,
+    );
+    Widget fila(List<Widget> celdas, {VoidCallback? alTocar, Color? fondo}) =>
+        InkWell(
+          onTap: alTocar,
+          child: Container(
+            color: fondo,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Expanded(child: celdas[0]),
+                for (final (k, ancho) in const [
+                  90.0,
+                  110.0,
+                  110.0,
+                  110.0,
+                ].indexed)
+                  SizedBox(width: ancho, child: celdas[k + 1]),
+                SizedBox(width: 48, child: celdas[5]),
+              ],
+            ),
+          ),
+        );
+    return Column(
+      children: [
+        fila([
+          celda('EQUIPO', estilo: encabezado, fin: false),
+          celda('CANTIDAD', estilo: encabezado),
+          celda('POTENCIA', estilo: encabezado),
+          celda('USO AL DÍA', estilo: encabezado),
+          celda('CONSUMO', estilo: encabezado),
+          const SizedBox.shrink(),
+        ], fondo: tema.colorScheme.surface),
+        for (final (i, e) in equipos.indexed) ...[
+          const Divider(height: 1),
+          fila([
+            celda(e.nombre, fin: false),
+            celda('${e.cantidad}'),
+            celda('${Formato.numero(e.potenciaW)} W'),
+            celda(
+              e.kwhDia != null
+                  ? '${Formato.corto(e.kwhDia!)} kWh'
+                  : '${Formato.corto(e.horasDia)} h',
+            ),
+            celda(
+              '${Formato.numero(e.whDia)} Wh',
+              estilo: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            IconButton(
+              tooltip: 'Quitar',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => onChanged([...equipos]..removeAt(i)),
+            ),
+          ], alTocar: () => _editar(context, i)),
+        ],
       ],
     );
   }
 }
+
+/// "4 × 9 W · 5 h/día", como el mockup.
+String _detalleConCantidad(Equipo e) => e.kwhDia != null
+    ? '${e.cantidad} × ${Formato.numero(e.potenciaW)} W · '
+          '${Formato.corto(e.kwhDia!)} kWh/día'
+    : '${e.cantidad} × ${Formato.numero(e.potenciaW)} W · '
+          '${Formato.corto(e.horasDia)} h/día';
 
 String _detalle(Equipo e) => e.kwhDia != null
     ? '${Formato.numero(e.potenciaW)} W · ${Formato.numero(e.kwhDia!, 1)} kWh/día'

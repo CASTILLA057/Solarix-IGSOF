@@ -169,8 +169,9 @@ Future<void> calcularSimularYRevisar(
 
   // De vuelta al inicio con el botón (ya guardada: no pregunta).
   await tocar(tester, find.text('Volver al inicio'));
-  await esperar(tester, find.text('Último cálculo: $nombreCalculo'));
-  expect(find.textContaining('Última simulación: SoH'), findsOneWidget);
+  await esperar(tester, find.textContaining('$nombreCalculo ·'));
+  expect(find.text('Último cálculo'), findsOneWidget);
+  expect(find.textContaining('Última simulación ·'), findsOneWidget);
 
   // Historial: el cálculo y la simulación vinculada, y su detalle.
   await tocar(tester, find.byTooltip('Historial'));

@@ -1,5 +1,3 @@
-import '../../../core/widgets/etiqueta_segmento.dart';
-
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -8,9 +6,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/widgets/barra_web.dart';
+import '../../../core/widgets/etiqueta_segmento.dart';
 import '../../../core/widgets/navegacion.dart';
-import '../../auth/presentation/widgets/auth_widgets.dart';
+import '../../../core/widgets/solarix_ui.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../calculadora/domain/catalogos.dart';
 import '../../calculadora/domain/modelos.dart';
 import '../../calculadora/presentation/widgets/campos.dart';
@@ -237,19 +238,25 @@ class _SimulacionScreenState extends ConsumerState<SimulacionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ancho = esAncho(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Simular degradación'),
-        actions: const [BotonInicio()],
-      ),
+      appBar: ancho
+          ? const BarraWeb()
+          : AppBar(
+              title: const Text('Simular degradación'),
+              actions: const [BotonInicio()],
+            ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
+          constraints: BoxConstraints(maxWidth: ancho ? 760 : 640),
           child: Form(
             key: _form,
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: ancho
+                  ? const EdgeInsets.fromLTRB(24, 32, 24, 56)
+                  : const EdgeInsets.all(16),
               children: [
+                if (ancho) const TituloPagina('Simular degradación'),
                 Text(
                   'Simula hora a hora la salud (SoH) de una batería de litio '
                   'con el modelo SimDeg-FV, y la compara con la otra política '
@@ -537,26 +544,19 @@ class _Seccion extends StatelessWidget {
   final List<Widget> hijos;
 
   @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.only(top: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(icono, color: tema.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(titulo, style: tema.textTheme.titleMedium),
-              ],
-            ),
-            for (final h in hijos) ...[const SizedBox(height: 16), h],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => TarjetaSeccion(
+    titulo: titulo,
+    icono: icono,
+    // La batería en verde, como en el resto de la app.
+    tono: icono == Icons.battery_charging_full_outlined
+        ? TonoBurbuja.verde
+        : TonoBurbuja.solar,
+    margen: const EdgeInsets.only(top: 16),
+    children: [
+      for (final (i, h) in hijos.indexed) ...[
+        if (i > 0) const SizedBox(height: 16),
+        h,
+      ],
+    ],
+  );
 }

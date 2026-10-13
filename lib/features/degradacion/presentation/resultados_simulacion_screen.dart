@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/barra_web.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../../core/widgets/solarix_ui.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../dashboard/application/historial_providers.dart';
@@ -96,17 +99,23 @@ class _ResultadosSimulacionScreenState
   Widget build(BuildContext context) {
     final c = widget.comparacion;
     final p = c.parametros;
+    final ancho = esAncho(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Resultados de la simulación'),
-        actions: [BotonInicio(antesDeSalir: _puedeSalir)],
-      ),
+      appBar: ancho
+          ? BarraWeb(antesDeSalir: _puedeSalir)
+          : AppBar(
+              title: const Text('Resultados de la simulación'),
+              actions: [BotonInicio(antesDeSalir: _puedeSalir)],
+            ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
+          constraints: BoxConstraints(maxWidth: ancho ? 860 : 640),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: ancho
+                ? const EdgeInsets.fromLTRB(24, 32, 24, 56)
+                : const EdgeInsets.all(16),
             children: [
+              if (ancho) const TituloPagina('Resultados de la simulación'),
               _Destacado(resultado: c.principal),
               _Tarjeta(
                 titulo: 'Salud de la batería mes a mes',
@@ -187,10 +196,16 @@ class _Destacado extends StatelessWidget {
   Widget build(BuildContext context) {
     final esquema = Theme.of(context).colorScheme;
     final estilo = Theme.of(context).textTheme;
+    final colores = ColoresSolarix.of(context);
     final r = resultado;
     final anios = Formato.numero(r.aniosSimulados, 1);
+    // Ámbar suave con borde ámbar, como el destacado del cálculo (mockup).
     return Card(
-      color: esquema.primaryContainer,
+      color: colores.solarSuave,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colores.solar),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -198,7 +213,7 @@ class _Destacado extends StatelessWidget {
             Text(
               '${Formato.numero(r.sohFinal, 1)} %',
               style: estilo.displaySmall?.copyWith(
-                color: esquema.onPrimaryContainer,
+                color: esquema.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -206,18 +221,14 @@ class _Destacado extends StatelessWidget {
               r.finDeVida
                   ? 'La batería llega al fin de vida (80 %) en $anios años'
                   : 'de salud (SoH) después de $anios años',
-              style: estilo.bodyLarge?.copyWith(
-                color: esquema.onPrimaryContainer,
-              ),
+              style: estilo.bodyLarge?.copyWith(color: esquema.onSurface),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
               'Pierde ${Formato.numero(r.perdidaAnual, 2)} puntos por año '
               '(literatura: 1,3 a 1,7)',
-              style: estilo.bodySmall?.copyWith(
-                color: esquema.onPrimaryContainer,
-              ),
+              style: estilo.bodySmall?.copyWith(color: esquema.onSurface),
               textAlign: TextAlign.center,
             ),
           ],
@@ -369,29 +380,10 @@ class _Tarjeta extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.only(top: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(icono, color: tema.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(titulo, style: tema.textTheme.titleMedium),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => TarjetaSeccion(
+    titulo: titulo,
+    icono: icono,
+    tono: TonoBurbuja.verde,
+    children: [child],
+  );
 }

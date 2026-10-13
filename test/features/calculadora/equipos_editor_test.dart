@@ -5,11 +5,13 @@ import 'package:solarix/features/calculadora/domain/modelos.dart';
 import 'package:solarix/features/calculadora/presentation/widgets/equipos_editor.dart';
 
 /// Muestra el editor y guarda la lista que devuelve en [equipos].
+/// A 1.080 px se ve la tabla de la web; a 360 px, la lista del celular.
 Future<ValueNotifier<List<Equipo>>> _abrir(
   WidgetTester tester, [
   List<Equipo> iniciales = const [],
+  Size tamano = const Size(1080, 2400),
 ]) async {
-  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.physicalSize = tamano;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   final equipos = ValueNotifier(iniciales);
@@ -48,10 +50,9 @@ void main() {
     final primero = equiposBase.first;
     await _tocar(tester, find.text(primero.nombre).last);
     expect(equipos.value.single.nombre, primero.nombre);
-    expect(
-      find.text('${primero.nombre} × ${primero.cantidad}'),
-      findsOneWidget,
-    );
+    // Tabla de la web: nombre y cantidad en su columna.
+    expect(find.text(primero.nombre), findsOneWidget);
+    expect(find.text('${primero.cantidad}'), findsOneWidget);
   });
 
   testWidgets('"Otro equipo…": valida, guarda y suma el consumo', (
@@ -79,11 +80,26 @@ void main() {
     expect(bomba.potenciaW, 750);
     expect(bomba.horasDia, 2);
     expect(bomba.factorArranque, greaterThan(1));
-    expect(find.text('750 W · 2,0 h/día → 1.500 Wh/día'), findsOneWidget);
-    expect(
-      find.text('Consumo total: 1,50 kWh/día (45 kWh/mes)'),
-      findsOneWidget,
-    );
+    expect(find.text('750 W'), findsOneWidget);
+    expect(find.text('2 h'), findsOneWidget);
+    expect(find.text('1.500 Wh'), findsOneWidget);
+    // Banda verde con el total.
+    expect(find.text('Consumo total: 1,50 kWh/día'), findsOneWidget);
+    expect(find.text('≈ 45 kWh al mes'), findsOneWidget);
+  });
+
+  testWidgets('en el celular: lista con cantidad, potencia, uso y consumo', (
+    tester,
+  ) async {
+    await _abrir(tester, const [
+      Equipo(nombre: 'Bombillo LED', potenciaW: 9, horasDia: 5, cantidad: 4),
+    ], const Size(360, 800));
+    expect(find.text('Bombillo LED'), findsOneWidget);
+    expect(find.text('4 × 9 W · 5 h/día'), findsOneWidget);
+    expect(find.text('180 Wh'), findsOneWidget);
+    expect(find.text('Consumo total: 0,18 kWh/día'), findsOneWidget);
+    // Sin la tabla de la web.
+    expect(find.text('USO AL DÍA'), findsNothing);
   });
 
   testWidgets('edita un equipo: cantidad y consumo por ciclos', (tester) async {
@@ -102,7 +118,8 @@ void main() {
     final nevera = equipos.value.single;
     expect(nevera.cantidad, 2);
     expect(nevera.kwhDia, 1.2);
-    expect(find.text('Nevera × 2'), findsOneWidget);
+    expect(find.text('1,2 kWh'), findsOneWidget);
+    expect(find.text('2.400 Wh'), findsOneWidget);
   });
 
   testWidgets('cancelar no cambia nada; "Quitar" elimina', (tester) async {

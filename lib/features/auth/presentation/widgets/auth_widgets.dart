@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/sol_solarix.dart';
+import '../../../../core/widgets/solarix_ui.dart';
 
 /// Estructura común de las pantallas de autenticación: centrada, con ancho
 /// máximo para que se vea bien en el navegador de escritorio.
@@ -19,6 +20,7 @@ class AuthScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final ancho = esAncho(context);
     return Scaffold(
       appBar: AppBar(),
       body: SafeArea(
@@ -26,32 +28,33 @@ class AuthScaffold extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.wb_sunny_rounded,
-                    size: 56,
-                    color: ColoresSolarix.of(context).solar,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    titulo,
-                    style: tema.textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  if (subtitulo != null) ...[
-                    const SizedBox(height: 8),
+              constraints: BoxConstraints(maxWidth: ancho ? 440 : 420),
+              // En web, el formulario va en una tarjeta sobre el crema
+              // (mockup, Etapa 13).
+              child: _EnTarjeta(
+                activa: ancho,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Center(child: SolSolarix(tamano: 56)),
+                    const SizedBox(height: 12),
                     Text(
-                      subtitulo!,
-                      style: tema.textTheme.bodyMedium,
+                      titulo,
+                      style: tema.textTheme.headlineSmall,
                       textAlign: TextAlign.center,
                     ),
+                    if (subtitulo != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitulo!,
+                        style: tema.textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    child,
                   ],
-                  const SizedBox(height: 24),
-                  child,
-                ],
+                ),
               ),
             ),
           ),
@@ -59,6 +62,22 @@ class AuthScaffold extends StatelessWidget {
       ),
     );
   }
+}
+
+/// En web, [child] dentro de una tarjeta con margen amplio.
+class _EnTarjeta extends StatelessWidget {
+  const _EnTarjeta({required this.activa, required this.child});
+
+  final bool activa;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => activa
+      ? Card(
+          margin: EdgeInsets.zero,
+          child: Padding(padding: const EdgeInsets.all(40), child: child),
+        )
+      : child;
 }
 
 /// Caja de error visible dentro del formulario.

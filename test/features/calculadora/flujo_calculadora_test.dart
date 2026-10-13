@@ -187,6 +187,11 @@ void main() {
     );
     await tocar(tester, find.text('Tipo de sistema'));
     await tocar(tester, find.text('Conectado a la red'));
+    // Solo se muestra el paso actual: se vuelve al de equipos y costos.
+    for (var i = 0; i < 3; i++) {
+      await tocar(tester, boton('Siguiente'));
+    }
+    await tocar(tester, find.text('Supuestos técnicos y financieros'));
     expect(textoDe(tester, 'Autoconsumo'), '70');
   });
 

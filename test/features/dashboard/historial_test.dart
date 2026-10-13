@@ -97,7 +97,9 @@ void main() {
     tester,
   ) async {
     await abrir(tester, calculos: [calculo], simulaciones: [reciente]);
-    expect(find.text('Último cálculo: Casa'), findsOneWidget);
+    // En web: "Último cálculo · Casa".
+    expect(find.textContaining('Último cálculo'), findsOneWidget);
+    expect(find.textContaining('Casa'), findsWidgets);
     expect(find.textContaining('Última simulación'), findsOneWidget);
     expect(find.byType(LineChart), findsOneWidget);
   });

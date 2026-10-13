@@ -277,8 +277,10 @@ void main() {
     await tocar(tester, enInicio);
 
     expect(find.text('Mi perfil'), findsOneWidget);
-    expect(find.text('ana@correo.com'), findsOneWidget);
-    expect(find.text('Ana'), findsOneWidget);
+    // En el encabezado y, en web, en el campo de solo lectura.
+    expect(find.text('ana@correo.com'), findsWidgets);
+    // El nombre está en el campo (y también en el encabezado del perfil).
+    expect(find.widgetWithText(TextFormField, 'Ana'), findsOneWidget);
 
     await escribir(tester, 'Nombre', 'Ana Pérez');
     // La ciudad se elige de la lista de la calculadora.

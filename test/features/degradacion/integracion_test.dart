@@ -16,6 +16,7 @@ import 'package:solarix/features/degradacion/domain/comparacion.dart';
 import 'package:solarix/features/degradacion/domain/integracion.dart';
 import 'package:solarix/features/degradacion/domain/parametros.dart';
 import 'package:solarix/features/degradacion/domain/simulador.dart';
+import 'package:solarix/features/degradacion/presentation/impacto_financiero.dart';
 
 import '../../helpers/fakes.dart';
 
@@ -472,7 +473,15 @@ void main() {
     await tocar(boton('Simular'));
 
     expect(find.text('Con el sistema que dimensionaste'), findsOneWidget);
-    expect(find.text('Calculadora'), findsOneWidget);
+    // La columna de la calculadora en la tabla (la barra web también dice
+    // "Calculadora").
+    expect(
+      find.descendant(
+        of: find.byType(TablaImpacto),
+        matching: find.text('Calculadora'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('En plata conviene'), findsOneWidget);
     await tocar(boton('Guardar simulación'));
     expect(simulaciones.calculosVinculados, ['calc-1']);

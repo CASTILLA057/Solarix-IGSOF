@@ -21,6 +21,7 @@ class CalculoGuardado {
     required this.costoTotal,
     required this.ahorroMensual,
     required this.paybackAnios,
+    this.vpn,
   });
 
   factory CalculoGuardado.desdeFila(Map<String, dynamic> f) {
@@ -40,6 +41,7 @@ class CalculoGuardado {
       costoTotal: _d((r['costos'] as Map?)?['total']),
       ahorroMensual: _d(r['ahorro_mensual']),
       paybackAnios: (r['payback_anios'] as num?)?.toDouble(),
+      vpn: (r['vpn'] as num?)?.toDouble(),
     );
   }
 
@@ -54,6 +56,9 @@ class CalculoGuardado {
   final double costoTotal;
   final double ahorroMensual;
   final double? paybackAnios;
+
+  /// Valor presente neto del cálculo (Etapa 13, inicio web).
+  final double? vpn;
 
   String get titulo => (nombre?.trim().isNotEmpty ?? false)
       ? nombre!

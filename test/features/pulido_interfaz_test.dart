@@ -108,7 +108,9 @@ void main() {
     historial.error = null;
     await tester.tap(find.byTooltip('Reintentar').first);
     await tester.pumpAndSettle();
-    expect(find.text('Último cálculo: Casa'), findsOneWidget);
+    // En web: "Último cálculo · Casa".
+    expect(find.textContaining('Último cálculo'), findsOneWidget);
+    expect(find.textContaining('Casa'), findsWidgets);
   });
 
   testWidgets('historial: estado vacío por filtros y "Quitar filtros"', (
@@ -142,9 +144,9 @@ void main() {
         .read(routerProvider)
         .go(Rutas.resultados, extra: (e, r));
     await tester.pumpAndSettle();
-    // La primera es la del resumen; la otra, la fila "Total" de los costos.
+    // La inversión del resumen (abreviada, como el mockup).
     final total = tester.renderObject<RenderParagraph>(
-      find.text(Formato.cop(r.costos.total)).first,
+      find.text(Formato.copCorto(r.costos.total)),
     );
     expect(total.size.height, lessThan(total.text.style!.fontSize! * 1.6));
 
@@ -302,6 +304,9 @@ void main() {
     ('celular pequeño', const Size(320, 640), 'light'),
     ('celular oscuro', const Size(390, 844), 'dark'),
     ('escritorio', const Size(1440, 900), 'light'),
+    // Diseño web en su ancho más justo (Etapa 13) y en oscuro.
+    ('web justa', const Size(900, 700), 'light'),
+    ('escritorio oscuro', const Size(1280, 800), 'dark'),
   ]) {
     testWidgets('todas las pantallas sin desbordes: $nombre', (tester) async {
       await _abrir(tester, tamano: tamano, preferencias: {'modo_tema': modo});

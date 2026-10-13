@@ -7,7 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/barra_web.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../../core/widgets/solarix_ui.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../application/calculadora_providers.dart';
@@ -21,7 +24,7 @@ import 'widgets/equipos_editor.dart';
 enum _FuenteHsp { ciudad, ubicacion, manual }
 
 /// Separación sobre el primer campo de un bloque que recorta su contenido
-/// (paso del Stepper, sección desplegable), para no cortar la etiqueta.
+/// (sección desplegable), para no cortar la etiqueta.
 const _margenEtiqueta = 12.0;
 
 /// Asistente de 4 pasos: tipo de sistema, consumo, ubicación y equipos.
@@ -364,97 +367,240 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calculadora solar'),
-        actions: const [BotonInicio()],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Stepper(
-            currentStep: _paso,
-            onStepContinue: _continuar,
-            onStepCancel: _paso == 0
-                ? null
-                : () => setState(() {
-                    _error = null;
-                    _paso--;
-                  }),
-            onStepTapped: (paso) {
-              if (paso < _paso) {
-                setState(() {
-                  _error = null;
-                  _paso = paso;
-                });
-              }
-            },
-            // El Stepper construye los controles de todos los pasos (los
-            // ocultos con altura cero): solo se dibujan los del paso actual.
-            controlsBuilder: (context, detalles) =>
-                detalles.stepIndex != detalles.currentStep
-                ? const SizedBox.shrink()
-                : Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (_error != null) ...[
-                          MensajeError(_error!),
-                          const SizedBox(height: 12),
-                        ],
-                        // Wrap: en celulares angostos el "Atrás" baja de
-                        // línea en vez de desbordarse.
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            FilledButton(
-                              onPressed: detalles.onStepContinue,
-                              child: Text(
-                                _paso == 3 ? 'Calcular' : 'Siguiente',
-                              ),
-                            ),
-                            if (detalles.onStepCancel != null)
-                              TextButton(
-                                onPressed: detalles.onStepCancel,
-                                child: const Text('Atrás'),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-            steps: [
-              Step(
-                title: const Text('Tipo de sistema'),
-                isActive: _paso >= 0,
-                state: _paso > 0 ? StepState.complete : StepState.indexed,
-                content: Form(key: _formularios[0], child: _pasoSistema()),
+  /// Etiqueta corta (indicador del celular), título (tarjeta de pasos de la
+  /// web), pregunta y ayuda de cada paso (mockup, Etapa 13).
+  static const _pasos = [
+    (
+      'Tipo',
+      'Tipo de sistema',
+      '¿Qué sistema quieres?',
+      'Elige cómo se conecta tu casa.',
+    ),
+    (
+      'Consumo',
+      'Consumo',
+      '¿Cuánta energía usas?',
+      'Agrega los equipos de tu casa o escribe el consumo de tu factura.',
+    ),
+    (
+      'Ubicación',
+      'Ubicación',
+      '¿Dónde está la casa?',
+      'Con el lugar calculamos las horas de sol.',
+    ),
+    (
+      'Equipos',
+      'Equipos y costos',
+      'Equipos y costos',
+      'Ajusta el panel, la batería y los precios.',
+    ),
+  ];
+
+  void _irAPaso(int paso) => setState(() {
+    _error = null;
+    _paso = paso;
+  });
+
+  /// Tarjeta de pasos de la web: lo ya elegido en los pasos hechos y, en
+  /// los demás, de qué se trata (mockup).
+  String? _resumenPaso(int paso) {
+    if (paso >= _paso) {
+      return const [
+        'Cómo se conecta tu casa',
+        'Equipos de la casa',
+        'Horas solares del lugar',
+        'Panel, batería y precios',
+      ][paso];
+    }
+    return switch (paso) {
+      0 => _tipo.etiqueta,
+      1 =>
+        _modo == ModoConsumo.equipos
+            ? '${_equipos.length} equipos'
+            : '${_consumoMes.text} kWh/mes',
+      2 => _hsp == null ? null : _ubicacion,
+      _ => null,
+    };
+  }
+
+  Widget _contenidoPaso() => switch (_paso) {
+    0 => _pasoSistema(),
+    1 => _pasoConsumo(),
+    2 => _pasoUbicacion(),
+    _ => _pasoEquipos(),
+  };
+
+  /// El paso actual: encabezado, formulario, error y botones.
+  Widget _panelPaso() {
+    final (_, _, pregunta, ayuda) = _pasos[_paso];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        EncabezadoPaso(
+          paso: _paso + 1,
+          total: _pasos.length,
+          pregunta: pregunta,
+          ayuda: ayuda,
+        ),
+        const SizedBox(height: 16),
+        Form(
+          key: _formularios[_paso],
+          child: KeyedSubtree(key: ValueKey(_paso), child: _contenidoPaso()),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          MensajeError(_error!),
+        ],
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            // En web los botones van a la derecha (mockup).
+            if (esAncho(context)) const Spacer(),
+            if (_paso > 0) ...[
+              TextButton.icon(
+                onPressed: () => _irAPaso(_paso - 1),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Atrás'),
               ),
-              Step(
-                title: const Text('Consumo'),
-                isActive: _paso >= 1,
-                state: _paso > 1 ? StepState.complete : StepState.indexed,
-                content: Form(key: _formularios[1], child: _pasoConsumo()),
-              ),
-              Step(
-                title: const Text('Ubicación'),
-                isActive: _paso >= 2,
-                state: _paso > 2 ? StepState.complete : StepState.indexed,
-                content: Form(key: _formularios[2], child: _pasoUbicacion()),
-              ),
-              Step(
-                title: const Text('Equipos y costos'),
-                isActive: _paso >= 3,
-                content: Form(key: _formularios[3], child: _pasoEquipos()),
-              ),
+              const SizedBox(width: 8),
             ],
+            if (esAncho(context))
+              SizedBox(width: 200, child: _botonContinuar())
+            else
+              Expanded(child: _botonContinuar()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _botonContinuar() => FilledButton(
+    onPressed: _continuar,
+    child: Text(_paso == 3 ? 'Calcular' : 'Siguiente'),
+  );
+
+  /// Dos campos lado a lado en web; uno debajo del otro en celular.
+  Widget _parCampos(Widget a, Widget b) => esAncho(context)
+      ? Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: a),
+            const SizedBox(width: 16),
+            Expanded(child: b),
+          ],
+        )
+      : Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [a, const SizedBox(height: 16), b],
+        );
+
+  Widget _vistaWeb() {
+    final tema = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 56),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: anchoMaximoWeb),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Calculadora solar', style: tema.textTheme.headlineSmall),
+                Text(
+                  'Dimensiona tu sistema en 4 pasos. Puedes volver a '
+                  'cualquier paso ya hecho.',
+                  style: tema.textTheme.bodyLarge?.copyWith(
+                    color: tema.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 300,
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < _pasos.length; i++)
+                                _PasoLateral(
+                                  numero: i + 1,
+                                  titulo: _pasos[i].$2,
+                                  detalle: _resumenPaso(i),
+                                  estado: _estadoPaso(i),
+                                  alTocar: i < _paso ? () => _irAPaso(i) : null,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(28),
+                          child: _panelPaso(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+      ],
+    );
+  }
+
+  _EstadoPaso _estadoPaso(int i) => i < _paso
+      ? _EstadoPaso.hecho
+      : i == _paso
+      ? _EstadoPaso.activo
+      : _EstadoPaso.pendiente;
+
+  @override
+  Widget build(BuildContext context) {
+    final ancho = esAncho(context);
+    return Scaffold(
+      appBar: ancho
+          ? const BarraWeb()
+          : AppBar(
+              title: const Text('Calculadora solar'),
+              actions: const [BotonInicio()],
+            ),
+      body: ancho
+          ? _vistaWeb()
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  children: [
+                    Row(
+                      children: [
+                        for (var i = 0; i < _pasos.length; i++)
+                          Expanded(
+                            child: _CirculoPaso(
+                              numero: i + 1,
+                              etiqueta: _pasos[i].$1,
+                              estado: _estadoPaso(i),
+                              alTocar: i < _paso ? () => _irAPaso(i) : null,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _panelPaso(),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
@@ -526,70 +672,72 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       ),
       const SizedBox(height: 16),
       if (_tipo.usaRed) ...[
-        CampoNumero(
-          controller: _tarifa,
-          etiqueta: 'Tarifa de la energía',
-          sufijo: 'COP/kWh',
-          ayuda: 'Sin subsidio ni contribución (la del estrato 4).',
-          explicacion: Explicacion.tarifa,
-          minimo: 1,
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<Estrato>(
-          initialValue: _estrato,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Estrato de la vivienda',
-            suffixIcon: BotonExplicacion(
-              titulo: 'Estrato',
-              texto: Explicacion.estrato,
-            ),
-          ),
-          items: [
-            for (final e in Estrato.values)
-              DropdownMenuItem(value: e, child: Text(textoEstrato(e))),
-          ],
-          // En el campo cerrado va la versión corta: con el ícono ⓘ, la
-          // larga se cortaba a mitad de frase en un celular de 360 dp.
-          selectedItemBuilder: (_) => [
-            for (final e in Estrato.values) _enUnaLinea(textoEstratoCorto(e)),
-          ],
-          onChanged: (e) => _elegirEstrato(e!),
-        ),
-        if (_estrato.subsidio > 0) ...[
-          const SizedBox(height: 16),
+        _parCampos(
           CampoNumero(
-            key: ValueKey('subsidio-${_estrato.numero}'),
-            controller: _subsidio,
-            etiqueta: 'Subsidio de tu factura',
-            sufijo: '%',
-            ayuda:
-                'Máximo de la ley: ${_porcentajeTexto(_estrato.subsidio)} %. '
-                'Escribe el de tu factura si es otro.',
-            explicacion: Explicacion.subsidioFactura,
-            minimo: 0,
-            maximo: _estrato.subsidio * 100,
+            controller: _tarifa,
+            etiqueta: 'Tarifa de la energía',
+            sufijo: 'COP/kWh',
+            ayuda: 'Sin subsidio ni contribución (la del estrato 4).',
+            explicacion: Explicacion.tarifa,
+            minimo: 1,
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<double?>(
-            initialValue: _subsistenciaElegida,
+          DropdownButtonFormField<Estrato>(
+            initialValue: _estrato,
             isExpanded: true,
             decoration: const InputDecoration(
-              labelText: 'Consumo de subsistencia',
+              labelText: 'Estrato de la vivienda',
               suffixIcon: BotonExplicacion(
-                titulo: 'Consumo de subsistencia',
-                texto: Explicacion.subsistencia,
+                titulo: 'Estrato',
+                texto: Explicacion.estrato,
               ),
             ),
             items: [
-              for (final (valor, largo, _) in _opcionesSubsistencia)
-                DropdownMenuItem<double?>(value: valor, child: Text(largo)),
+              for (final e in Estrato.values)
+                DropdownMenuItem(value: e, child: Text(textoEstrato(e))),
             ],
+            // En el campo cerrado va la versión corta: con el ícono ⓘ, la
+            // larga se cortaba a mitad de frase en un celular de 360 dp.
             selectedItemBuilder: (_) => [
-              for (final (_, _, corto) in _opcionesSubsistencia)
-                _enUnaLinea(corto),
+              for (final e in Estrato.values) _enUnaLinea(textoEstratoCorto(e)),
             ],
-            onChanged: (v) => setState(() => _subsistenciaElegida = v),
+            onChanged: (e) => _elegirEstrato(e!),
+          ),
+        ),
+        if (_estrato.subsidio > 0) ...[
+          const SizedBox(height: 16),
+          _parCampos(
+            CampoNumero(
+              key: ValueKey('subsidio-${_estrato.numero}'),
+              controller: _subsidio,
+              etiqueta: 'Subsidio de tu factura',
+              sufijo: '%',
+              ayuda:
+                  'Máximo de la ley: ${_porcentajeTexto(_estrato.subsidio)} %. '
+                  'Escribe el de tu factura si es otro.',
+              explicacion: Explicacion.subsidioFactura,
+              minimo: 0,
+              maximo: _estrato.subsidio * 100,
+            ),
+            DropdownButtonFormField<double?>(
+              initialValue: _subsistenciaElegida,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Consumo de subsistencia',
+                suffixIcon: BotonExplicacion(
+                  titulo: 'Consumo de subsistencia',
+                  texto: Explicacion.subsistencia,
+                ),
+              ),
+              items: [
+                for (final (valor, largo, _) in _opcionesSubsistencia)
+                  DropdownMenuItem<double?>(value: valor, child: Text(largo)),
+              ],
+              selectedItemBuilder: (_) => [
+                for (final (_, _, corto) in _opcionesSubsistencia)
+                  _enUnaLinea(corto),
+              ],
+              onChanged: (v) => setState(() => _subsistenciaElegida = v),
+            ),
           ),
         ],
       ] else
@@ -957,4 +1105,130 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
       ),
     ],
   );
+}
+
+enum _EstadoPaso { hecho, activo, pendiente }
+
+/// Círculo numerado de un paso: verde con check si está hecho, ámbar si es
+/// el actual y con borde si falta.
+class _Circulo extends StatelessWidget {
+  const _Circulo({required this.numero, required this.estado});
+
+  final int numero;
+  final _EstadoPaso estado;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final colores = ColoresSolarix.of(context);
+    return Container(
+      width: 30,
+      height: 30,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: switch (estado) {
+          _EstadoPaso.hecho => tema.colorScheme.secondary,
+          _EstadoPaso.activo => colores.solar,
+          _EstadoPaso.pendiente => tema.colorScheme.surfaceContainerLowest,
+        },
+        border: estado == _EstadoPaso.pendiente
+            ? Border.all(color: colores.bordeFuerte, width: 1.5)
+            : null,
+      ),
+      child: estado == _EstadoPaso.hecho
+          ? Icon(Icons.check, size: 16, color: tema.colorScheme.onSecondary)
+          : Text(
+              '$numero',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: estado == _EstadoPaso.activo
+                    ? colores.textoSobreSolar
+                    : tema.colorScheme.onSurfaceVariant,
+              ),
+            ),
+    );
+  }
+}
+
+/// Indicador horizontal del celular: círculo y etiqueta corta. Los pasos
+/// hechos se pueden tocar para volver.
+class _CirculoPaso extends StatelessWidget {
+  const _CirculoPaso({
+    required this.numero,
+    required this.etiqueta,
+    required this.estado,
+    this.alTocar,
+  });
+
+  final int numero;
+  final String etiqueta;
+  final _EstadoPaso estado;
+  final VoidCallback? alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return InkWell(
+      onTap: alTocar,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          children: [
+            _Circulo(numero: numero, estado: estado),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                etiqueta,
+                maxLines: 1,
+                style: tema.textTheme.labelMedium?.copyWith(
+                  color: estado == _EstadoPaso.pendiente
+                      ? tema.colorScheme.onSurfaceVariant
+                      : tema.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Fila de la tarjeta de pasos de la web: círculo, título y lo elegido.
+class _PasoLateral extends StatelessWidget {
+  const _PasoLateral({
+    required this.numero,
+    required this.titulo,
+    required this.estado,
+    this.detalle,
+    this.alTocar,
+  });
+
+  final int numero;
+  final String titulo;
+  final String? detalle;
+  final _EstadoPaso estado;
+  final VoidCallback? alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = ColoresSolarix.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: ListTile(
+        onTap: alTocar,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        tileColor: estado == _EstadoPaso.activo ? colores.solarSuave : null,
+        leading: _Circulo(numero: numero, estado: estado),
+        title: Text(
+          titulo,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: detalle == null ? null : Text(detalle!),
+      ),
+    );
+  }
 }

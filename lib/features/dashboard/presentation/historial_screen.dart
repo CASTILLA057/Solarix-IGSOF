@@ -1,5 +1,3 @@
-import '../../../core/widgets/etiqueta_segmento.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
+import '../../../core/widgets/barra_web.dart';
 import '../../../core/widgets/estados.dart';
+import '../../../core/widgets/etiqueta_segmento.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../../core/widgets/solarix_ui.dart';
 import '../../degradacion/domain/parametros.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../application/historial_providers.dart';
@@ -21,6 +22,8 @@ const _meses = [
 
 /// Fecha corta en español, p. ej. "2 oct 2026".
 String fechaCorta(DateTime f) => '${f.day} ${_meses[f.month - 1]} ${f.year}';
+
+const _pestanas = [Tab(text: 'Cálculos'), Tab(text: 'Simulaciones')];
 
 /// Historial de cálculos y simulaciones, con filtros y eliminación.
 class HistorialScreen extends ConsumerStatefulWidget {
@@ -83,21 +86,28 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Historial'),
-          actions: const [BotonInicio()],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Cálculos'),
-              Tab(text: 'Simulaciones'),
-            ],
-          ),
-        ),
+        appBar: esAncho(context)
+            ? const BarraWeb()
+            : AppBar(
+                title: const Text('Historial'),
+                actions: const [BotonInicio()],
+                bottom: const TabBar(tabs: _pestanas),
+              ),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: Column(
               children: [
+                if (esAncho(context)) ...[
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 32, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TituloPagina('Historial'),
+                    ),
+                  ),
+                  const TabBar(tabs: _pestanas),
+                ],
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: DropdownButtonFormField<FiltroFecha>(
@@ -133,10 +143,10 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
                         alRecargar: () =>
                             ref.invalidate(calculosGuardadosProvider),
                         elemento: (c) => ListTile(
-                          leading: const Icon(Icons.calculate_outlined),
+                          leading: const BurbujaIcono(Icons.calculate_outlined),
                           title: Text(c.titulo),
                           subtitle: Text(
-                            '${fechaCorta(c.creadoEn)} · ${c.numeroPaneles} paneles · '
+                            '${fechaCorta(c.creadoEn)} · ${Formato.paneles(c.numeroPaneles)} · '
                             '${Formato.cop(c.costoTotal)} · recupera en '
                             '${Formato.anios(c.paybackAnios, 20).toLowerCase()}',
                           ),
@@ -193,8 +203,9 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
                               alRecargar: () =>
                                   ref.invalidate(simulacionesGuardadasProvider),
                               elemento: (s) => ListTile(
-                                leading: const Icon(
+                                leading: const BurbujaIcono(
                                   Icons.battery_charging_full_outlined,
+                                  tono: TonoBurbuja.verde,
                                 ),
                                 title: Text(
                                   'SoH ${Formato.numero(s.sohFinal, 1)} % · '

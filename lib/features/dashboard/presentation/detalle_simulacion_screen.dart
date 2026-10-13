@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/formato.dart';
+import '../../../core/widgets/barra_web.dart';
 import '../../../core/widgets/navegacion.dart';
+import '../../../core/widgets/solarix_ui.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../../degradacion/presentation/impacto_financiero.dart';
 import '../domain/historial.dart';
@@ -19,31 +21,47 @@ class DetalleSimulacionScreen extends StatelessWidget {
     final s = simulacion;
     final tema = Theme.of(context);
     final serie = s.serie;
-    Widget tarjeta(String titulo, Widget hijo) => Card(
-      margin: const EdgeInsets.only(top: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(titulo, style: tema.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            hijo,
-          ],
-        ),
+    // Burbuja de cada tarjeta según su título.
+    (IconData, TonoBurbuja) estilo(String titulo) => switch (titulo) {
+      'Resumen' => (Icons.summarize_outlined, TonoBurbuja.solar),
+      'Salud de la batería (SoH)' => (
+        Icons.battery_charging_full_outlined,
+        TonoBurbuja.verde,
       ),
-    );
+      'Con el sistema que dimensionaste' => (
+        Icons.savings_outlined,
+        TonoBurbuja.verde,
+      ),
+      'Generación y consumo por mes' => (Icons.bolt_outlined, TonoBurbuja.azul),
+      _ => (Icons.show_chart, TonoBurbuja.azul),
+    };
+    Widget tarjeta(String titulo, Widget hijo) {
+      final (icono, tono) = estilo(titulo);
+      return TarjetaSeccion(
+        titulo: titulo,
+        icono: icono,
+        tono: tono,
+        children: [hijo],
+      );
+    }
+
+    final ancho = esAncho(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Simulación guardada'),
-        actions: const [BotonInicio()],
-      ),
+      appBar: ancho
+          ? const BarraWeb()
+          : AppBar(
+              title: const Text('Simulación guardada'),
+              actions: const [BotonInicio()],
+            ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
+          constraints: BoxConstraints(maxWidth: ancho ? 860 : 720),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: ancho
+                ? const EdgeInsets.fromLTRB(24, 32, 24, 56)
+                : const EdgeInsets.all(16),
             children: [
+              if (ancho) const TituloPagina('Simulación guardada'),
               Text(
                 '${fechaCorta(s.creadoEn)} · '
                 '${Formato.numero(s.capacidadKwh, 1)} kWh · '
