@@ -62,3 +62,6 @@ prueba.json
 
 # Configuración local de Claude Code (personal de cada computador)
 .claude/settings.local.json
+
+# Bitácora: solo local, fuera del repositorio (pedido del autor, 2026-10-13)
+docs/BITACORA.md

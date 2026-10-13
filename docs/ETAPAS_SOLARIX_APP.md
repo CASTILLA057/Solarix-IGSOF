@@ -277,7 +277,22 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [ ] Pruebas de los tres puntos y prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 27 a 30)
 - [ ] Tres commits separados: sin batería, aislado y estrato
 
-## Etapa 13 — Documentación y entrega
+## Etapa 13 — Rediseño de la interfaz según el mockup
+*Guía completa, con el código de cada widget y pantalla: [`MEJORAS_UI_MOCKUP.md`](MEJORAS_UI_MOCKUP.md) (mockup "Solarix — Mockups UI/UX" en Figma, Ingeniería de Software, Clase 13). Solo cambia la capa de presentación: cálculos, Supabase, rutas y validaciones quedan igual. Diseño de celular por debajo de 900 px y diseño web desde 900 px.*
+- [ ] Tema: colores `solarSuave` y `bordeFuerte`, botón secundario, campos, selector segmentado, barra superior y aviso flotante (guía, sección 2)
+- [ ] Sol: declarar `assets/icono/sol.png` en `pubspec.yaml`, crear `SolSolarix` y reemplazar `Icons.wb_sunny_rounded` (guía, sección 2.4)
+- [ ] Widgets base: `solarix_ui.dart` (burbuja, tarjeta de sección, fila de dato, mosaico, aviso, encabezado de paso) y `barra_web.dart` (barra superior y avatar con iniciales)
+- [ ] Resultados: tarjetas con burbuja, destacado ámbar, nota de la Ley 1715 como aviso, guardar con acción "VER" y grilla 2×2 en web
+- [ ] Inicio: saludo con el nombre, cifras en mosaicos, leyenda de la gráfica y, en web, historial reciente (leer también el VPN en `CalculoGuardado`)
+- [ ] Perfil: avatar con iniciales, mosaicos de actividad, tarjetas "Datos personales" y "Apariencia", dos columnas en web
+- [ ] Calculadora: indicador de pasos propio en lugar del `Stepper` (celular) y tarjeta de pasos lateral (web), con el paso como pregunta
+- [ ] Equipos: lista en una tarjeta, banda verde con el consumo total y tabla en web
+- [ ] Bienvenida web en dos columnas, con un enlace a la política de datos (sin "al continuar aceptas": la autorización expresa sigue en la casilla del registro, Ley 1581)
+- [ ] Resto de pantallas (simulación, historial, detalle, acceso): barra web y tarjetas con burbuja (guía, sección 5.6)
+- [ ] Pruebas: actualizar las que buscan textos que cambian (guía, sección 6), contraste de `solarSuave` en claro y oscuro, y mantener la prueba de 320 px
+- [ ] Revisión visual contra el mockup en celular y web, claro y oscuro, y prueba manual en Chrome y Android
+
+## Etapa 14 — Documentación y entrega
 - [ ] README con instrucciones de instalación y variables de entorno de Supabase
 - [ ] Manual breve de usuario (puedes reaprovechar texto de los dos Word que ya tienes)
 - [ ] Documento de validación del modelo (Dart vs. NetLogo) de la Etapa 4
