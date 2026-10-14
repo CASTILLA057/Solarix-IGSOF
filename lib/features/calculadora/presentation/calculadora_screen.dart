@@ -445,6 +445,11 @@ class _CalculadoraScreenState extends ConsumerState<CalculadoraScreen> {
         const SizedBox(height: 16),
         Form(
           key: _formularios[_paso],
+          // El aviso "Revisa los campos marcados." se va en cuanto se cambia
+          // un campo; si sigue mal, vuelve al pulsar "Siguiente".
+          onChanged: () {
+            if (_error != null) setState(() => _error = null);
+          },
           child: KeyedSubtree(key: ValueKey(_paso), child: _contenidoPaso()),
         ),
         if (_error != null) ...[

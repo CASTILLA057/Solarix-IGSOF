@@ -11,6 +11,7 @@ abstract final class Rutas {
   static const resultadosSimulacion = '$simulacion/resultados';
   static const historial = '/historial';
   static const detalleSimulacion = '$historial/simulacion';
+  static const detalleCalculo = '$historial/calculo';
   static const bienvenida = '/bienvenida';
   static const login = '$bienvenida/login';
   static const registro = '$bienvenida/registro';

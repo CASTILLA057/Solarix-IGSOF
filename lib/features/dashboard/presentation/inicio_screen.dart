@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/error_app.dart';
 import '../../../core/formato.dart';
 import '../../../core/router/rutas.dart';
 import '../../../core/widgets/barra_web.dart';
@@ -9,6 +10,8 @@ import '../../../core/widgets/estados.dart';
 import '../../../core/widgets/sol_solarix.dart';
 import '../../../core/widgets/solarix_ui.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../auth/domain/politica_datos.dart';
+import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../../degradacion/presentation/etiquetas.dart';
 import '../application/historial_providers.dart';
 import '../domain/historial.dart';
@@ -85,7 +88,10 @@ class InicioScreen extends ConsumerWidget {
         alReintentar: () => ref.invalidate(simulacionesGuardadasProvider),
         contenido: (s) => _TarjetaSimulacion(simulacion: s, web: ancho),
       );
+      // La política dice que la app avisa cuando cambia (Ley 1581).
+      final aceptada = ref.watch(sesionProvider).value?.versionPolitica;
       contenido = [
+        if (aceptada != PoliticaDatos.version) const _AvisoPolitica(),
         dosColumnas(context, tarjetaCalculo, tarjetaSimulacion),
         if (ancho)
           _HistorialReciente(
@@ -437,6 +443,66 @@ class _HistorialReciente extends StatelessWidget {
 
 /// Inicio sin sesión (Etapa 12): todo se puede calcular y simular; la cuenta
 /// solo hace falta para guardar.
+/// Aviso de que la política de datos cambió desde la versión que el usuario
+/// aceptó: "Leer" la abre y "Entendido" guarda la versión nueva en la cuenta.
+class _AvisoPolitica extends ConsumerStatefulWidget {
+  const _AvisoPolitica();
+
+  @override
+  ConsumerState<_AvisoPolitica> createState() => _AvisoPoliticaState();
+}
+
+class _AvisoPoliticaState extends ConsumerState<_AvisoPolitica> {
+  bool _guardando = false;
+  String? _error;
+
+  Future<void> _entendido() async {
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).aceptarPolitica();
+    } on ErrorApp catch (e) {
+      if (mounted) setState(() => _error = e.mensaje);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TarjetaSeccion(
+    icono: Icons.privacy_tip_outlined,
+    tono: TonoBurbuja.azul,
+    titulo: 'La política de datos cambió',
+    margen: const EdgeInsets.only(top: 16, bottom: 4),
+    children: [
+      Text(
+        'Hay una versión nueva (${PoliticaDatos.version}) de la política de '
+        'tratamiento de tus datos. Léela; si sigues usando tu cuenta, '
+        'confírmalo con "Entendido".',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      if (_error != null) ...[const SizedBox(height: 8), MensajeError(_error!)],
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton(
+            onPressed: () => context.push(Rutas.politicaDatos),
+            child: const Text('Leer'),
+          ),
+          FilledButton(
+            onPressed: _guardando ? null : _entendido,
+            child: Text(_guardando ? 'Guardando…' : 'Entendido'),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
 class _InvitacionCuenta extends StatelessWidget {
   const _InvitacionCuenta();
 

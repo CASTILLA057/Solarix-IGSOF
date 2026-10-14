@@ -20,6 +20,7 @@ Map<String, dynamic> filaCalculo(String id, DateTime fecha) {
     'nombre': e.nombre,
     'tipo_sistema': e.tipo.valorBd,
     'creado_en': fecha.toUtc().toIso8601String(),
+    'entradas': e.aMapa(),
     'resultados': calcular(e).aMapa(),
   };
 }

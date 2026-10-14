@@ -63,7 +63,8 @@ Las ecuaciones de NetLogo no se tocaron: solo cambian las entradas.
 | Zona según el clima | lluvia y nubosidad (criterio de 5 reglas) | [`FUENTES.md`](FUENTES.md) | `zonaParaClima` |
 | Consumo del modelo → consumo calculado | factor = consumo de la casa ÷ consumo del modelo | Escala el perfil de NetLogo | `factorConsumoPara` |
 | Corrida de referencia | 10 años, semilla 1 | Medir el modelo sin azar | `_referencia` |
-| **Vida calendario 15 / 6 años** | litio 15, plomo 6 | Vida de calendario típica; el modelo no la incluye | `QuimicaBateria` |
+| **Vida típica 10 / 4 años** | litio 10, plomo 4 | La que usa una cotización sin simular (garantía habitual del litio); la usa la calculadora para los reemplazos | `QuimicaBateria.vidaUtilAnios` |
+| **Vida calendario 15 / 6 años** | litio 15, plomo 6 | Lo que dura la batería aunque casi no se use (envejecimiento por tiempo); el modelo no la incluye, así que es el tope de la vida simulada | `QuimicaBateria.vidaCalendarioAnios` |
 | **Vida usada en el flujo** | la menor entre la vida por uso y la calendario | Evita vidas irreales (p. ej. 44 años) | `vidaBateria` |
 | **Exponente acotado entre 0,3 y 2** | al extrapolar el SoH hasta 80 % | Rango físico razonable para `Z = a·tᵇ` | `aniosHastaFinDeVida` |
 | Aporte de la batería por año | energía de la batería ÷ energía de una batería sin degradación, mismo clima | Aísla la degradación del clima | `aporteAnual` |
@@ -73,8 +74,8 @@ Las ecuaciones de NetLogo no se tocaron: solo cambian las entradas.
 
 **Qué decir (una diapositiva):**
 
-1. **Degradación más lenta que la literatura.** Con una batería bien dimensionada el modelo pierde ≈ 0,3 a 1,0 puntos de SoH por año; la literatura reporta 1,3–1,7. Por eso la simulación sola a veces da vidas de 40 años.
-2. **Sin envejecimiento calendario.** El modelo solo desgasta por uso; por eso se pone el tope de 15 años (litio) y 6 (plomo).
+1. **Calibrado con una batería que trabaja; solo cuenta el desgaste por uso.** En NetLogo el modelo se calibró a ≈ 1,5 puntos de SoH por año (banda de la literatura: 1,3–1,7), y el barrido lo confirma: el híbrido (6,2 kWh) llega a 85 % a los 10 años. Con baterías grandes, que trabajan poco, da 0,3 a 1,0 puntos por año porque solo cuenta el uso; por eso la simulación sola puede dar vidas de 40 años o más.
+2. **Sin envejecimiento calendario.** Lo que le falta al modelo es el desgaste por tiempo; por eso la vida simulada tiene un tope de 15 años (litio) y 6 (plomo). Con baterías grandes, la mejora del VPN frente a la calculadora (que supone 10 años) sale de ese tope: es un supuesto, no un resultado de la simulación.
 3. **Validado contra NetLogo, no contra baterías reales.** El motor en Dart reproduce a NetLogo (SoH a ± 0,02 puntos, energía comprada a < 0,3 %), pero no hay medidas de una batería real.
 4. **Coeficientes sin calibrar con datos medidos.** α, β, γ y δ vienen del modelo original.
 5. **Configuraciones por ciudad interpoladas.** El clima de cada ciudad cambia las entradas, y no se validó cada una contra NetLogo. NASA tiene resolución de ≈ 50 km (Pasto queda como mixta).
@@ -85,7 +86,7 @@ Las ecuaciones de NetLogo no se tocaron: solo cambian las entradas.
 
 ## 3. Guion de la sustentación (≈ 10 minutos)
 
-**Hilo central:** *«¿Para qué simular la batería?»* La respuesta, medida en [`BARRIDO_BATERIA.md`](BARRIDO_BATERIA.md): la simulación y la política consciente **solo cambian la decisión cuando la batería es pequeña**; con una batería bien dimensionada la vida la fija el calendario y el dinero no cambia.
+**Hilo central:** *«¿Para qué simular la batería?»* La respuesta, medida en [`BARRIDO_BATERIA.md`](BARRIDO_BATERIA.md): para **elegir cuánta batería**. Con una batería pequeña, la simulación muestra cuánto se desgasta de verdad (13,3 años en vez de los 10 que supone una cotización) y la política consciente la cuida (+1,5 puntos). Con una batería grande, muestra que no se gasta por uso y que la limita el tiempo (15 años): en un aislado cerca del punto de equilibrio eso cambia la decisión, pero ese número sale del supuesto calendario, y así se dice.
 
 **De dónde viene cada parte**
 
@@ -102,17 +103,22 @@ Las ecuaciones de NetLogo no se tocaron: solo cambian las entradas.
 2. **(2 min) Demo — calculadora.** Sin cuenta: Cúcuta, 300 kWh/mes, híbrido, estrato 4. Mostrar paneles, inversión, recuperación, la comparación contra el mismo sistema sin batería, y la nota de la Ley 1715.
 3. **(2 min) Demo — simulación.** Pulsar «Simular» desde el cálculo: SoH a 10 años de las dos políticas, años hasta el 80 % y VPN corregido. Notar el aviso cuando manda el tope calendario.
 4. **(1 min) Cómo se conectan.** Clima de la ciudad → zona del modelo → irradiancia ajustada; el consumo de la casa escala el perfil; la vida usada es la menor entre uso y calendario (hoja de fórmulas, sección 1.3).
-5. **(2 min) La pregunta central.** Tabla del barrido: batería de ~6 kWh (+1,5 puntos de SoH y +$ 0,25 M de VPN con la política consciente) frente a 12 kWh o más (diferencia de 0,0–0,1 puntos y $ 0). Qué significa: para **elegir el tamaño**, la simulación es útil; para **elegir la política**, solo importa con batería pequeña.
+5. **(2 min) La pregunta central.** Las dos tablas del barrido:
+   - **Degradación:** batería de ~6 kWh, +1,5 puntos de SoH con la política consciente y vida por uso de 13,3 años; 12 kWh o más, diferencia de 0,0–0,1 puntos y vida limitada por el calendario.
+   - **Dinero:** simular sube el VPN frente a la calculadora ($ 0,6 M en el híbrido; $ 2,4 a 7,5 M en el aislado). En el aislado de 2 días con $ 300.000/mes de planta diésel, la calculadora dice que no conviene y la simulación que sí. Decir de dónde sale: con baterías grandes, de 15 años de vida calendario frente a 10 de vida típica.
+   - Qué significa: para **elegir el tamaño**, la simulación es útil; para **elegir la política**, solo importa con batería pequeña, y en dinero muy poco.
 6. **(1 min) Validación.** El motor en Dart reproduce a NetLogo: SoH a ± 0,02 puntos (criterio ± 0,3), energía comprada a < 0,3 % (criterio 3 %); `VALIDACION_DART.md`.
 7. **(1 min) Límites.** Diapositiva de la sección 2, sin esconder nada.
 8. **Preguntas probables**
    - *¿Por qué el VPN con red no premia a la batería?* Por la CREG 174: el excedente se permuta al precio de la tarifa menos el Cv, así que guardar un kWh en la batería solo ahorra ese Cv.
    - *¿Por qué 15 años de tope?* Vida calendario típica del litio; el modelo no envejece por tiempo.
+   - *¿Por qué la calculadora supone 10 años y el tope es 15?* Son dos cosas: 10 años es la vida que usa una cotización sin simular (la garantía habitual); 15 es lo que dura la batería aunque casi no se use. La simulación decide cuál de los límites manda: el desgaste por uso (batería pequeña) o el tiempo (batería grande).
+   - *¿Por qué el modelo degrada menos que la literatura?* No en general: con una batería que trabaja da ≈ 1,5 puntos por año, como la literatura. Da menos con baterías grandes porque solo cuenta el uso, y por eso existe el tope calendario.
    - *¿Se puede confiar en la vida de 44 años?* No: por eso se limita al calendario y se declara en la diapositiva de límites.
    - *¿Dónde están los datos?* [`FUENTES.md`](FUENTES.md), con fechas de consulta.
    - *¿Qué pasa con mis datos?* Política de la Ley 1581 en la app; «Probar sin cuenta» no recoge datos personales.
 
 **Antes de presentar**
 - Reactivar el proyecto de Supabase y ensayar la demo completa 24 horas antes, con un registro de correo nuevo.
-- Probar el APK `entregas/Solarix-1.1.0.apk` en un celular distinto al de desarrollo.
+- Probar el APK `entregas/Solarix-1.1.1.apk` en un celular distinto al de desarrollo.
 - No cambiar código en los dos días previos, salvo que algo esté roto.

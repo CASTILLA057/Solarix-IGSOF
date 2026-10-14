@@ -56,7 +56,10 @@ enum QuimicaBateria {
   /// Fracción de la capacidad que se puede usar sin dañar la batería (DoD).
   final double profundidadDescarga;
 
-  /// Años típicos antes de reemplazarla (hasta tener la simulación, Etapa 6).
+  /// Vida típica: la que usa una cotización sin simular (garantía habitual
+  /// del litio). La calculadora reemplaza la batería con ella; con la
+  /// simulación, la reemplaza la vida por uso con el tope de
+  /// [vidaCalendarioAnios] (Etapa 14).
   final int vidaUtilAnios;
 
   /// Años que dura aunque casi no se use (envejecimiento calendario). El
@@ -202,6 +205,54 @@ class Supuestos {
     this.exclusionIva = false,
     this.tarifaRenta = 0,
   });
+
+  /// Lee los supuestos guardados (`aMapa`); lo que falte en un cálculo
+  /// viejo toma el valor por defecto.
+  factory Supuestos.desdeMapa(Map<String, dynamic> m) {
+    const d = Supuestos();
+    return Supuestos(
+      rendimientoSistema: _numeroOpc(
+        m,
+        'rendimiento_sistema',
+        d.rendimientoSistema,
+      ),
+      eficienciaInversor: _numeroOpc(
+        m,
+        'eficiencia_inversor',
+        d.eficienciaInversor,
+      ),
+      diasAutonomia: _numeroOpc(m, 'dias_autonomia', d.diasAutonomia),
+      fraccionNocturna: _numeroOpc(m, 'fraccion_nocturna', d.fraccionNocturna),
+      cobertura: _numeroOpc(m, 'cobertura', d.cobertura),
+      autoconsumo: m['autoconsumo'] == null
+          ? null
+          : _numeroOpc(m, 'autoconsumo', 0),
+      costoComercializacion: _numeroOpc(
+        m,
+        'costo_comercializacion',
+        d.costoComercializacion,
+      ),
+      precioBolsa: _numeroOpc(m, 'precio_bolsa', d.precioBolsa),
+      incrementoTarifa: _numeroOpc(m, 'incremento_tarifa', d.incrementoTarifa),
+      degradacionPaneles: _numeroOpc(
+        m,
+        'degradacion_paneles',
+        d.degradacionPaneles,
+      ),
+      mantenimientoAnual: _numeroOpc(
+        m,
+        'mantenimiento_anual',
+        d.mantenimientoAnual,
+      ),
+      tasaDescuento: _numeroOpc(m, 'tasa_descuento', d.tasaDescuento),
+      anios: _numeroOpc(m, 'anios', d.anios.toDouble()).round(),
+      vidaCalendarioBateria: m['vida_calendario_bateria'] == null
+          ? null
+          : _numeroOpc(m, 'vida_calendario_bateria', 0),
+      exclusionIva: m['exclusion_iva'] == true,
+      tarifaRenta: _numeroOpc(m, 'tarifa_renta', 0),
+    );
+  }
 
   /// IVA general en Colombia.
   static const iva = 0.19;
@@ -399,6 +450,67 @@ class EntradasCalculo {
     this.consumoSubsistenciaKwh = ConsumoSubsistencia.menosDe1000m,
   });
 
+  /// Lee las entradas guardadas (`aMapa`) para volver a abrir un cálculo del
+  /// historial. Lo que falte en un cálculo viejo toma el valor por defecto;
+  /// el tipo de sistema y las HSP son obligatorios. Lanza [FormatException]
+  /// si los datos no se pueden leer.
+  factory EntradasCalculo.desdeMapa(Map<String, dynamic> m) {
+    try {
+      const d = EntradasCalculo(tipo: TipoSistema.onGrid, hsp: 0);
+      final tipo = TipoSistema.values.where((t) => t.valorBd == m['tipo']);
+      if (tipo.isEmpty) throw const FormatException('Falta el tipo de sistema');
+      final supuestos = m['supuestos'];
+      final precios = m['precios'];
+      return EntradasCalculo(
+        tipo: tipo.first,
+        hsp: _numero(m, 'hsp'),
+        nombre: m['nombre'] as String? ?? '',
+        modo: ModoConsumo.values.firstWhere(
+          (x) => x.name == m['modo'],
+          orElse: () => ModoConsumo.equipos,
+        ),
+        equipos: [
+          for (final e in (m['equipos'] as List?) ?? const [])
+            Equipo.desdeMapa((e as Map).cast<String, dynamic>()),
+        ],
+        consumoFacturaKwhMes: _numeroOpc(m, 'consumo_factura_kwh_mes', 0),
+        tarifaKwh: _numeroOpc(m, 'tarifa_kwh', d.tarifaKwh),
+        gastoActualMensual: _numeroOpc(m, 'gasto_actual_mensual', 0),
+        ubicacion: m['ubicacion'] as String? ?? '',
+        potenciaPanelW: _numeroOpc(m, 'potencia_panel_w', d.potenciaPanelW),
+        quimica: QuimicaBateria.values.firstWhere(
+          (q) => q.name == m['quimica'],
+          orElse: () => QuimicaBateria.litio,
+        ),
+        supuestos: supuestos is Map
+            ? Supuestos.desdeMapa(supuestos.cast<String, dynamic>())
+            : const Supuestos(),
+        precios: precios is Map
+            ? Precios.desdeFilas({
+                for (final e in precios.entries)
+                  if (e.value is num)
+                    e.key as String: (e.value as num).toDouble(),
+              })
+            : Precios.referencia,
+        clima: ClimaLugar.desdeMapa(m['clima']),
+        estrato: Estrato.values.firstWhere(
+          (e) => e.numero == m['estrato'],
+          orElse: () => Estrato.cuatro,
+        ),
+        subsidioEstrato: m['subsidio_estrato'] == null
+            ? null
+            : _numeroOpc(m, 'subsidio_estrato', 0),
+        consumoSubsistenciaKwh: _numeroOpc(
+          m,
+          'consumo_subsistencia_kwh',
+          d.consumoSubsistenciaKwh,
+        ),
+      );
+    } on TypeError catch (e) {
+      throw FormatException('Entradas guardadas ilegibles: $e');
+    }
+  }
+
   final String nombre;
   final TipoSistema tipo;
   final ModoConsumo modo;
@@ -504,6 +616,18 @@ class AnioFlujo {
     this.beneficioTributario = 0,
   });
 
+  factory AnioFlujo.desdeMapa(Map<String, dynamic> m) => AnioFlujo(
+    anio: _numero(m, 'anio').round(),
+    ahorro: _numero(m, 'ahorro'),
+    mantenimiento: _numero(m, 'mantenimiento'),
+    reemplazoBateria: _numero(m, 'reemplazo_bateria'),
+    valorResidual: _numeroOpc(m, 'valor_residual', 0),
+    beneficioTributario: _numeroOpc(m, 'beneficio_tributario', 0),
+    neto: _numero(m, 'neto'),
+    acumulado: _numero(m, 'acumulado'),
+    acumuladoDescontado: _numero(m, 'acumulado_descontado'),
+  );
+
   final int anio;
   final double ahorro;
   final double mantenimiento;
@@ -543,6 +667,16 @@ class Costos {
     required this.instalacion,
     this.ivaExcluido = 0,
   });
+
+  factory Costos.desdeMapa(Map<String, dynamic> m) => Costos(
+    paneles: _numero(m, 'paneles'),
+    baterias: _numero(m, 'baterias'),
+    inversor: _numero(m, 'inversor'),
+    controlador: _numero(m, 'controlador'),
+    estructura: _numero(m, 'estructura'),
+    instalacion: _numero(m, 'instalacion'),
+    ivaExcluido: _numeroOpc(m, 'iva_excluido', 0),
+  );
 
   final double paneles;
   final double baterias;
@@ -593,6 +727,45 @@ class ResultadoCalculo {
     required this.paybackAnios,
     required this.paybackDescontadoAnios,
   });
+
+  /// Lee los resultados guardados (`aMapa`) para volver a abrir un cálculo
+  /// del historial. Los campos que se agregaron después de la Etapa 3
+  /// (excedentes, IVA, beneficio tributario) valen 0 en un cálculo viejo.
+  /// Lanza [FormatException] si los datos no se pueden leer.
+  factory ResultadoCalculo.desdeMapa(Map<String, dynamic> m) {
+    try {
+      return ResultadoCalculo(
+        energiaDiaKwh: _numero(m, 'energia_dia_kwh'),
+        numeroPaneles: _numero(m, 'numero_paneles').round(),
+        potenciaInstaladaKw: _numero(m, 'potencia_instalada_kw'),
+        generacionMesKwh: _numero(m, 'generacion_mes_kwh'),
+        bateriaKwh: _numero(m, 'bateria_kwh'),
+        voltajeSistema: _numero(m, 'voltaje_sistema').round(),
+        inversorW: _numero(m, 'inversor_w').round(),
+        controladorA: _numero(m, 'controlador_a').round(),
+        costos: Costos.desdeMapa((m['costos'] as Map).cast<String, dynamic>()),
+        autoconsumoMesKwh: _numero(m, 'autoconsumo_mes_kwh'),
+        excedenteMesKwh: _numero(m, 'excedente_mes_kwh'),
+        excedentePermutadoMesKwh: _numeroOpc(
+          m,
+          'excedente_permutado_mes_kwh',
+          0,
+        ),
+        excedenteVendidoMesKwh: _numeroOpc(m, 'excedente_vendido_mes_kwh', 0),
+        ahorroMensual: _numero(m, 'ahorro_mensual'),
+        flujo: [
+          for (final a in m['flujo'] as List)
+            AnioFlujo.desdeMapa((a as Map).cast<String, dynamic>()),
+        ],
+        vpn: _numero(m, 'vpn'),
+        paybackAnios: (m['payback_anios'] as num?)?.toDouble(),
+        paybackDescontadoAnios: (m['payback_descontado_anios'] as num?)
+            ?.toDouble(),
+      );
+    } on TypeError catch (e) {
+      throw FormatException('Resultados guardados ilegibles: $e');
+    }
+  }
 
   final double energiaDiaKwh;
   final int numeroPaneles;
@@ -658,4 +831,21 @@ class ResultadoCalculo {
     'payback_descontado_anios': paybackDescontadoAnios,
     'flujo': [for (final a in flujo) a.aMapa()],
   };
+}
+
+/// Número obligatorio de un mapa guardado; [FormatException] si falta o no es
+/// un número.
+double _numero(Map<String, dynamic> m, String clave) {
+  final v = m[clave];
+  if (v is num) return v.toDouble();
+  throw FormatException('Dato guardado ilegible: "$clave" = $v');
+}
+
+/// Número opcional de un mapa guardado: [defecto] si falta (cálculo viejo);
+/// [FormatException] si está y no es un número.
+double _numeroOpc(Map<String, dynamic> m, String clave, double defecto) {
+  final v = m[clave];
+  if (v == null) return defecto;
+  if (v is num) return v.toDouble();
+  throw FormatException('Dato guardado ilegible: "$clave" = $v');
 }

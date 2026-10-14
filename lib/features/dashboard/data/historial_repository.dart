@@ -28,7 +28,9 @@ class SupabaseHistorialRepository implements HistorialRepository {
       for (final f
           in await _db
               .from('calculos_consumo')
-              .select('id, nombre, tipo_sistema, creado_en, resultados')
+              .select(
+                'id, nombre, tipo_sistema, creado_en, entradas, resultados',
+              )
               .order('creado_en', ascending: false))
         CalculoGuardado.desdeFila(f),
     ],

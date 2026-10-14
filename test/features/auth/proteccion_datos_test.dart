@@ -6,6 +6,7 @@ import 'package:solarix/core/router/rutas.dart';
 import 'package:solarix/features/auth/application/auth_providers.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
 import 'package:solarix/features/auth/domain/politica_datos.dart';
+import 'package:solarix/features/auth/domain/usuario.dart';
 
 import '../../helpers/fakes.dart';
 
@@ -60,9 +61,51 @@ void main() {
       expect(texto, contains(PoliticaDatos.correoContacto));
       expect(texto, contains('Supabase'));
       expect(texto, contains('Brevo'));
+      // Con "Mi ubicación" las coordenadas van a estos dos servicios.
+      expect(texto, contains('NASA POWER'));
+      expect(texto, contains('Open-Meteo'));
       expect(texto, contains('Superintendencia de Industria y Comercio'));
       expect(texto, contains('Eliminar mi cuenta'));
       expect(PoliticaDatos.version, matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')));
+    });
+
+    testWidgets('con la versión actual aceptada no hay aviso', (tester) async {
+      await _abrir(tester);
+      expect(find.text('La política de datos cambió'), findsNothing);
+    });
+
+    testWidgets('si la política cambió, el inicio avisa y "Entendido" lo '
+        'guarda en la cuenta', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // Cuenta que aceptó una versión anterior.
+      final auth = FakeAuthRepository(
+        usuario: const Usuario(
+          id: 'u-1',
+          email: 'ana@correo.com',
+          versionPolitica: '2026-10-05',
+        ),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(auth),
+            perfilRepositoryProvider.overrideWithValue(
+              FakePerfilRepository(const Perfil(id: 'u-1', nombre: 'Ana')),
+            ),
+          ],
+          child: const SolarixApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('La política de datos cambió'), findsOneWidget);
+      await _tocar(tester, find.widgetWithText(FilledButton, 'Entendido'));
+
+      expect(auth.llamadas, contains('aceptarPolitica'));
+      expect(auth.usuarioActual!.versionPolitica, PoliticaDatos.version);
+      expect(find.text('La política de datos cambió'), findsNothing);
     });
 
     testWidgets('el registro enlaza la política', (tester) async {

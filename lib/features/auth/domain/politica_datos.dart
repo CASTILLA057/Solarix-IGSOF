@@ -5,7 +5,7 @@
 /// en Supabase Auth), como prueba de la autorización.
 abstract final class PoliticaDatos {
   /// Fecha de esta versión; si el texto cambia, cambia también.
-  static const version = '2026-10-05';
+  static const version = '2026-10-14';
 
   static const correoContacto = 'solarixapp@gmail.com';
 
@@ -24,7 +24,8 @@ abstract final class PoliticaDatos {
           'Supabase guarda solo una huella cifrada que no se puede revertir.\n'
           'Sin cuenta ("Probar sin cuenta") no se guarda ningún dato personal.\n'
           'Si usas "Mi ubicación", tus coordenadas aproximadas se envían a NASA '
-          'POWER solo para consultar el clima y no se guardan.',
+          'POWER (para consultar el sol y el clima) y a Open-Meteo (para '
+          'conocer la altura del lugar). No se guardan.',
     ),
     (
       'Para qué se usan',
@@ -37,8 +38,11 @@ abstract final class PoliticaDatos {
       'Quién más los trata',
       'Supabase guarda la cuenta y los datos (servidores en Estados Unidos) y '
           'Brevo envía los correos (Unión Europea). Ambos actúan como '
-          'encargados y solo los usan para prestar ese servicio. Al aceptar, '
-          'autorizas esta transferencia internacional.',
+          'encargados y solo los usan para prestar ese servicio. Con "Mi '
+          'ubicación", NASA POWER (Estados Unidos) y Open-Meteo (Unión '
+          'Europea) reciben tus coordenadas aproximadas para responder la '
+          'consulta, sin tu nombre ni tu correo. Al aceptar, autorizas esta '
+          'transferencia internacional.',
     ),
     (
       'Tus derechos',
@@ -62,8 +66,10 @@ abstract final class PoliticaDatos {
     ),
     (
       'Vigencia',
-      'Esta política rige desde el 5 de octubre de 2026 (versión $version). '
-          'Si cambia, la app te lo indicará.',
+      'Esta versión ($version) rige desde el 14 de octubre de 2026: agrega '
+          'Open-Meteo a los servicios que reciben tu ubicación. La primera '
+          'versión rigió desde el 5 de octubre de 2026. Si la política cambia, '
+          'la app te lo indicará al entrar.',
     ),
   ];
 }

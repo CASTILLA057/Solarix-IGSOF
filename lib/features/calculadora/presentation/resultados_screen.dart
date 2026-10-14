@@ -18,7 +18,7 @@ import '../domain/calculadora.dart';
 import '../domain/modelos.dart';
 import 'explicaciones.dart';
 
-/// Resumen del cálculo: consumo, sistema recomendado, costos y retorno.
+/// Resumen del cálculo: consumo, sistema elegido, costos y retorno.
 /// Diseño del mockup (Etapa 13): tarjetas con burbuja y, en web, acciones
 /// arriba y tarjetas en dos columnas.
 class ResultadosScreen extends ConsumerStatefulWidget {
@@ -26,10 +26,15 @@ class ResultadosScreen extends ConsumerStatefulWidget {
     super.key,
     required this.entradas,
     required this.resultado,
+    this.calculoId,
   });
 
   final EntradasCalculo entradas;
   final ResultadoCalculo resultado;
+
+  /// `id` si el cálculo ya está guardado (se abre desde el historial): la
+  /// pantalla arranca en "Cálculo guardado" y la simulación queda vinculada.
+  final String? calculoId;
 
   @override
   ConsumerState<ResultadosScreen> createState() => _ResultadosScreenState();
@@ -37,7 +42,7 @@ class ResultadosScreen extends ConsumerStatefulWidget {
 
 class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
   bool _guardando = false;
-  String? _calculoId;
+  late String? _calculoId = widget.calculoId;
   String? _error;
 
   bool get _guardado => _calculoId != null;
@@ -173,7 +178,8 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
         ],
       ),
       _Seccion(
-        titulo: 'Sistema recomendado (${e.tipo.etiqueta.toLowerCase()})',
+        // El sistema que el usuario eligió, no una recomendación.
+        titulo: 'Sistema ${e.tipo.etiqueta.toLowerCase()}',
         icono: Icons.solar_power_outlined,
         filas: [
           (
@@ -316,7 +322,11 @@ class _ResultadosScreenState extends ConsumerState<ResultadosScreen> {
         child: TextButton.icon(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back),
-          label: const Text('Volver a la calculadora'),
+          label: Text(
+            widget.calculoId != null
+                ? 'Volver al historial'
+                : 'Volver a la calculadora',
+          ),
         ),
       ),
       Row(

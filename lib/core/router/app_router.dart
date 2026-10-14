@@ -30,6 +30,11 @@ import 'rutas.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authRepositoryProvider);
   final refresco = _RefrescoSesion(auth.cambiosDeSesion);
+  // En la web, que la dirección también cambie con `push` (resultados,
+  // simulación, detalle): si no, todo queda en la misma dirección y recargar
+  // o usar "atrás" del navegador lleva a otro lado. Las rutas que necesitan
+  // datos vuelven a la calculadora o al historial si se recargan sin ellos.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
   final router = GoRouter(
     initialLocation: Rutas.inicio,
     refreshListenable: refresco,
@@ -74,6 +79,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: Rutas.historial.substring(1),
             builder: (context, state) => const HistorialScreen(),
             routes: [
+              GoRoute(
+                path: _subruta(Rutas.detalleCalculo),
+                // Los resultados guardados se pasan en memoria: al recargar
+                // vuelve al historial.
+                redirect: (context, state) =>
+                    state.extra is (String, EntradasCalculo, ResultadoCalculo)
+                    ? null
+                    : Rutas.historial,
+                builder: (context, state) {
+                  final (id, entradas, resultado) =
+                      state.extra!
+                          as (String, EntradasCalculo, ResultadoCalculo);
+                  return ResultadosScreen(
+                    entradas: entradas,
+                    resultado: resultado,
+                    calculoId: id,
+                  );
+                },
+              ),
               GoRoute(
                 path: _subruta(Rutas.detalleSimulacion),
                 redirect: (context, state) =>

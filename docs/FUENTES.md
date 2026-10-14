@@ -85,6 +85,15 @@ Enlaces: [Ley 1117 de 2006](https://www.funcionpublica.gov.co/eva/gestornormativ
 - **Costo de comercialización (Cv): $100/kWh.** En 2026, EMCALI publicó $67,9/kWh y EPM $121,05/kWh.
 - **Precio de bolsa: $300/kWh.** En 2026 el promedio mensual de XM fue de $120/kWh en febrero a $946,6/kWh en agosto, por El Niño.
 - **Tarifa:** $890/kWh (CENS, enero de 2026).
+- **Gasto actual de un aislado con planta diésel** (solo para el barrido de baterías, `tool/barrido_bateria.dart`; en la app lo escribe el usuario): ACPM a **≈ $ 11.320 por galón** (promedio de 13 ciudades, octubre de 2026; congelado desde septiembre) ≈ $ 2.991 por litro. Una planta pequeña a carga parcial consume **0,35–0,5 L/kWh** (datos de fabricantes y calculadoras de consumo; sube a carga baja), así que el combustible cuesta ≈ $ 1.050–1.500 por kWh. Para 300 kWh/mes son ≈ $ 315.000–450.000 al mes: el barrido usa **$ 300.000 y $ 450.000**. No incluye mantenimiento de la planta ni el transporte del combustible a zonas rurales, que lo encarecen.
+  Fuentes: [El Espectador — precios por ciudad, octubre de 2026](https://www.elespectador.com/economia/nuevo-precio-de-la-gasolina-en-colombia-asi-quedan-las-tarifas-por-ciudad/) · [Infobae — ACPM mantiene su precio](https://www.infobae.com/colombia/2026/10/01/gasolina-sube-46-desde-el-1-de-octubre-y-acpm-mantiene-su-precio-asi-quedan-los-combustibles-en-colombia/) · [Depco — eficiencia de plantas diésel](https://www.depco.com/faq/diesel-generator-efficiency/) · [WALT Power — consumo de plantas diésel](https://waltpower.com/calculate-diesel-generator-fuel-consumption/).
+
+## 5b. Servicios que reciben la ubicación
+
+Con "Mi ubicación" la app envía las coordenadas aproximadas (sin nombre ni correo) a dos servicios gratuitos, y así lo dice la política de datos (`politica_datos.dart`):
+
+- **[NASA POWER](https://power.larc.nasa.gov/)** (Estados Unidos): HSP, lluvia, nubosidad y temperatura del punto.
+- **[Open-Meteo](https://open-meteo.com/en/docs/elevation-api)** (Unión Europea): altura del terreno (modelo de elevación Copernicus de 90 m), porque la ubicación aproximada del celular no trae altitud.
 
 ## 6. Modelo de degradación
 
@@ -98,5 +107,6 @@ Modelo SimDeg-FV en NetLogo (`docs/referencia/`), portado a Dart sin cambiar sus
 | Clima de las ciudades (NASA POWER) | 2026-10-05 |
 | CREG 174/2021, Cv y precio de bolsa, Ley 1715/2099 | 2026-10-05 |
 | Ley 1117, Ley 142, UPME 355, concepto CREG 3023/2026 | 2026-10-05 |
+| ACPM y consumo de plantas diésel (barrido) | 2026-10-14 |
 
 Los precios de tiendas se desactualizan rápido: conviene revisarlos antes de cada entrega.

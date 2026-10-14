@@ -22,6 +22,8 @@ class CalculoGuardado {
     required this.ahorroMensual,
     required this.paybackAnios,
     this.vpn,
+    this.entradasGuardadas,
+    this.resultadosGuardados = const {},
   });
 
   factory CalculoGuardado.desdeFila(Map<String, dynamic> f) {
@@ -42,7 +44,25 @@ class CalculoGuardado {
       ahorroMensual: _d(r['ahorro_mensual']),
       paybackAnios: (r['payback_anios'] as num?)?.toDouble(),
       vpn: (r['vpn'] as num?)?.toDouble(),
+      entradasGuardadas: (f['entradas'] as Map?)?.cast<String, dynamic>(),
+      resultadosGuardados: r,
     );
+  }
+
+  /// Entradas y resultados tal como se guardaron, para volver a abrir el
+  /// cálculo. `null` si faltan o no se pueden leer (el historial sigue
+  /// mostrando el resumen).
+  ({EntradasCalculo entradas, ResultadoCalculo resultado})? completo() {
+    final e = entradasGuardadas;
+    if (e == null || resultadosGuardados.isEmpty) return null;
+    try {
+      return (
+        entradas: EntradasCalculo.desdeMapa(e),
+        resultado: ResultadoCalculo.desdeMapa(resultadosGuardados),
+      );
+    } on FormatException {
+      return null;
+    }
   }
 
   final String id;
@@ -59,6 +79,10 @@ class CalculoGuardado {
 
   /// Valor presente neto del cálculo (Etapa 13, inicio web).
   final double? vpn;
+
+  /// Columnas `entradas` y `resultados` completas (Etapa 14).
+  final Map<String, dynamic>? entradasGuardadas;
+  final Map<String, dynamic> resultadosGuardados;
 
   String get titulo => (nombre?.trim().isNotEmpty ?? false)
       ? nombre!

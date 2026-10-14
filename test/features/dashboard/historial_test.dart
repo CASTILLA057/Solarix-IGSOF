@@ -110,6 +110,45 @@ void main() {
     expect(find.text('Aún no tienes simulaciones guardadas'), findsOneWidget);
   });
 
+  testWidgets('historial: al tocar un cálculo se abren sus resultados '
+      'guardados', (tester) async {
+    await abrir(tester, calculos: [calculo], simulaciones: const []);
+    await tocar(tester, find.byTooltip('Historial'));
+    await tocar(tester, find.text('Casa'));
+
+    // Los mismos resultados del cálculo, ya en estado "Cálculo guardado".
+    expect(find.text('Cálculo guardado'), findsOneWidget);
+    expect(find.text('Guardar cálculo'), findsNothing);
+    // Título de la tarjeta (y subtítulo del encabezado, sin ciudad).
+    expect(find.text('Sistema híbrido'), findsWidgets);
+    expect(find.textContaining('recomendado'), findsNothing);
+    expect(find.text('Simular la salud de esta batería'), findsOneWidget);
+
+    // Desde el historial vuelve al historial, no a la calculadora.
+    expect(find.text('Volver a la calculadora'), findsNothing);
+    await tocar(tester, find.text('Volver al historial'));
+    expect(find.byTooltip('Eliminar cálculo'), findsOneWidget);
+  });
+
+  testWidgets('historial: un cálculo con datos ilegibles avisa en vez de no '
+      'hacer nada', (tester) async {
+    final fila = filaCalculo('c9', _ahora);
+    (fila['resultados'] as Map<String, dynamic>).remove('flujo');
+    await abrir(
+      tester,
+      calculos: [CalculoGuardado.desdeFila(fila)],
+      simulaciones: const [],
+    );
+    await tocar(tester, find.byTooltip('Historial'));
+    await tocar(tester, find.text('Casa'));
+
+    expect(
+      find.text('No se pueden abrir los datos de este cálculo.'),
+      findsOneWidget,
+    );
+    expect(find.text('Cálculo guardado'), findsNothing);
+  });
+
   testWidgets('historial: filtra por política, abre el detalle y elimina', (
     tester,
   ) async {

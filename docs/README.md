@@ -4,7 +4,7 @@ Calculadora de dimensionamiento y costos de paneles solares + simulador de degra
 
 - **Plataformas:** Android y Web
 - **Stack:** Flutter · Riverpod · go_router · Supabase · fl_chart
-- **Versión:** 1.1.0 (build 2)
+- **Versión:** 1.1.1 (build 3)
 - **Plan de trabajo:** ver [ETAPAS_SOLARIX_APP.md](ETAPAS_SOLARIX_APP.md)
 - **Despliegue (ícono, APK firmado, web):** ver [DESPLIEGUE.md](DESPLIEGUE.md)
 - **Fuentes de datos y normas:** [FUENTES.md](FUENTES.md) · **Defensa (fórmulas, límites y guion):** [DEFENSA.md](DEFENSA.md) · **¿Para qué simular la batería?:** [BARRIDO_BATERIA.md](BARRIDO_BATERIA.md) · **Validación contra NetLogo:** [VALIDACION_DART.md](VALIDACION_DART.md)
@@ -18,7 +18,7 @@ Calculadora de dimensionamiento y costos de paneles solares + simulador de degra
 - **Comparación sin batería:** en el híbrido, cuánto vale la batería frente al mismo sistema sin ella; en el aislado, la energía que faltó.
 - **Simulador de degradación (SimDeg-FV):** 10 años de salud (SoH) de la batería con política convencional o consciente, y su efecto en la inversión.
 - **Probar sin cuenta:** se puede calcular y simular sin registrarse; la cuenta solo hace falta para guardar el historial en la nube.
-- **Instalar el APK (Android):** `entregas/Solarix-1.1.0.apk` (firmado; la carpeta `entregas/` no está en git: se comparte aparte). Hay que permitir la instalación de orígenes desconocidos.
+- **Instalar el APK (Android):** `entregas/Solarix-1.1.1.apk` (firmado; la carpeta `entregas/` no está en git: se comparte aparte). Hay que permitir la instalación de orígenes desconocidos.
 
 ## Requisitos
 

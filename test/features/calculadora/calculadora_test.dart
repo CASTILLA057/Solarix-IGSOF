@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solarix/core/formato.dart';
 import 'package:solarix/features/calculadora/data/recurso_solar.dart';
@@ -718,6 +720,109 @@ void main() {
       for (final c in ciudadesBase) {
         expect(c.hsp, inInclusiveRange(2, 8));
       }
+    });
+  });
+
+  group('Cálculo guardado: ida y vuelta (historial)', () {
+    // Lo que guarda Supabase en `entradas` y `resultados` (jsonb): se pasa
+    // por JSON para que los números salgan como los devuelve la base.
+    Map<String, dynamic> pasarPorJson(Map<String, dynamic> m) =>
+        jsonDecode(jsonEncode(m)) as Map<String, dynamic>;
+
+    final entradas = EntradasCalculo(
+      nombre: 'Casa de Ana',
+      tipo: TipoSistema.hibrido,
+      modo: ModoConsumo.equipos,
+      equipos: const [bombillos, nevera, bomba],
+      tarifaKwh: 950,
+      estrato: Estrato.dos,
+      subsidioEstrato: 0.4,
+      consumoSubsistenciaKwh: 130,
+      hsp: 4.8,
+      ubicacion: 'Bogotá (Bogotá D. C.)',
+      potenciaPanelW: 600,
+      quimica: QuimicaBateria.plomo,
+      supuestos: const Supuestos(
+        autoconsumo: 0.7,
+        exclusionIva: true,
+        tarifaRenta: 0.19,
+        anios: 15,
+        vidaCalendarioBateria: 5,
+      ),
+      precios: Precios.desdeFilas({'panel_por_wp': 1100}),
+      clima: const ClimaLugar(
+        lluviaMmDia: 2.5,
+        nubosidadPct: 70,
+        temperaturaC: 13.3,
+      ),
+    );
+
+    test('las entradas vuelven iguales', () {
+      final leidas = EntradasCalculo.desdeMapa(pasarPorJson(entradas.aMapa()));
+      expect(leidas.aMapa(), entradas.aMapa());
+      expect(leidas.estrato, Estrato.dos);
+      expect(leidas.quimica, QuimicaBateria.plomo);
+      expect(leidas.equipos, hasLength(3));
+      expect(leidas.supuestos.exclusionIva, isTrue);
+    });
+
+    test('los resultados vuelven iguales, con flujo, costos e IVA', () {
+      final resultado = calcular(entradas);
+      final leido = ResultadoCalculo.desdeMapa(pasarPorJson(resultado.aMapa()));
+      expect(leido.aMapa(), resultado.aMapa());
+      expect(leido.flujo, hasLength(15));
+      expect(leido.costos.ivaExcluido, greaterThan(0));
+      expect(leido.paybackAnios, resultado.paybackAnios);
+    });
+
+    test('un sistema sin recuperación guarda y lee null', () {
+      const caro = EntradasCalculo(
+        tipo: TipoSistema.offGrid,
+        modo: ModoConsumo.factura,
+        consumoFacturaKwhMes: 300,
+        hsp: 5,
+      );
+      final r = calcular(caro);
+      expect(r.paybackAnios, isNull);
+      final leido = ResultadoCalculo.desdeMapa(pasarPorJson(r.aMapa()));
+      expect(leido.paybackAnios, isNull);
+      expect(leido.aMapa(), r.aMapa());
+    });
+
+    test('un cálculo viejo, sin los campos nuevos, se lee con valores por '
+        'defecto', () {
+      final viejas = pasarPorJson(entradas.aMapa())
+        ..remove('estrato')
+        ..remove('subsidio_estrato')
+        ..remove('consumo_subsistencia_kwh')
+        ..remove('clima');
+      (viejas['supuestos'] as Map).remove('costo_comercializacion');
+      final e = EntradasCalculo.desdeMapa(viejas);
+      expect(e.estrato, Estrato.cuatro);
+      expect(e.subsidioEstrato, isNull);
+      expect(e.clima, isNull);
+      expect(
+        e.supuestos.costoComercializacion,
+        const Supuestos().costoComercializacion,
+      );
+
+      final r = pasarPorJson(calcular(entradas).aMapa())
+        ..remove('excedente_permutado_mes_kwh')
+        ..remove('excedente_vendido_mes_kwh')
+        ..remove('beneficio_renta');
+      (r['costos'] as Map).remove('iva_excluido');
+      final leido = ResultadoCalculo.desdeMapa(r);
+      expect(leido.excedentePermutadoMesKwh, 0);
+      expect(leido.costos.ivaExcluido, 0);
+      expect(leido.numeroPaneles, calcular(entradas).numeroPaneles);
+    });
+
+    test('datos ilegibles lanzan FormatException', () {
+      expect(
+        () => ResultadoCalculo.desdeMapa(const {'numero_paneles': 'x'}),
+        throwsFormatException,
+      );
+      expect(() => EntradasCalculo.desdeMapa(const {}), throwsFormatException);
     });
   });
 

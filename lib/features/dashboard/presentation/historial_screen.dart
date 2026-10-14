@@ -37,6 +37,24 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
   FiltroFecha _fecha = FiltroFecha.todas;
   Politica? _politica;
 
+  /// Abre los resultados guardados del cálculo; si los datos guardados no se
+  /// pueden leer, lo avisa en vez de no hacer nada.
+  void _abrirCalculo(CalculoGuardado c) {
+    final completo = c.completo();
+    if (completo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pueden abrir los datos de este cálculo.'),
+        ),
+      );
+      return;
+    }
+    context.push(
+      Rutas.detalleCalculo,
+      extra: (c.id, completo.entradas, completo.resultado),
+    );
+  }
+
   Future<void> _eliminar(String que, Future<void> Function() accion) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -143,6 +161,7 @@ class _HistorialScreenState extends ConsumerState<HistorialScreen> {
                         alRecargar: () =>
                             ref.invalidate(calculosGuardadosProvider),
                         elemento: (c) => ListTile(
+                          onTap: () => _abrirCalculo(c),
                           leading: const BurbujaIcono(Icons.calculate_outlined),
                           title: Text(c.titulo),
                           subtitle: Text(

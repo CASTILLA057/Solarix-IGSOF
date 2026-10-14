@@ -4,6 +4,7 @@ import 'package:solarix/core/errors/error_app.dart';
 import 'package:solarix/features/auth/data/auth_repository.dart';
 import 'package:solarix/features/auth/data/perfil_repository.dart';
 import 'package:solarix/features/auth/domain/perfil.dart';
+import 'package:solarix/features/auth/domain/politica_datos.dart';
 import 'package:solarix/features/auth/domain/usuario.dart';
 
 /// [AuthRepository] en memoria para pruebas: registra las llamadas y permite
@@ -11,7 +12,11 @@ import 'package:solarix/features/auth/domain/usuario.dart';
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({this._usuario});
 
-  static const usuarioPrueba = Usuario(id: 'u-1', email: 'ana@correo.com');
+  static const usuarioPrueba = Usuario(
+    id: 'u-1',
+    email: 'ana@correo.com',
+    versionPolitica: PoliticaDatos.version,
+  );
 
   Usuario? _usuario;
   final _cambios = StreamController<Usuario?>.broadcast();
@@ -53,7 +58,9 @@ class FakeAuthRepository implements AuthRepository {
     required String contrasena,
   }) => _operacion(
     'iniciarSesion:$email',
-    () => _emitir(Usuario(id: 'u-1', email: email)),
+    () => _emitir(
+      Usuario(id: 'u-1', email: email, versionPolitica: PoliticaDatos.version),
+    ),
   );
 
   @override
@@ -63,7 +70,15 @@ class FakeAuthRepository implements AuthRepository {
     required String nombre,
   }) async {
     await _operacion('registrarse:$email:$nombre', () {
-      if (registroActivo) _emitir(Usuario(id: 'u-1', email: email));
+      if (registroActivo) {
+        _emitir(
+          Usuario(
+            id: 'u-1',
+            email: email,
+            versionPolitica: PoliticaDatos.version,
+          ),
+        );
+      }
     });
     return registroActivo;
   }
@@ -74,7 +89,9 @@ class FakeAuthRepository implements AuthRepository {
     required String codigo,
   }) => _operacion(
     'confirmarRegistro:$email:$codigo',
-    () => _emitir(Usuario(id: 'u-1', email: email)),
+    () => _emitir(
+      Usuario(id: 'u-1', email: email, versionPolitica: PoliticaDatos.version),
+    ),
   );
 
   @override
@@ -91,12 +108,26 @@ class FakeAuthRepository implements AuthRepository {
     required String codigo,
   }) => _operacion(
     'verificarCodigoRecuperacion:$email:$codigo',
-    () => _emitir(Usuario(id: 'u-1', email: email)),
+    () => _emitir(
+      Usuario(id: 'u-1', email: email, versionPolitica: PoliticaDatos.version),
+    ),
   );
 
   @override
   Future<void> cambiarContrasena(String nuevaContrasena) =>
       _operacion('cambiarContrasena');
+
+  @override
+  Future<void> aceptarPolitica() => _operacion(
+    'aceptarPolitica',
+    () => _emitir(
+      Usuario(
+        id: _usuario!.id,
+        email: _usuario!.email,
+        versionPolitica: PoliticaDatos.version,
+      ),
+    ),
+  );
 
   @override
   Future<void> cerrarSesion() =>

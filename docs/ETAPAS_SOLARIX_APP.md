@@ -214,7 +214,7 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 *Grietas encontradas en la revisión crítica del proyecto (abogado del diablo, dos rondas, 2026-10-04). Ordenadas por gravedad dentro de cada bloque. Todo lo que toca Supabase se aplica solo con el visto bueno del autor.*
 
 **Integración batería ↔ flujo de caja (la más grave)**
-- [x] Tope calendario a la vida simulada de la batería: usar el menor entre la vida por ciclos (simulación) y una vida calendario por química (por ejemplo, 12–15 años para LiFePO₄), porque el modelo no incluye envejecimiento calendario (`t-bat` no entra en la degradación). Hoy la pérdida simulada es de ≈ 8–11 % en 10 años, la extrapolación da 19–26 años y, con un horizonte de 20, la batería casi nunca se reemplaza: la tarjeta "antes/después" siempre favorece a la simulación
+- [x] Tope calendario a la vida simulada de la batería: usar el menor entre la vida por ciclos (simulación) y una vida calendario por química (por ejemplo, 12–15 años para LiFePO₄), porque el modelo no incluye envejecimiento calendario (`t-bat` no entra en la degradación). Con una batería que trabaja el modelo pierde ≈ 1,5 puntos por año (fin de vida a los ≈ 13 años); con baterías grandes, que trabajan poco, la vida por uso pasa de 40 años y sin tope la batería no se reemplazaría nunca en el horizonte de 20 *(corregido en la Etapa 14: esta nota decía "≈ 8–11 % en 10 años, extrapolación de 19–26 años", una mala lectura de `VALIDACION_DART.md`, donde −7,7 % y −10,6 % son cuánto reduce la política consciente la caída del SoH)*
 - [x] Mostrar en la tarjeta las dos vidas (por ciclos y calendario) y cuál limita
 - [x] Revisar la extrapolación lineal de `aniosHastaFinDeVida` (la curva es `SoH = 100·e^(−Z)`, no una recta) o justificarla
 - [x] Reemplazo de batería cerca del final del horizonte: no cobrar la batería entera si solo se usa uno o dos años (valor residual o prorrateo)
@@ -274,7 +274,7 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Campo "Subsidio de tu factura" solo para los estratos 1 a 3, con el máximo legal (60 / 50 / 15 %) por defecto: el operador puede aplicar uno menor
 - [x] Citar el concepto CREG 3023 de 2026 (el consumo facturable del autogenerador es el neto después de la permuta y el subsidio se aplica sobre ese neto) en `valorEnergiaMes`, en el ⓘ del estrato y en `BITACORA.md`
 - [x] Pruebas: "Mi ubicación" a 2.600 m da 130; sin altitud da 173 con aviso; el subsidio editado cambia el ahorro
-- [ ] Pruebas de los tres puntos y prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 27 a 30)
+- [x] Pruebas de los tres puntos y prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 27 a 30)
 - [x] Commits: quedaron dos de código (aislado; sin batería y estrato juntos, porque cambian las mismas funciones) y uno de documentación
 
 ## Etapa 13 — Rediseño de la interfaz según el mockup
@@ -303,14 +303,14 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 
 **2. La defensa (lo que se califica)**
 - [x] Hoja de fórmulas: una línea por constante y por decisión, con su origen, incluida la capa que conecta los dos módulos (PR 0,78; factor 1,25; tasa C 0,16 y carga máxima 95 %; exponente acotado entre 0,3 y 2; vida calendario 15 / 6 años; Cv $100; bolsa $300; 173 / 130 kWh; subsidios 60 / 50 / 15 % y contribución 20 %; deducción de renta en el año 1; irradiancia ajustada por ciudad con tope de 1.100 W/m²)
-- [x] Diapositiva de límites del modelo: degradación unas tres veces más lenta que la literatura, sin envejecimiento calendario (por eso el tope), validación solo contra NetLogo (no contra baterías reales), coeficientes sin calibrar con datos medidos, configuraciones por ciudad interpoladas que no se validaron una por una, y con red la batería no se paga (se compra por los cortes)
+- [x] Diapositiva de límites del modelo: calibrado a ≈ 1,5 puntos por año con una batería que trabaja y menos con baterías grandes porque solo cuenta el uso *(corregido en el bloque 6: decía "degradación unas tres veces más lenta que la literatura")*, sin envejecimiento calendario (por eso el tope), validación solo contra NetLogo (no contra baterías reales), coeficientes sin calibrar con datos medidos, configuraciones por ciudad interpoladas que no se validaron una por una, y con red la batería no se paga (se compra por los cortes)
 - [x] Guion de la sustentación con la conclusión del punto 1 como hilo central
 
 **3. Fuentes versionadas**
 *`docs/BITACORA.md` es solo local (`.gitignore`), pero siete lugares que sí están en git la citan como fuente: precios (`modelos.dart`, la migración de la calculadora y `calculadora_test.dart`), altitudes (`catalogos.dart`, dos veces), el criterio de zonas y la cita de la CREG (este plan), y las guías de despliegue y de pruebas. Quien clone el repositorio no encuentra esas fuentes, y solo existen en este PC.*
 - [x] `docs/FUENTES.md` en git: precios y tiendas, HSP y altitudes, criterio de zonas climáticas, normativa (CREG 174 de 2021, concepto CREG 3023 de 2026, UPME 355 de 2004, Ley 1715 de 2014 y Ley 2099 de 2021, Ley 1581 de 2012, Leyes 142 y 1117 sobre subsidios y contribución) y fechas de consulta
 - [x] Que las siete referencias apunten a `FUENTES.md` en vez de a `BITACORA.md`
-- [ ] Copia de respaldo de `BITACORA.md` fuera de este PC (por ejemplo, junto a la llave de firma en Google Drive)
+- [x] Copia de respaldo de `BITACORA.md` fuera de este PC (por ejemplo, junto a la llave de firma en Google Drive)
 
 **4. README que lleve a una instalación completa**
 *Hoy dice que basta con ejecutar `20261001000000_esquema_inicial.sql`, pero hay cuatro migraciones: siguiéndolo, "Eliminar mi cuenta" falla (falta `eliminar_mi_cuenta`) y faltan los límites de seguridad.*
@@ -319,11 +319,32 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Versión 1.1.0, cómo instalar el APK y dónde está (`entregas/`, fuera de git)
 
 **5. Cerrar lo pendiente de la Etapa 12**
-- [ ] Prueba en Chrome de los pasos 27 a 30 de `PRUEBAS.md`, y en Android el paso 28 completo (guardar la simulación del aislado y ver su detalle en el historial)
+- [x] Prueba en Chrome de los pasos 27 a 30 de `PRUEBAS.md`, y en Android el paso 28 completo (guardar la simulación del aislado y ver su detalle en el historial)
 - [x] Actualizar la tarea "Tres commits separados" de la Etapa 12: quedaron dos de código (aislado; sin batería y estrato juntos, porque cambian las mismas funciones) y uno de documentación
 
-**6. La demo**
-- [ ] Reactivar Supabase y ensayar la demo completa 24 horas antes, con un registro con correo nuevo, y probar el APK 1.1.0 en un celular que no sea el de desarrollo
+**6. Errores encontrados en la revisión del barrido y la defensa (revisión crítica 5, 2026-10-13)**
+*El barrido corrió los sistemas aislados con `gastoActualMensual` = 0 (el valor por defecto): sin ahorro, todos sus VPN salen de −$ 19 M a −$ 65 M y la conclusión "la simulación no cambia el signo del VPN" es un efecto de ese 0. Con $ 200.000/mes y 1 día de autonomía el VPN es de +$ 1,6 M con 10 años de vida de batería y de +$ 4,1 M con 15; cerca del punto de equilibrio, la vida de la batería sí puede cambiar el signo.*
+- [x] Barrido: dar a los aislados un gasto actual realista (dos valores, por ejemplo $ 200.000 y $ 400.000/mes, con el precio del diésel y su fuente en `FUENTES.md`), quitar el aislado de 0,5 días (es la misma corrida que el híbrido: la simulación no distingue el tipo de sistema), etiquetas legibles para las zonas ("Muy soleada" en vez de `muySoleada`), no promediar un 99 de relleno cuando no hay vida por uso, y una columna "VPN con simulación − VPN de la calculadora"; volver a generar `BARRIDO_BATERIA.md`
+- [x] Reescribir la conclusión: con batería pequeña la simulación sí aporta (vida por uso de 13,3 años frente a los 10 de la calculadora, y +1,5 puntos de SoH con la política consciente); con batería grande el resultado lo fija el tope calendario; en el aislado, el ahorro depende del gasto actual y la vida de la batería puede inclinar la decisión cerca del punto de equilibrio
+- [x] Vida de 10 años frente a 15: la calculadora supone 10 años para el litio (`vidaUtilAnios`) y el tope de la simulación usa 15 (`vidaCalendarioAnios`); con baterías grandes, la mejora del VPN "por simular" sale de esa diferencia entre dos constantes. Definir y escribir qué significa cada una (por ejemplo, 10 = garantía típica de una cotización; 15 = fin de vida aunque casi no se use), agregar la vida típica (10 / 4 años) a la hoja de fórmulas de `DEFENSA.md` y decirlo en la diapositiva de límites
+- [x] Política de datos (`politica_datos.dart`): con "Mi ubicación" las coordenadas también van a Open-Meteo (altitud), no solo a NASA POWER; agregarlo en "Qué datos se recogen" y en "Quién más los trata", y en `FUENTES.md`. Como cambia el código, generar de nuevo el APK (1.1.1)
+- [x] Diapositiva de límites, punto 1: el modelo está calibrado a ≈ 1,5 puntos de SoH por año con una batería que trabaja (la tabla lo muestra: 85,0 % a los 10 años con 6,2 kWh, igual que la literatura); con baterías grandes da 0,3–1,0 porque solo cuenta el uso; lo que falta es el envejecimiento calendario, por eso el tope
+- [x] Corregir dos notas de este plan que salieron de una mala lectura de `VALIDACION_DART.md` (el −7,7 % y −10,6 % son cuánto reduce la política consciente la caída del SoH, no la pérdida en 10 años): en la Etapa 12, "pérdida simulada de ≈ 8–11 % en 10 años, extrapolación de 19–26 años"; en la Etapa 14, "degradación unas tres veces más lenta que la literatura"
+- [x] Conclusión de las zonas: decir que la irradiancia se ajusta a las HSP reales de cada ciudad, así que la zona solo cambia la variabilidad diaria y por eso casi no afecta la degradación (es un efecto del método, no un hallazgo sobre el clima)
+- [x] Verificación completa desde una copia limpia del repositorio (contenedor de Docker con Flutter): `flutter analyze`, `flutter test`, `dart run tool/validar_motor.dart` contra `VALIDACION_DART.md`, `dart run tool/barrido_bateria.dart` y compilación web, para confirmar que el repositorio funciona sin los archivos que solo están en este PC (2026-10-14, sobre el commit `d421a1f`, Flutter 3.47.5 en Debian: formato sin cambios, análisis limpio, 220 pruebas, validación y barrido idénticos a los del repositorio salvo fecha y tiempo, y la web compila). Repetida el mismo día con los arreglos de este bloque aplicados: igual, con el barrido nuevo idéntico al generado aquí
+
+**7. Correcciones de la prueba en la web (2026-10-14)**
+*Prueba de la versión web en el navegador interno (escritorio de 1.280 px y celular de 390 px, Supabase real, sin cuenta): la calculadora y la simulación dan los mismos números que el barrido, pero aparecieron un error y dos detalles.*
+- [x] Error: la política de datos dice "versión 2026-10-05" aunque su contenido cambió el 2026-10-14 (se agregó Open-Meteo); poner la fecha del cambio y generar de nuevo el APK 1.1.1
+- [x] La dirección de la página no cambia al abrir los resultados o la simulación (sigue en `#/calculadora`): en la web, recargar o usar "atrás" del navegador puede perder el resultado. Que la dirección refleje la pantalla y que, si se recarga sin datos, vuelva a la calculadora en vez de fallar
+- [x] El aviso "Revisa los campos marcados." sigue visible después de corregir el campo; que desaparezca en cuanto se cambia un campo
+- [x] La política dice "Si cambia, la app te lo indicará", pero la app nunca compara la versión aceptada (`politica_datos` en los metadatos de la cuenta) con la actual. Aviso en el inicio cuando no coinciden, con "Leer" y "Entendido" (que guarda la versión nueva en la cuenta)
+- [x] Resultados del cálculo: la tarjeta decía "Sistema recomendado (híbrido)", pero la app nunca recomienda un sistema, solo muestra el que el usuario eligió; ahora dice "Sistema híbrido", "Sistema aislado" o "Sistema conectado a la red"
+- [x] Historial → Cálculos: al tocar un cálculo no pasa nada (solo se puede eliminar), mientras que una simulación abre su detalle. Que un cálculo abra sus resultados guardados (los mismos de la pantalla de resultados, en estado "Cálculo guardado" y con "Simular la salud de esta batería" ya vinculado a él): reconstruir las entradas y los resultados desde lo guardado (`EntradasCalculo.desdeMapa` y `ResultadoCalculo.desdeMapa`), ruta `#/historial/calculo` que vuelve al historial si se recarga sin datos, y pruebas (ida y vuelta de los datos, abrir desde el historial, cálculos viejos sin los campos nuevos)
+- [x] Verificación en Docker y prueba en la web con una cuenta iniciada (guardar, historial, detalle, perfil): Docker en un clon limpio con los cambios (formato, análisis, 223 pruebas, validación y barrido idénticos, web compila) y recorrido en el navegador interno con la cuenta del autor (2026-10-14)
+
+**8. La demo**
+- [ ] Reactivar Supabase y ensayar la demo completa 24 horas antes, con un registro con correo nuevo, y probar el APK 1.1.1 en un celular que no sea el de desarrollo
 - [ ] No cambiar código en los dos días antes de la entrega salvo que algo esté roto
 
 ## Etapa 15 — Documentación y entrega
@@ -331,4 +352,4 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [ ] Documento de validación del modelo (Dart vs. NetLogo) de la Etapa 4: partir de `VALIDACION_DART.md` y sumar lo del clima por ciudad
 - [ ] Capturas de pantalla y, si la materia lo pide, video demo
 - [ ] Preparar la sustentación: qué parte viene de cada materia y cómo se conectan (con el guion de la Etapa 14)
-- [ ] Entregar el APK 1.1.0 y el enlace al repositorio
+- [ ] Entregar el APK 1.1.1 y el enlace al repositorio

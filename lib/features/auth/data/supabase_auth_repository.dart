@@ -104,10 +104,27 @@ class SupabaseAuthRepository implements AuthRepository {
   );
 
   @override
+  Future<void> aceptarPolitica() => _ejecutar(
+    () => _auth.updateUser(
+      UserAttributes(
+        data: {
+          'politica_datos': PoliticaDatos.version,
+          'politica_aceptada_en': DateTime.now().toUtc().toIso8601String(),
+        },
+      ),
+    ),
+  );
+
+  @override
   Future<void> cerrarSesion() => _ejecutar(_auth.signOut);
 
-  static Usuario? _aUsuario(User? user) =>
-      user == null ? null : Usuario(id: user.id, email: user.email ?? '');
+  static Usuario? _aUsuario(User? user) => user == null
+      ? null
+      : Usuario(
+          id: user.id,
+          email: user.email ?? '',
+          versionPolitica: user.userMetadata?['politica_datos'] as String?,
+        );
 
   static Future<T> _ejecutar<T>(
     Future<T> Function() accion, {

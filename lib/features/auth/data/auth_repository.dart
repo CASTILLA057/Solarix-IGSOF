@@ -42,6 +42,10 @@ abstract interface class AuthRepository {
   /// Cambia la contraseña del usuario con sesión activa.
   Future<void> cambiarContrasena(String nuevaContrasena);
 
+  /// Guarda en la cuenta que el usuario conoce la versión actual de la
+  /// política de datos (Ley 1581): la versión y la fecha.
+  Future<void> aceptarPolitica();
+
   Future<void> cerrarSesion();
 }
 
@@ -95,6 +99,9 @@ class SinBackendAuthRepository implements AuthRepository {
   @override
   Future<void> cambiarContrasena(String nuevaContrasena) =>
       Future.error(_error);
+
+  @override
+  Future<void> aceptarPolitica() async {}
 
   @override
   Future<void> cerrarSesion() async {}

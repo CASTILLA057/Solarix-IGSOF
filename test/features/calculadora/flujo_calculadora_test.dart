@@ -98,10 +98,7 @@ void main() {
     await tocar(tester, boton('Calcular'));
 
     expect(find.text('Resultados'), findsOneWidget);
-    expect(
-      find.text('Sistema recomendado (conectado a la red)'),
-      findsOneWidget,
-    );
+    expect(find.text('Sistema conectado a la red'), findsOneWidget);
     // Sin batería no hay con qué comparar.
     expect(find.text('¿Y sin batería?'), findsNothing);
     await tocar(tester, boton('Guardar cálculo'));
@@ -193,6 +190,23 @@ void main() {
     }
     await tocar(tester, find.text('Supuestos técnicos y financieros'));
     expect(textoDe(tester, 'Autoconsumo'), '70');
+  });
+
+  testWidgets('el aviso de campos desaparece al corregir el campo', (
+    tester,
+  ) async {
+    await abrirCalculadora(tester);
+    await tocar(tester, boton('Siguiente'));
+    await tocar(tester, find.text('Mi factura'));
+    await tocar(tester, boton('Siguiente'));
+    expect(find.text('Revisa los campos marcados.'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Consumo mensual de la factura'),
+      '300',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Revisa los campos marcados.'), findsNothing);
   });
 
   testWidgets('pide al menos un equipo', (tester) async {
