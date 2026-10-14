@@ -1,6 +1,6 @@
 # Pruebas de Solarix
 
-Cómo se prueba la app y cómo correr cada tipo de prueba. Lo que se encuentre y se corrija queda en [`BITACORA.md`](BITACORA.md).
+Cómo se prueba la app y cómo correr cada tipo de prueba. Las fuentes de los datos están en [`FUENTES.md`](FUENTES.md).
 
 ## 1. Pruebas automáticas (`flutter test`)
 

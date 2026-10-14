@@ -90,7 +90,7 @@ double hspParaZona(ZonaIrradiancia zona) => switch (zona) {
 };
 
 /// Ciudades de la lista (la única fuente desde la Etapa 12). La altura es
-/// la aproximada de la cabecera (`BITACORA.md`, clima por ciudad); define el
+/// la aproximada de la cabecera (`docs/FUENTES.md`, clima por ciudad); define el
 /// consumo de subsistencia.
 /// HSP = promedio anual de radiación global horizontal de NASA POWER
 /// (`ALLSKY_SFC_SW_DWN`), consultado el 2026-10-01 en las coordenadas de
@@ -144,7 +144,7 @@ const ciudadesBase = <Ciudad>[
 /// La temperatura se corrige por altitud, porque la celda de NASA (≈ 50 km)
 /// promedia valle y montaña: `T = T2M + 0,0065 · (altitud de la celda −
 /// altitud de la ciudad)` (6,5 °C por cada 1.000 m). Sin corregir, Cali
-/// daba 16 °C y Bogotá 19 °C. Altitudes en `BITACORA.md`.
+/// daba 16 °C y Bogotá 19 °C. Altitudes en `docs/FUENTES.md`.
 const _climaCiudades = <String, ClimaLugar>{
   'Arauca': ClimaLugar(
     lluviaMmDia: 4.15,

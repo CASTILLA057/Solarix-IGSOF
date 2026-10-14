@@ -1,6 +1,6 @@
 # Despliegue de Solarix
 
-Cómo generar el ícono y el splash, firmar el APK de Android y (más adelante) publicar la versión web. Lo hecho queda en [`BITACORA.md`](BITACORA.md).
+Cómo generar el ícono y el splash, firmar el APK de Android y (más adelante) publicar la versión web. Las fuentes de los datos están en [`FUENTES.md`](FUENTES.md).
 
 ## 1. Ícono y pantalla de arranque (splash)
 

@@ -133,7 +133,7 @@ class Precios {
   });
 
   /// Valores de referencia de tiendas colombianas, octubre de 2026 (los
-  /// mismos de la migración; fuentes en docs/BITACORA.md). La instalación
+  /// mismos de la migración; fuentes en docs/FUENTES.md). La instalación
   /// incluye mano de obra, certificación RETIE y trámites con el operador.
   static const referencia = Precios();
 

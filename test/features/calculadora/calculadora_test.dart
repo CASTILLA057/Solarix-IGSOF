@@ -205,7 +205,7 @@ void main() {
 
   test('el costo por kWp instalado está en el rango del mercado', () {
     // Mercado residencial colombiano 2026: 2 a 5,5 millones COP por kWp
-    // instalado, con RETIE y trámites (fuentes en docs/BITACORA.md).
+    // instalado, con RETIE y trámites (fuentes en docs/FUENTES.md).
     for (final consumo in [150.0, 300.0, 600.0]) {
       final r = calcular(
         EntradasCalculo(

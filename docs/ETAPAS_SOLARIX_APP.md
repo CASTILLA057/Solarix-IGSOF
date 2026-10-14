@@ -8,7 +8,7 @@
 
 **Regla de pruebas:** toda fórmula (consumo, costos, payback, degradación) se prueba en la misma etapa en que se escribe, no al final.
 
-**Bitácora:** todo lo que se hace, corrige o elimina queda registrado en [`BITACORA.md`](BITACORA.md).
+**Bitácora:** todo lo que se hace, corrige o elimina queda registrado en `docs/BITACORA.md` (solo local, fuera de git). Las fuentes de los datos están en [`FUENTES.md`](FUENTES.md).
 
 ## Decisiones técnicas de partida
 
@@ -275,7 +275,7 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Citar el concepto CREG 3023 de 2026 (el consumo facturable del autogenerador es el neto después de la permuta y el subsidio se aplica sobre ese neto) en `valorEnergiaMes`, en el ⓘ del estrato y en `BITACORA.md`
 - [x] Pruebas: "Mi ubicación" a 2.600 m da 130; sin altitud da 173 con aviso; el subsidio editado cambia el ahorro
 - [ ] Pruebas de los tres puntos y prueba manual en Chrome y Android (`PRUEBAS.md`, pasos 27 a 30)
-- [ ] Tres commits separados: sin batería, aislado y estrato
+- [x] Commits: quedaron dos de código (aislado; sin batería y estrato juntos, porque cambian las mismas funciones) y uno de documentación
 
 ## Etapa 13 — Rediseño de la interfaz según el mockup
 *Guía completa, con el código de cada widget y pantalla: [`MEJORAS_UI_MOCKUP.md`](MEJORAS_UI_MOCKUP.md) (mockup "Solarix — Mockups UI/UX" en Figma, Ingeniería de Software, Clase 13). Solo cambia la capa de presentación: cálculos, Supabase, rutas y validaciones quedan igual. Diseño de celular por debajo de 900 px y diseño web desde 900 px.*
@@ -292,12 +292,43 @@ Pasos para repetirlo: [`DESPLIEGUE.md`](DESPLIEGUE.md).
 - [x] Pruebas: actualizar las que buscan textos que cambian (guía, sección 6), contraste de `solarSuave` en claro y oscuro, y mantener la prueba de 320 px
 - [x] Revisión visual contra el mockup en celular y web, claro y oscuro, y prueba manual en Chrome y Android (aprobada por el autor)
 
-## Etapa 14 — Documentación y entrega
-- [ ] README con instrucciones de instalación y variables de entorno de Supabase
+## Etapa 14 — Arreglos (revisión crítica 4, 2026-10-13)
+*Revisión del proyecto entero con la versión 1.1.0 lista para la entrega. El código está sano (`flutter analyze` sin advertencias, 220 pruebas pasan); lo que falta es la defensa. Ordenados por gravedad.*
+
+**1. Responder "¿para qué simular la batería?" con datos (la más grave)**
+*Con lo medido hasta hoy, la simulación no cambia el dinero en ningún caso probado: con red, la batería vale casi solo el Cv por kWh y resta al VPN; en el aislado de Bogotá (16,5 kWh, zona muy nublada) las dos políticas dieron el mismo SoH los 10 años (95,7 %); y el modelo pierde 0,43 puntos por año frente a 1,3–1,7 de la literatura, así que la vida la limita siempre el tope calendario. La decisión del 2026-10-05 sigue abierta.*
+- [x] Barrido de configuraciones (script en `tool/`): batería de 1, 2 y 3 días de autonomía (o capacidades equivalentes), zonas muy soleada, mixta y muy nublada, y las dos políticas; tabla con caída del SoH, diferencia entre políticas, vida usada en el flujo y VPN
+- [x] Escribir la conclusión con esa tabla: cuándo la política consciente importa (batería pequeña o muy exigida) y cuándo no (batería bien dimensionada), y qué significa para la decisión de inversión
+- [x] Guardar la tabla y la conclusión en `docs/` para la sustentación
+
+**2. La defensa (lo que se califica)**
+- [x] Hoja de fórmulas: una línea por constante y por decisión, con su origen, incluida la capa que conecta los dos módulos (PR 0,78; factor 1,25; tasa C 0,16 y carga máxima 95 %; exponente acotado entre 0,3 y 2; vida calendario 15 / 6 años; Cv $100; bolsa $300; 173 / 130 kWh; subsidios 60 / 50 / 15 % y contribución 20 %; deducción de renta en el año 1; irradiancia ajustada por ciudad con tope de 1.100 W/m²)
+- [x] Diapositiva de límites del modelo: degradación unas tres veces más lenta que la literatura, sin envejecimiento calendario (por eso el tope), validación solo contra NetLogo (no contra baterías reales), coeficientes sin calibrar con datos medidos, configuraciones por ciudad interpoladas que no se validaron una por una, y con red la batería no se paga (se compra por los cortes)
+- [x] Guion de la sustentación con la conclusión del punto 1 como hilo central
+
+**3. Fuentes versionadas**
+*`docs/BITACORA.md` es solo local (`.gitignore`), pero siete lugares que sí están en git la citan como fuente: precios (`modelos.dart`, la migración de la calculadora y `calculadora_test.dart`), altitudes (`catalogos.dart`, dos veces), el criterio de zonas y la cita de la CREG (este plan), y las guías de despliegue y de pruebas. Quien clone el repositorio no encuentra esas fuentes, y solo existen en este PC.*
+- [x] `docs/FUENTES.md` en git: precios y tiendas, HSP y altitudes, criterio de zonas climáticas, normativa (CREG 174 de 2021, concepto CREG 3023 de 2026, UPME 355 de 2004, Ley 1715 de 2014 y Ley 2099 de 2021, Ley 1581 de 2012, Leyes 142 y 1117 sobre subsidios y contribución) y fechas de consulta
+- [x] Que las siete referencias apunten a `FUENTES.md` en vez de a `BITACORA.md`
+- [ ] Copia de respaldo de `BITACORA.md` fuera de este PC (por ejemplo, junto a la llave de firma en Google Drive)
+
+**4. README que lleve a una instalación completa**
+*Hoy dice que basta con ejecutar `20261001000000_esquema_inicial.sql`, pero hay cuatro migraciones: siguiéndolo, "Eliminar mi cuenta" falla (falta `eliminar_mi_cuenta`) y faltan los límites de seguridad.*
+- [x] Las cuatro migraciones en orden (o `supabase db push`)
+- [x] Qué hace la app hoy: "Probar sin cuenta", estrato, Ley 1715, comparación sin batería, clima por ciudad
+- [x] Versión 1.1.0, cómo instalar el APK y dónde está (`entregas/`, fuera de git)
+
+**5. Cerrar lo pendiente de la Etapa 12**
+- [ ] Prueba en Chrome de los pasos 27 a 30 de `PRUEBAS.md`, y en Android el paso 28 completo (guardar la simulación del aislado y ver su detalle en el historial)
+- [x] Actualizar la tarea "Tres commits separados" de la Etapa 12: quedaron dos de código (aislado; sin batería y estrato juntos, porque cambian las mismas funciones) y uno de documentación
+
+**6. La demo**
+- [ ] Reactivar Supabase y ensayar la demo completa 24 horas antes, con un registro con correo nuevo, y probar el APK 1.1.0 en un celular que no sea el de desarrollo
+- [ ] No cambiar código en los dos días antes de la entrega salvo que algo esté roto
+
+## Etapa 15 — Documentación y entrega
 - [ ] Manual breve de usuario (puedes reaprovechar texto de los dos Word que ya tienes)
-- [ ] Documento de validación del modelo (Dart vs. NetLogo) de la Etapa 4
+- [ ] Documento de validación del modelo (Dart vs. NetLogo) de la Etapa 4: partir de `VALIDACION_DART.md` y sumar lo del clima por ciudad
 - [ ] Capturas de pantalla y, si la materia lo pide, video demo
-- [ ] Preparar la sustentación: qué parte viene de cada materia y cómo se conectan
-- [ ] Diapositiva de límites del modelo: sin envejecimiento calendario, validación Dart contra NetLogo (no contra baterías reales), coeficientes sin calibrar con datos medidos, y configuraciones por ciudad interpoladas que no se validaron una por una
-- [ ] Hoja de fórmulas con el origen de cada constante, para responder sin mirar el código
-- [ ] Reactivar Supabase y ensayar la demo 24 horas antes (registro con correo nuevo incluido)
+- [ ] Preparar la sustentación: qué parte viene de cada materia y cómo se conectan (con el guion de la Etapa 14)
+- [ ] Entregar el APK 1.1.0 y el enlace al repositorio

@@ -20,7 +20,7 @@ create policy "precios: leer con sesión"
   on public.precios_referencia for select to authenticated
   using (true);
 
--- Precios de tiendas colombianas, octubre de 2026 (fuentes en docs/BITACORA.md).
+-- Precios de tiendas colombianas, octubre de 2026 (fuentes en docs/FUENTES.md).
 -- Calibrados para que un sistema residencial instalado quede entre 2 y 5,5
 -- millones COP por kWp, el rango del mercado con RETIE y trámites.
 -- Deben coincidir con Precios.referencia en lib/features/calculadora/domain/modelos.dart.
